@@ -1,0 +1,71 @@
+{
+    "function_params": {
+        "get_temperature": {
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "city_list": {
+                        "type": "array",
+                        "description": "需要查询气温的城市数组，如['昆明','丽江',...]",
+                        "items": {
+                            "type": "string",
+                            "description": "请输入城市，如昆明"
+                        }
+                    }
+                },
+                "required": [
+                    "city_list"
+                ]
+            }
+        },
+        "get_moisture": {
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "city_list": {
+                        "type": "array",
+                        "description": "需要查询湿度的城市数组，如['昆明','丽江',...]",
+                        "items": {
+                            "type": "string",
+                            "description": "请输入城市，如昆明"
+                        }
+                    }
+                },
+                "required": [
+                    "city_list"
+                ]
+            }
+        },
+        "get_population": {
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "obj_list": {
+                        "type": "array",
+                        "description": "需要查询湿度的城市-年份数组，如（[{'city':'昆明','year':'2019年'},...]）",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "city": {
+                                    "type": "string",
+                                    "description": "城市名"
+                                },
+                                "year": {
+                                    "type": "string",
+                                    "description": "查询年份"
+                                }
+                            }
+                        },
+                        "required": [
+                            "city",
+                            "year"
+                        ]
+                    }
+                },
+                "required": [
+                    "obj_list"
+                ]
+            }
+        }
+    }
+}
