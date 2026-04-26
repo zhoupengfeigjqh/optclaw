@@ -1,0 +1,68 @@
+# ==============================================
+# AI Agent 配置文件
+# 层级：agent → model
+# 严格匹配 Pydantic ModelConfig
+# ==============================================
+
+# ============================================================================
+# Models Configuration
+# ============================================================================
+# Configure available LLM models for the agent to use
+models:
+  # Example: Volcengine (Doubao) model
+  - name: doubao-seed-1.8
+    display_name: Doubao-Seed-1.8
+    use: optclaw.models.patched_deepseek:PatchedChatDeepSeek
+    model: doubao-seed-1-8-251228
+    base_url: https://ark.cn-beijing.volces.com/api/v3
+    api_key: 31d61644-628b-4332-9e5c-1987c99f3427
+    timeout: 600.0
+    max_retries: 3
+    supports_thinking: true
+    supports_vision: true
+    supports_reasoning_effort: true
+    when_thinking_enabled:
+      extra_body:
+        thinking:
+          type: enabled
+
+# ============================================================================
+# Tool Groups Configuration
+# ============================================================================
+# Define groups of tools for organization and access control
+
+tool_groups:
+  - name: web
+  - name: file:read
+  - name: file:write
+  - name: bash
+
+# ============================================================================
+# Tool Groups Configuration
+# ============================================================================
+# Define groups of tools for organization and access control
+
+tool_groups:
+  - name: web
+  - name: file:read
+  - name: file:write
+  - name: bash
+
+# ============================================================================
+# Tools Configuration
+# ============================================================================
+# Configure available tools for the agent to use
+
+tools:
+  # Web search tool (uses DuckDuckGo, no API key required)
+  - name: web_search
+    group: web
+    use: optclaw.community.ddg_search.tools:web_search_tool
+    max_results: 5
+
+  # Web search tool (requires Tavily API key)
+  - name: web_search
+    group: web
+    use: optclaw.community.tavily.tools:web_search_tool
+    max_results: 5
+    api_key: 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
