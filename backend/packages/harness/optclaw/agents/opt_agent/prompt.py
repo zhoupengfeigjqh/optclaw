@@ -4,10 +4,10 @@ import threading
 from datetime import datetime
 from functools import lru_cache
 
-from deerflow.config.agents_config import load_agent_soul
-from deerflow.skills import load_skills
-from deerflow.skills.types import Skill
-from deerflow.subagents import get_available_subagent_names
+from optclaw.config.agents_config import load_agent_soul
+from optclaw.skills import load_skills
+from optclaw.skills.types import Skill
+from optclaw.subagents import get_available_subagent_names
 
 logger = logging.getLogger(__name__)
 
