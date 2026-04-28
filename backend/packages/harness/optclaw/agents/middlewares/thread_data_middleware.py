@@ -1,5 +1,6 @@
 import logging
-from typing import NotRequired, override
+from typing import NotRequired
+from typing_extensions import override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware

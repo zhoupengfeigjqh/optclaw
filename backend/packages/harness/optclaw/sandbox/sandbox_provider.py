@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
-from deerflow.config import get_app_config
-from deerflow.reflection import resolve_class
-from deerflow.sandbox.sandbox import Sandbox
+from optclaw.config import get_app_config
+from optclaw.reflection import resolve_class
+from optclaw.sandbox.sandbox import Sandbox
 
 
 class SandboxProvider(ABC):

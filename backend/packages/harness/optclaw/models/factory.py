@@ -1,5 +1,5 @@
 import logging
-from langchain_openai import ChatOpenAI
+from langchain_core.language_models import BaseChatModel
 
 from optclaw.config import get_app_config
 
@@ -28,7 +28,7 @@ def _vllm_disable_chat_template_kwargs(chat_template_kwargs: dict) -> dict:
     return disable_kwargs
 
 
-def create_chat_model(name: str | None = None, thinking_enabled: bool = False, **kwargs) -> ChatOpenAI:
+def create_chat_model(name: str | None = None, thinking_enabled: bool = False, **kwargs) -> BaseChatModel:
     """Create a chat model instance from the config.
 
     Args:
@@ -94,6 +94,27 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
 
     logger.warning(f"Creating model '{name}' with settings: {model_settings_from_config} and kwargs: {kwargs}")
     
-    model:ChatOpenAI = ChatOpenAI(**model_settings_from_config)
+    # model type
+    logger.warning(f"Model class: {model_config.use}")
+    model_class_name = model_config.use.split(':')[1]
+    if model_class_name is None:
+        # 允许在 config.yaml 中指定一个完全自定义的模型类，覆盖默认的 ChatOpenAI
+        raise Exception(f'模型类型设置{model_config.use}缺失，请检查！')
+    if model_class_name == 'PatchedChatDeepSeek':
+        from optclaw.models.patched_deepseek import PatchedChatDeepSeek
+        model_class = PatchedChatDeepSeek
+    elif model_class_name == 'PatchedChatMiniMax':
+        from optclaw.models.patched_minimax import PatchedChatMiniMax
+        model_class = PatchedChatMiniMax
+    elif model_class_name == 'PatchedChatOpenAI':
+        from optclaw.models.patched_openai import PatchedChatOpenAI
+        model_class = PatchedChatOpenAI
+    elif model_class_name == 'ChatOpenAI':
+        from langchain_openai import ChatOpenAI
+        model_class = ChatOpenAI
+    else:
+        raise Exception(f'不支持的模型类型：{model_class_name}，请检查！')
+
+    model:BaseChatModel = model_class(**model_settings_from_config)
 
     return model

@@ -10,11 +10,11 @@ from langchain.tools import InjectedToolCallId, ToolRuntime, tool
 from langgraph.config import get_stream_writer
 from langgraph.typing import ContextT
 
-from deerflow.agents.lead_agent.prompt import get_skills_prompt_section
-from deerflow.agents.thread_state import ThreadState
-from deerflow.sandbox.security import LOCAL_BASH_SUBAGENT_DISABLED_MESSAGE, is_host_bash_allowed
-from deerflow.subagents import SubagentExecutor, get_available_subagent_names, get_subagent_config
-from deerflow.subagents.executor import SubagentStatus, cleanup_background_task, get_background_task_result, request_cancel_background_task
+from optclaw.agents.opt_agent.prompt import get_skills_prompt_section
+from optclaw.agents.thread_state import ThreadState
+from optclaw.sandbox.security import LOCAL_BASH_SUBAGENT_DISABLED_MESSAGE, is_host_bash_allowed
+from optclaw.subagents import SubagentExecutor, get_available_subagent_names, get_subagent_config
+from optclaw.subagents.executor import SubagentStatus, cleanup_background_task, get_background_task_result, request_cancel_background_task
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ async def task_tool(
 
     # Get available tools (excluding task tool to prevent nesting)
     # Lazy import to avoid circular dependency
-    from deerflow.tools import get_available_tools
+    from optclaw.tools import get_available_tools
 
     # Subagents should not have subagent tools enabled (prevent recursive nesting)
     tools = get_available_tools(model_name=parent_model, subagent_enabled=False)

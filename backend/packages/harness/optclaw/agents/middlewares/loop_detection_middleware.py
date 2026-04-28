@@ -17,7 +17,8 @@ import json
 import logging
 import threading
 from collections import OrderedDict, defaultdict
-from typing import override
+# from typing import override
+from typing_extensions import override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware

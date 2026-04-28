@@ -4,21 +4,21 @@ from langchain.agents import create_agent
 from langchain.agents.middleware import AgentMiddleware, SummarizationMiddleware
 from langchain_core.runnables import RunnableConfig
 
-from .prompt import apply_prompt_template
-from middlewares.clarification_middleware import ClarificationMiddleware
-from middlewares.loop_detection_middleware import LoopDetectionMiddleware
-from middlewares.memory_middleware import MemoryMiddleware
-from middlewares.subagent_limit_middleware import SubagentLimitMiddleware
-from middlewares.title_middleware import TitleMiddleware
-from middlewares.todo_middleware import TodoMiddleware
-from middlewares.token_usage_middleware import TokenUsageMiddleware
-from middlewares.tool_error_handling_middleware import build_lead_runtime_middlewares
-from middlewares.view_image_middleware import ViewImageMiddleware
-from thread_state import ThreadState
-from config.summarization_config import get_summarization_config
-from models import create_chat_model
-from config import get_app_config
-from config.agents_config import load_agent_config
+from optclaw.agents.opt_agent.prompt import apply_prompt_template
+from optclaw.agents.middlewares.clarification_middleware import ClarificationMiddleware
+from optclaw.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
+from optclaw.agents.middlewares.memory_middleware import MemoryMiddleware
+from optclaw.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
+from optclaw.agents.middlewares.title_middleware import TitleMiddleware
+from optclaw.agents.middlewares.todo_middleware import TodoMiddleware
+from optclaw.agents.middlewares.token_usage_middleware import TokenUsageMiddleware
+from optclaw.agents.middlewares.tool_error_handling_middleware import build_lead_runtime_middlewares
+from optclaw.agents.middlewares.view_image_middleware import ViewImageMiddleware
+from optclaw.agents.thread_state import ThreadState
+from optclaw.config.summarization_config import get_summarization_config
+from optclaw.models import create_chat_model
+from optclaw.config import get_app_config
+from optclaw.config.agents_config import load_agent_config
 
 logger = logging.getLogger(__name__)
 

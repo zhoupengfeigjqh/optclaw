@@ -7,12 +7,12 @@ Supported backends: memory, sqlite, postgres.
 
 Usage (e.g. FastAPI lifespan)::
 
-    from deerflow.agents.checkpointer.async_provider import make_checkpointer
+    from optclaw.agents.checkpointer.async_provider import make_checkpointer
 
     async with make_checkpointer() as checkpointer:
         app.state.checkpointer = checkpointer  # InMemorySaver if not configured
 
-For sync usage see :mod:`deerflow.agents.checkpointer.provider`.
+For sync usage see :mod:`optclaw.agents.checkpointer.provider`.
 """
 
 from __future__ import annotations
@@ -24,13 +24,13 @@ from collections.abc import AsyncIterator
 
 from langgraph.types import Checkpointer
 
-from deerflow.agents.checkpointer.provider import (
+from optclaw.agents.checkpointer.provider import (
     POSTGRES_CONN_REQUIRED,
     POSTGRES_INSTALL,
     SQLITE_INSTALL,
 )
-from deerflow.config.app_config import get_app_config
-from deerflow.runtime.store._sqlite_utils import ensure_sqlite_parent_dir, resolve_sqlite_conn_str
+from optclaw.config.app_config import get_app_config
+from optclaw.runtime.store._sqlite_utils import ensure_sqlite_parent_dir, resolve_sqlite_conn_str
 
 logger = logging.getLogger(__name__)
 

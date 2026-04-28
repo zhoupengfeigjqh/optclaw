@@ -1,13 +1,14 @@
 """Middleware for injecting image details into conversation before LLM call."""
 
 import logging
-from typing import override
+# from typing import override
+from typing_extensions import override
 
 from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.runtime import Runtime
 
-from deerflow.agents.thread_state import ThreadState
+from optclaw.agents.thread_state import ThreadState
 
 logger = logging.getLogger(__name__)
 

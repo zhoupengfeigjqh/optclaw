@@ -7,7 +7,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel
 
-from config.paths import get_paths
+from optclaw.config.paths import get_paths
 
 logger = logging.getLogger(__name__)
 

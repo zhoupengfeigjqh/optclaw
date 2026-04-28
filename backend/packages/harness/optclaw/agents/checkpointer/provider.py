@@ -7,7 +7,7 @@ Supported backends: memory, sqlite, postgres.
 
 Usage::
 
-    from deerflow.agents.checkpointer.provider import get_checkpointer, checkpointer_context
+    from optclaw.agents.checkpointer.provider import get_checkpointer, checkpointer_context
 
     # Singleton — reused across calls, closed on process exit
     cp = get_checkpointer()
@@ -25,9 +25,9 @@ from collections.abc import Iterator
 
 from langgraph.types import Checkpointer
 
-from deerflow.config.app_config import get_app_config
-from deerflow.config.checkpointer_config import CheckpointerConfig
-from deerflow.runtime.store._sqlite_utils import resolve_sqlite_conn_str
+from optclaw.config.app_config import get_app_config
+from optclaw.config.checkpointer_config import CheckpointerConfig
+from optclaw.runtime.store._sqlite_utils import resolve_sqlite_conn_str
 
 logger = logging.getLogger(__name__)
 
@@ -116,8 +116,8 @@ def get_checkpointer() -> Checkpointer:
     # Ensure app config is loaded before checking checkpointer config
     # This prevents returning InMemorySaver when config.yaml actually has a checkpointer section
     # but hasn't been loaded yet
-    from deerflow.config.app_config import _app_config
-    from deerflow.config.checkpointer_config import get_checkpointer_config
+    from optclaw.config.app_config import _app_config
+    from optclaw.config.checkpointer_config import get_checkpointer_config
 
     config = get_checkpointer_config()
 

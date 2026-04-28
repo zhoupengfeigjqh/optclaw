@@ -6,13 +6,14 @@ class ModelConfig(BaseModel):
 
     # 唯一标识名称
     name: str = Field(..., description="Unique name for the model")
+    
+    # 可选展示名称
+    display_name: str | None = Field(..., default_factory=lambda: None, description="Display name for the model")
+
     # 模型官方名称
     model: str = Field(..., description="Model name")
-    # API 基础地址
-    base_url: str = Field(..., description="Base URL for the model API")
-    # API 密钥
-    api_key: str = Field(..., description="API key for authentication")
-    # 模型提供者类路径  补丁修正
+
+    # 模型提供者类路径 修正
     use: str = Field(
         ...,
         description="Class path of the model provider(e.g. langchain_openai.ChatOpenAI)",

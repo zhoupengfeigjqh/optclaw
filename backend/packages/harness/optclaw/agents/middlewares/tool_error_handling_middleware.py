@@ -2,7 +2,8 @@
 
 import logging
 from collections.abc import Awaitable, Callable
-from typing import override
+# from typing import override
+from typing_extensions import override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware

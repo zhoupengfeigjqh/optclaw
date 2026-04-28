@@ -15,7 +15,8 @@ to the end of the message list as before_model + add_messages reducer would do.
 
 import logging
 from collections.abc import Awaitable, Callable
-from typing import override
+# from typing import override
+from typing_extensions import override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware

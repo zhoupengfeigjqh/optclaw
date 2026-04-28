@@ -6,7 +6,7 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import ToolRuntime
 from langgraph.types import Command
 
-from config.paths import get_paths
+from optclaw.config.paths import get_paths
 
 logger = logging.getLogger(__name__)
 

@@ -14,7 +14,7 @@ models:
     display_name: Doubao-Seed-1.8
     use: optclaw.models.patched_deepseek:PatchedChatDeepSeek
     model: doubao-seed-1-8-251228
-    base_url: https://ark.cn-beijing.volces.com/api/v3
+    api_base: https://ark.cn-beijing.volces.com/api/v3
     api_key: 31d61644-628b-4332-9e5c-1987c99f3427
     timeout: 600.0
     max_retries: 3

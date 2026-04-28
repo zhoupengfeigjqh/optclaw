@@ -2,11 +2,11 @@ import logging
 
 from langchain.tools import BaseTool
 
-from config import get_app_config
-from tools.builtins import ask_clarification_tool, present_file_tool, task_tool, view_image_tool
-from tools.builtins.tool_search import reset_deferred_registry
-# from deerflow.reflection import resolve_variable
-# from deerflow.sandbox.security import is_host_bash_allowed
+from optclaw.config import get_app_config
+from optclaw.tools.builtins import ask_clarification_tool, present_file_tool, task_tool, view_image_tool
+from optclaw.tools.builtins.tool_search import reset_deferred_registry
+from optclaw.reflection import resolve_variable
+from optclaw.sandbox.security import is_host_bash_allowed
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ def _is_host_bash_tool(tool: object) -> bool:
     use = getattr(tool, "use", None)
     if group == "bash":
         return True
-    if use == "deerflow.sandbox.tools:bash_tool":
+    if use == "optclaw.sandbox.tools:bash_tool":
         return True
     return False
 
@@ -41,7 +41,7 @@ def get_available_tools(
     """Get all available tools from config.
 
     Note: MCP tools should be initialized at application startup using
-    `initialize_mcp_tools()` from deerflow.mcp module.
+    `initialize_mcp_tools()` from optclaw.mcp module.
 
     Args:
         groups: Optional list of tool groups to filter by.
@@ -65,7 +65,7 @@ def get_available_tools(
     builtin_tools = BUILTIN_TOOLS.copy()
     skill_evolution_config = getattr(config, "skill_evolution", None)
     if getattr(skill_evolution_config, "enabled", False):
-        from deerflow.tools.skill_manage_tool import skill_manage_tool
+        from optclaw.tools.skill_manage_tool import skill_manage_tool
 
         builtin_tools.append(skill_manage_tool)
 
@@ -94,8 +94,8 @@ def get_available_tools(
     reset_deferred_registry()
     if include_mcp:
         try:
-            from deerflow.config.extensions_config import ExtensionsConfig
-            from deerflow.mcp.cache import get_cached_mcp_tools
+            from optclaw.config.extensions_config import ExtensionsConfig
+            from optclaw.mcp.cache import get_cached_mcp_tools
 
             extensions_config = ExtensionsConfig.from_file()
             if extensions_config.get_enabled_mcp_servers():
@@ -106,8 +106,8 @@ def get_available_tools(
                     # When tool_search is enabled, register MCP tools in the
                     # deferred registry and add tool_search to builtin tools.
                     if config.tool_search.enabled:
-                        from deerflow.tools.builtins.tool_search import DeferredToolRegistry, set_deferred_registry
-                        from deerflow.tools.builtins.tool_search import tool_search as tool_search_tool
+                        from optclaw.tools.builtins.tool_search import DeferredToolRegistry, set_deferred_registry
+                        from optclaw.tools.builtins.tool_search import tool_search as tool_search_tool
 
                         registry = DeferredToolRegistry()
                         for t in mcp_tools:
@@ -123,8 +123,8 @@ def get_available_tools(
     # Add invoke_acp_agent tool if any ACP agents are configured
     acp_tools: list[BaseTool] = []
     try:
-        from deerflow.config.acp_config import get_acp_agents
-        from deerflow.tools.builtins.invoke_acp_agent_tool import build_invoke_acp_agent_tool
+        from optclaw.config.acp_config import get_acp_agents
+        from optclaw.tools.builtins.invoke_acp_agent_tool import build_invoke_acp_agent_tool
 
         acp_agents = get_acp_agents()
         if acp_agents:
