@@ -1,0 +1,66 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-05-05T04:39:18.009596Z",
+  "user": {
+    "workContext": {
+      "summary": "",
+      "updatedAt": ""
+    },
+    "personalContext": {
+      "summary": "",
+      "updatedAt": ""
+    },
+    "topOfMind": {
+      "summary": "当前用户的核心关注点是了解AI助手可用的工具列表，涵盖搜索类、文件操作类和交互与展示类工具，可能后续有使用这些工具完成特定任务的需求，比如网页信息搜索、文件读写操作、图像查看与交互等。",
+      "updatedAt": "2026-05-05T04:37:12.490649Z"
+    }
+  },
+  "history": {
+    "recentMonths": {
+      "summary": "",
+      "updatedAt": ""
+    },
+    "earlierContext": {
+      "summary": "",
+      "updatedAt": ""
+    },
+    "longTermBackground": {
+      "summary": "",
+      "updatedAt": ""
+    }
+  },
+  "facts": [
+    {
+      "id": "fact_b6728673",
+      "content": "用户主动询问AI助手可用工具列表",
+      "category": "behavior",
+      "confidence": 1.0,
+      "createdAt": "2026-05-05T04:37:12.490649Z",
+      "source": "e93ca57e-bda1-4941-bc7e-a3a9045c8191"
+    },
+    {
+      "id": "fact_4fa690a9",
+      "content": "AI助手提供的搜索类工具包括web_search、web_fetch、image_search",
+      "category": "knowledge",
+      "confidence": 1.0,
+      "createdAt": "2026-05-05T04:37:12.490649Z",
+      "source": "e93ca57e-bda1-4941-bc7e-a3a9045c8191"
+    },
+    {
+      "id": "fact_ff258fdd",
+      "content": "AI助手提供的文件操作类工具包括ls、read_file、glob、grep、write_file、str_replace",
+      "category": "knowledge",
+      "confidence": 1.0,
+      "createdAt": "2026-05-05T04:37:12.490649Z",
+      "source": "e93ca57e-bda1-4941-bc7e-a3a9045c8191"
+    },
+    {
+      "id": "fact_4cad766c",
+      "content": "AI助手提供的交互与展示类工具包括present_files、ask_clarification、view_image",
+      "category": "knowledge",
+      "confidence": 1.0,
+      "createdAt": "2026-05-05T04:37:12.490649Z",
+      "source": "e93ca57e-bda1-4941-bc7e-a3a9045c8191"
+    }
+  ]
+}

@@ -4,53 +4,34 @@ from pydantic import BaseModel, ConfigDict, Field
 class ModelConfig(BaseModel):
     """Config section for a model"""
 
-    # 唯一标识名称
     name: str = Field(..., description="Unique name for the model")
-    
-    # 可选展示名称
     display_name: str | None = Field(..., default_factory=lambda: None, description="Display name for the model")
-
-    # 模型官方名称
-    model: str = Field(..., description="Model name")
-
-    # 模型提供者类路径 修正
+    description: str | None = Field(..., default_factory=lambda: None, description="Description for the model")
     use: str = Field(
         ...,
         description="Class path of the model provider(e.g. langchain_openai.ChatOpenAI)",
     )
-
-    # 可选描述信息
-    description: str | None = Field(
+    model: str = Field(..., description="Model name")
+    model_config = ConfigDict(extra="allow")
+    use_responses_api: bool | None = Field(
         default=None,
-        description="Description for the model"
+        description="Whether to route OpenAI ChatOpenAI calls through the /v1/responses API",
     )
-    # 请求超时时间（秒）
-    timeout: float = Field(
-        default=60.0,
-        description="Request timeout in seconds"
+    output_version: str | None = Field(
+        default=None,
+        description="Structured output version for OpenAI responses content, e.g. responses/v1",
     )
-    # 最大重试次数
-    max_retries: int = Field(
-        default=2,
-        description="Maximum number of retries for failed requests"
+    supports_thinking: bool = Field(default_factory=lambda: False, description="Whether the model supports thinking")
+    supports_reasoning_effort: bool = Field(default_factory=lambda: False, description="Whether the model supports reasoning effort")
+    when_thinking_enabled: dict | None = Field(
+        default_factory=lambda: None,
+        description="Extra settings to be passed to the model when thinking is enabled",
     )
-    # 是否支持思考过程
-    supports_thinking: bool = Field(
-        default=False,
-        description="Whether the model supports thinking/chain-of-thought"
+    when_thinking_disabled: dict | None = Field(
+        default_factory=lambda: None,
+        description="Extra settings to be passed to the model when thinking is disabled",
     )
-    # 是否支持视觉能力
-    supports_vision: bool = Field(
-        default=False,
-        description="Whether the model supports vision/image inputs"
-    )
-    # 是否支持推理强度配置
-    supports_reasoning_effort: bool = Field(
-        default=False,
-        description="Whether the model supports reasoning effort adjustment"
-    )
-
-    # 当思考过程启用时，传递给模型的额外设置
+    supports_vision: bool = Field(default_factory=lambda: False, description="Whether the model supports vision/image inputs")
     thinking: dict | None = Field(
         default_factory=lambda: None,
         description=(
@@ -58,12 +39,3 @@ class ModelConfig(BaseModel):
             "This is a shortcut for `when_thinking_enabled` and will be merged with `when_thinking_enabled` if both are provided."
         ),
     )
-
-    # 当思考过程启用时，传递给模型的额外设置（更灵活，可以针对不同的思考阶段配置不同的设置）
-    when_thinking_enabled: dict | None = Field(
-        default_factory=lambda: None,
-        description="Extra settings to be passed to the model when thinking is enabled",
-    )
-
-    # 允许额外字段
-    model_config = ConfigDict(extra="allow")
