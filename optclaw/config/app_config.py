@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 # from optclaw.config.acp_config import load_acp_config_from_dict
 # from optclaw.config.agents_api_config import AgentsApiConfig, load_agents_api_config_from_dict
 # from optclaw.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
-# from optclaw.config.extensions_config import ExtensionsConfig
+from optclaw.config.extensions_config import ExtensionsConfig
 # from optclaw.config.guardrails_config import GuardrailsConfig, load_guardrails_config_from_dict
 # from optclaw.config.memory_config import MemoryConfig, load_memory_config_from_dict
 from optclaw.config.model_config import ModelConfig
@@ -23,7 +23,7 @@ from optclaw.config.skills_config import SkillsConfig
 # from optclaw.config.summarization_config import SummarizationConfig, load_summarization_config_from_dict
 # from optclaw.config.title_config import TitleConfig, load_title_config_from_dict
 # from optclaw.config.token_usage_config import TokenUsageConfig
-# from optclaw.config.tool_config import ToolConfig, ToolGroupConfig
+from optclaw.config.tool_config import ToolConfig, ToolGroupConfig
 # from optclaw.config.tool_search_config import ToolSearchConfig, load_tool_search_config_from_dict
 
 load_dotenv()
@@ -52,11 +52,11 @@ class AppConfig(BaseModel):
     # token_usage: TokenUsageConfig = Field(default_factory=TokenUsageConfig, description="Token usage tracking configuration")
     models: list[ModelConfig] = Field(default_factory=list, description="Available models")
     # sandbox: SandboxConfig = Field(description="Sandbox configuration")
-    # tools: list[ToolConfig] = Field(default_factory=list, description="Available tools")
-    # tool_groups: list[ToolGroupConfig] = Field(default_factory=list, description="Available tool groups")
+    tools: list[ToolConfig] = Field(default_factory=list, description="Available tools")
+    tool_groups: list[ToolGroupConfig] = Field(default_factory=list, description="Available tool groups")
     skills: SkillsConfig = Field(default_factory=SkillsConfig, description="Skills configuration")
     skill_evolution: SkillEvolutionConfig = Field(default_factory=SkillEvolutionConfig, description="Agent-managed skill evolution configuration")
-    # extensions: ExtensionsConfig = Field(default_factory=ExtensionsConfig, description="Extensions configuration (MCP servers and skills state)")
+    extensions: ExtensionsConfig = Field(default_factory=ExtensionsConfig, description="Extensions configuration (MCP servers and skills state)")
     # tool_search: ToolSearchConfig = Field(default_factory=ToolSearchConfig, description="Tool search / deferred loading configuration")
     # title: TitleConfig = Field(default_factory=TitleConfig, description="Automatic title generation configuration")
     # summarization: SummarizationConfig = Field(default_factory=SummarizationConfig, description="Conversation summarization configuration")
@@ -246,27 +246,27 @@ class AppConfig(BaseModel):
         """
         return next((model for model in self.models if model.name == name), None)
 
-    # def get_tool_config(self, name: str) -> ToolConfig | None:
-    #     """Get the tool config by name.
+    def get_tool_config(self, name: str) -> ToolConfig | None:
+        """Get the tool config by name.
 
-    #     Args:
-    #         name: The name of the tool to get the config for.
+        Args:
+            name: The name of the tool to get the config for.
 
-    #     Returns:
-    #         The tool config if found, otherwise None.
-    #     """
-    #     return next((tool for tool in self.tools if tool.name == name), None)
+        Returns:
+            The tool config if found, otherwise None.
+        """
+        return next((tool for tool in self.tools if tool.name == name), None)
 
-    # def get_tool_group_config(self, name: str) -> ToolGroupConfig | None:
-    #     """Get the tool group config by name.
+    def get_tool_group_config(self, name: str) -> ToolGroupConfig | None:
+        """Get the tool group config by name.
 
-    #     Args:
-    #         name: The name of the tool group to get the config for.
+        Args:
+            name: The name of the tool group to get the config for.
 
-    #     Returns:
-    #         The tool group config if found, otherwise None.
-    #     """
-    #     return next((group for group in self.tool_groups if group.name == name), None)
+        Returns:
+            The tool group config if found, otherwise None.
+        """
+        return next((group for group in self.tool_groups if group.name == name), None)
 
 
 _app_config: AppConfig | None = None
