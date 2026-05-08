@@ -6,7 +6,8 @@ from optclaw.config import get_app_config
 from optclaw.reflection import resolve_class
 from optclaw.tracing import build_tracing_callbacks
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 def _deep_merge_dicts(base: dict | None, override: dict) -> dict:

@@ -15,7 +15,8 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from optclaw.skills.loader import get_skills_root_path
 from optclaw.skills.validation import _validate_skill_frontmatter
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 class SkillAlreadyExistsError(ValueError):

@@ -30,9 +30,10 @@ from optclaw.agents.checkpointer.provider import (
     SQLITE_INSTALL,
 )
 from optclaw.config.app_config import get_app_config
-from optclaw.runtime.store._sqlite_utils import ensure_sqlite_parent_dir, resolve_sqlite_conn_str
+from optclaw.agents.checkpointer._sqlite_utils import ensure_sqlite_parent_dir, resolve_sqlite_conn_str
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 # ---------------------------------------------------------------------------
 # Async factory

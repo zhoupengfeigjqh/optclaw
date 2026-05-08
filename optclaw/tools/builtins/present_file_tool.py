@@ -7,7 +7,7 @@ from langgraph.config import get_config
 from langgraph.types import Command
 from langgraph.typing import ContextT
 
-from optclaw.agents.thread_state import ThreadState
+from optclaw.agents import ThreadState
 from optclaw.config.paths import VIRTUAL_PATH_PREFIX, get_paths
 
 OUTPUTS_VIRTUAL_PREFIX = f"{VIRTUAL_PATH_PREFIX}/outputs"

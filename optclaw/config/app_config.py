@@ -28,7 +28,8 @@ from optclaw.config.tool_config import ToolConfig, ToolGroupConfig
 
 load_dotenv()
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 class CircuitBreakerConfig(BaseModel):

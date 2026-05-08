@@ -9,7 +9,8 @@ from typing import Any
 
 from optclaw.config.memory_config import get_memory_config
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 @dataclass

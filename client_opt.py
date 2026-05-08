@@ -52,7 +52,8 @@ from optclaw.uploads.manager import (
     upload_virtual_path,
 )
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 StreamEventType = Literal["values", "messages-tuple", "custom", "end"]

@@ -6,7 +6,8 @@ from optclaw.config import get_app_config
 from optclaw.reflection import resolve_variable
 from optclaw.tools.builtins import ask_clarification_tool, present_file_tool
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 BUILTIN_TOOLS = [
@@ -17,7 +18,7 @@ BUILTIN_TOOLS = [
 
 def get_available_tools(
     groups: list[str] | None = None,
-    include_mcp: bool = True,
+    include_mcp: bool = False,
     model_name: str | None = None,
     subagent_enabled: bool = False,
 ) -> list[BaseTool]:
@@ -37,6 +38,7 @@ def get_available_tools(
     """
     config = get_app_config()
     tool_configs = [tool for tool in config.tools if groups is None or tool.group in groups]
+    logger.info(f"Tool configs after group filtering: {[tool.name for tool in tool_configs]}")
 
     loaded_tools = [resolve_variable(tool.use, BaseTool) for tool in tool_configs]
 

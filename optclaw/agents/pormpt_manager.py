@@ -8,7 +8,8 @@ from optclaw.config.agents_config import load_agent_soul
 from optclaw.skills import load_skills
 from optclaw.skills.types import Skill
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 _ENABLED_SKILLS_REFRESH_WAIT_TIMEOUT_SECONDS = 5.0
 _enabled_skills_lock = threading.Lock()
@@ -39,8 +40,6 @@ def _refresh_enabled_skills_cache_worker() -> None:
 
         try:
             skills = _load_enabled_skills_sync()
-            print(_enabled_skills_cache)
-            print('ssssdddd')
         except Exception:
             logger.exception("Failed to load enabled skills for prompt injection")
             skills = []

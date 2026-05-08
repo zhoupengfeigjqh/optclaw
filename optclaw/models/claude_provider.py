@@ -29,7 +29,8 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import BaseMessage
 from pydantic import PrivateAttr
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 MAX_RETRIES = 3
 THINKING_BUDGET_RATIO = 0.8

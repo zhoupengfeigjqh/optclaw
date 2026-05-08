@@ -21,6 +21,9 @@ from langchain.agents.middleware.types import hook_config
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.runtime import Runtime
 
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
+
 
 def _todos_in_messages(messages: list[Any]) -> bool:
     """Return True if any AIMessage in *messages* contains a write_todos tool call."""

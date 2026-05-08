@@ -9,7 +9,8 @@ from langgraph.runtime import Runtime
 
 from optclaw.agents.thread_state import ThreadState
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 class ViewImageMiddlewareState(ThreadState):

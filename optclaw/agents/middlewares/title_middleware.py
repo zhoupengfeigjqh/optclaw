@@ -11,7 +11,8 @@ from langgraph.runtime import Runtime
 from optclaw.config.title_config import get_title_config
 from optclaw.models import create_chat_model
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 class TitleMiddlewareState(AgentState):
