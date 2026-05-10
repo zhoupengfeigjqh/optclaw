@@ -280,7 +280,6 @@ class Paths:
 
         return actual
 
-
 # ── Singleton ────────────────────────────────────────────────────────────
 
 _paths: Paths | None = None
