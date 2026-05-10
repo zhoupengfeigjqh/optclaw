@@ -3,8 +3,6 @@ import datetime
 import os
 
 
-from optclaw.config import get_app_config
-
 def cleanup_old_logs():
     # 获取当前日期
     current_date = datetime.datetime.now()
@@ -30,11 +28,15 @@ def cleanup_old_logs():
                 continue
 
 
-def setup_logging(name):
+def setup_logging(name, level='INFO'):
     # appendix = datetime.datetime.now().strftime("%Y-%m-%d")
     cleanup_old_logs()
+
+    # from optclaw.config.app_config import get_app_config
+    # level = os.getenv("MY_LOG_LEVEL", level)
     # 读取并转大写
-    log_level = get_app_config().log_level.strip().upper()
+    log_level = level.strip().upper()
+    # print(log_level)
     log_level = getattr(logging, log_level, logging.INFO)
 
     logging.basicConfig(

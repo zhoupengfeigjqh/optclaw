@@ -70,6 +70,10 @@ class AppConfig(BaseModel):
     # checkpointer: CheckpointerConfig | None = Field(default=None, description="Checkpointer configuration")
     # stream_bridge: StreamBridgeConfig | None = Field(default=None, description="Stream bridge configuration")
 
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
+        os.environ["MY_LOG_LEVEL"] = self.log_level
+
     @classmethod
     def resolve_config_path(cls, config_path: str | None = None) -> Path:
         """Resolve the config file path.
