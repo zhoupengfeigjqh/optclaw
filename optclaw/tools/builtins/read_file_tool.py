@@ -1,8 +1,6 @@
-from langgraph.config import get_config
 from langchain.tools import tool
 
-from optclaw.config.paths import get_paths, VIRTUAL_PATH_PREFIX
-from optclaw.config import get_app_config
+from .utiles import resolve_virtual_path
 
 from optclaw.log import setup_logging
 logger = setup_logging(__name__)
@@ -16,21 +14,12 @@ def read_file_tool(path: str) -> str:
     - This tool is intended for use when the agent needs to read file contents.
 
     Args:
-        path: The **absolute** path to the file to read.
+        path: The ***absolute*** path to the file to read.
     """
+    actual_path = resolve_virtual_path(path)
 
-    # 只有两种结构的路径被允许访问，且必须在这两种结构的路径下访问，其他路径一律拒绝访问以保证安全
-    container_skill_path = get_app_config().skills.container_path
-    if path.startswith(VIRTUAL_PATH_PREFIX):
-        config_data = get_config()
-        thread_id = config_data.get("configurable", {}).get("thread_id")
-        if not thread_id:
-            raise ValueError(f"No thread_id in context! Cannot resolve virtual paths ({path}) without thread context.") from None
-        actual_path = get_paths().resolve_virtual_path(thread_id, path)
-    elif path.startswith(container_skill_path):
-        actual_path = get_app_config().skills.get_skills_path() / path[len(container_skill_path):].lstrip("/")
-    else:
-        raise ValueError(f"Path:{path} is not started with {VIRTUAL_PATH_PREFIX} or {container_skill_path}, access denied for security reasons.") from None
+    if not actual_path:
+        raise ValueError(f"Path:{path} resolve to None, access denied for security reasons! If it is relative path, please use absolute path.") from None
 
     try:
         with open(actual_path, encoding="utf-8") as f:

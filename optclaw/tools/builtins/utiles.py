@@ -1,78 +1,34 @@
-# from pathlib import Path
+from langgraph.config import get_config
+
+from optclaw.config.paths import get_paths, VIRTUAL_PATH_PREFIX
+from optclaw.config import get_app_config
+
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
-# def _thread_virtual_to_actual_mappings(thread_data: ThreadDataState) -> dict[str, str]:
-#     """Build virtual-to-actual path mappings for a thread."""
-#     mappings: dict[str, str] = {}
+def resolve_virtual_path(path: str) -> str:
+    """Resolve a virtual path to an actual file system path. This is used to securely map virtual paths to real paths within the container.
 
-#     workspace = thread_data.get("workspace_path")
-#     uploads = thread_data.get("uploads_path")
-#     outputs = thread_data.get("outputs_path")
+    Args:
+        path: The virtual path to resolve.
 
-#     if workspace:
-#         mappings[f"{VIRTUAL_PATH_PREFIX}/workspace"] = workspace
-#     if uploads:
-#         mappings[f"{VIRTUAL_PATH_PREFIX}/uploads"] = uploads
-#     if outputs:
-#         mappings[f"{VIRTUAL_PATH_PREFIX}/outputs"] = outputs
-
-#     # Also map the virtual root when all known dirs share the same parent.
-#     actual_dirs = [Path(p) for p in (workspace, uploads, outputs) if p]
-#     if actual_dirs:
-#         common_parent = str(Path(actual_dirs[0]).parent)
-#         if all(str(path.parent) == common_parent for path in actual_dirs):
-#             mappings[VIRTUAL_PATH_PREFIX] = common_parent
-
-#     return mappings
-
-
-# def _resolve_path(self, path: str) -> str:
-#     """
-#     Resolve container path to actual local path using mappings.
-
-#     Args:
-#         path: Path that might be a container path
-
-#     Returns:
-#         Resolved local path
-#     """
-#     path_str = str(path)
-
-#     # Try each mapping (longest prefix first for more specific matches)
-#     for mapping in sorted(self.path_mappings, key=lambda m: len(m.container_path), reverse=True):
-#         container_path = mapping.container_path
-#         local_path = mapping.local_path
-#         if path_str == container_path or path_str.startswith(container_path + "/"):
-#             # Replace the container path prefix with local path
-#             relative = path_str[len(container_path) :].lstrip("/")
-#             resolved = str(Path(local_path) / relative) if relative else local_path
-#             return resolved
-
-#     # No mapping found, return original path
-#     return path_str
+    Returns:
+        The actual file system path corresponding to the virtual path.
+    """
+    # only three types of path structures are allowed and must be accessed under these two types of paths, other paths are denied access for security reasons
+    VIRTUAL_SKILL_PATH_PREFIX = get_app_config().skills.container_path
+    if path.startswith(VIRTUAL_SKILL_PATH_PREFIX):
+        actual_path = get_app_config().skills.get_skills_path() / path[len(VIRTUAL_SKILL_PATH_PREFIX):].lstrip("/")
+    elif path.startswith(VIRTUAL_PATH_PREFIX):
+        config_data = get_config()
+        thread_id = config_data.get("configurable", {}).get("thread_id")
+        if not thread_id:
+            raise ValueError(f"No thread_id in context! Cannot resolve virtual paths ({path}) without thread context.") from None
+        actual_path = get_paths().resolve_virtual_path(thread_id, path)
+    else:
+        actual_path = None
+    return actual_path
 
 
-# def _reverse_resolve_path(self, path: str) -> str:
-#     """
-#     Reverse resolve local path back to container path using mappings.
-
-#     Args:
-#         path: Local path that might need to be mapped to container path
-
-#     Returns:
-#         Container path if mapping exists, otherwise original path
-#     """
-#     normalized_path = path.replace("\\", "/")
-#     path_str = str(Path(normalized_path).resolve())
-
-#     # Try each mapping (longest local path first for more specific matches)
-#     for mapping in sorted(self.path_mappings, key=lambda m: len(m.local_path), reverse=True):
-#         local_path_resolved = str(Path(mapping.local_path).resolve())
-#         if path_str == local_path_resolved or path_str.startswith(local_path_resolved + "/"):
-#             # Replace the local path prefix with container path
-#             relative = path_str[len(local_path_resolved) :].lstrip("/")
-#             resolved = f"{mapping.container_path}/{relative}" if relative else mapping.container_path
-#             return resolved
-
-#     # No mapping found, return original path
-#     return path_str
+    
