@@ -10,18 +10,18 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # from optclaw.config.acp_config import load_acp_config_from_dict
 # from optclaw.config.agents_api_config import AgentsApiConfig, load_agents_api_config_from_dict
-# from optclaw.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
+from optclaw.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
 from optclaw.config.extensions_config import ExtensionsConfig
 # from optclaw.config.guardrails_config import GuardrailsConfig, load_guardrails_config_from_dict
-# from optclaw.config.memory_config import MemoryConfig, load_memory_config_from_dict
+from optclaw.config.memory_config import MemoryConfig, load_memory_config_from_dict
 from optclaw.config.model_config import ModelConfig
 # from optclaw.config.sandbox_config import SandboxConfig
 from optclaw.config.skill_evolution_config import SkillEvolutionConfig
 from optclaw.config.skills_config import SkillsConfig
 # from optclaw.config.stream_bridge_config import StreamBridgeConfig, load_stream_bridge_config_from_dict
 # from optclaw.config.subagents_config import SubagentsAppConfig, load_subagents_config_from_dict
-# from optclaw.config.summarization_config import SummarizationConfig, load_summarization_config_from_dict
-# from optclaw.config.title_config import TitleConfig, load_title_config_from_dict
+from optclaw.config.summarization_config import SummarizationConfig, load_summarization_config_from_dict
+from optclaw.config.title_config import TitleConfig, load_title_config_from_dict
 # from optclaw.config.token_usage_config import TokenUsageConfig
 from optclaw.config.tool_config import ToolConfig, ToolGroupConfig
 # from optclaw.config.tool_search_config import ToolSearchConfig, load_tool_search_config_from_dict
@@ -59,15 +59,15 @@ class AppConfig(BaseModel):
     skill_evolution: SkillEvolutionConfig = Field(default_factory=SkillEvolutionConfig, description="Agent-managed skill evolution configuration")
     extensions: ExtensionsConfig = Field(default_factory=ExtensionsConfig, description="Extensions configuration (MCP servers and skills state)")
     # tool_search: ToolSearchConfig = Field(default_factory=ToolSearchConfig, description="Tool search / deferred loading configuration")
-    # title: TitleConfig = Field(default_factory=TitleConfig, description="Automatic title generation configuration")
-    # summarization: SummarizationConfig = Field(default_factory=SummarizationConfig, description="Conversation summarization configuration")
-    # memory: MemoryConfig = Field(default_factory=MemoryConfig, description="Memory subsystem configuration")
+    title: TitleConfig = Field(default_factory=TitleConfig, description="Automatic title generation configuration")
+    summarization: SummarizationConfig = Field(default_factory=SummarizationConfig, description="Conversation summarization configuration")
+    memory: MemoryConfig = Field(default_factory=MemoryConfig, description="Memory subsystem configuration")
     # agents_api: AgentsApiConfig = Field(default_factory=AgentsApiConfig, description="Custom-agent management API configuration")
     # subagents: SubagentsAppConfig = Field(default_factory=SubagentsAppConfig, description="Subagent runtime configuration")
     # guardrails: GuardrailsConfig = Field(default_factory=GuardrailsConfig, description="Guardrail middleware configuration")
     # circuit_breaker: CircuitBreakerConfig = Field(default_factory=CircuitBreakerConfig, description="LLM circuit breaker configuration")
     model_config = ConfigDict(extra="allow", frozen=False)
-    # checkpointer: CheckpointerConfig | None = Field(default=None, description="Checkpointer configuration")
+    checkpointer: CheckpointerConfig | None = Field(default=None, description="Checkpointer configuration")
     # stream_bridge: StreamBridgeConfig | None = Field(default=None, description="Stream bridge configuration")
 
     def __init__(self, **kwds):
@@ -120,17 +120,17 @@ class AppConfig(BaseModel):
 
         config_data = cls.resolve_env_variables(config_data)
 
-        # # Load title config if present
-        # if "title" in config_data:
-        #     load_title_config_from_dict(config_data["title"])
+        # Load title config if present
+        if "title" in config_data:
+            load_title_config_from_dict(config_data["title"])
 
-        # # Load summarization config if present
-        # if "summarization" in config_data:
-        #     load_summarization_config_from_dict(config_data["summarization"])
+        # Load summarization config if present
+        if "summarization" in config_data:
+            load_summarization_config_from_dict(config_data["summarization"])
 
-        # # Load memory config if present
-        # if "memory" in config_data:
-        #     load_memory_config_from_dict(config_data["memory"])
+        # Load memory config if present
+        if "memory" in config_data:
+            load_memory_config_from_dict(config_data["memory"])
 
         # # Always refresh agents API config so removed config sections reset
         # # singleton-backed state to its default/disabled values on reload.
@@ -152,9 +152,9 @@ class AppConfig(BaseModel):
         # if "circuit_breaker" in config_data:
         #     config_data["circuit_breaker"] = config_data["circuit_breaker"]
 
-        # # Load checkpointer config if present
-        # if "checkpointer" in config_data:
-        #     load_checkpointer_config_from_dict(config_data["checkpointer"])
+        # Load checkpointer config if present
+        if "checkpointer" in config_data:
+            load_checkpointer_config_from_dict(config_data["checkpointer"])
 
         # # Load stream bridge config if present
         # if "stream_bridge" in config_data:
@@ -163,9 +163,9 @@ class AppConfig(BaseModel):
         # # Always refresh ACP agent config so removed entries do not linger across reloads.
         # load_acp_config_from_dict(config_data.get("acp_agents", {}))
 
-        # # Load extensions config separately (it's in a different file)
-        # extensions_config = ExtensionsConfig.from_file()
-        # config_data["extensions"] = extensions_config.model_dump()
+        # Load extensions config separately (it's in a different file)
+        extensions_config = ExtensionsConfig.from_file()
+        config_data["extensions"] = extensions_config.model_dump()
 
         result = cls.model_validate(config_data)
         return result

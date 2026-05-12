@@ -22,9 +22,8 @@ def write_file_tool(path: str, content: str, append: bool = False) -> str:
     """
     actual_path = resolve_virtual_path(path)
     if not actual_path:
-        raise ValueError(f"Path:{path} resovle to None, access denied for security reasons! If it is relative path, please use absolute path.") from None
-    is_readonly = not os.access(actual_path, os.W_OK)
-    if not is_readonly:
+        raise ValueError(f"Path:{path} resolve to None, access denied for security reasons! If it is relative path, please use absolute path.") from None
+    if os.path.exists(actual_path) and not os.access(actual_path, os.W_OK):
         raise OSError(errno.EROFS, "Read-only file system", path) from None
     try:
         dir_path = os.path.dirname(actual_path)

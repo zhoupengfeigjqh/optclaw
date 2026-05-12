@@ -1,4 +1,5 @@
 from langgraph.config import get_config
+from pathlib import Path
 
 from optclaw.config.paths import get_paths, VIRTUAL_PATH_PREFIX
 from optclaw.config import get_app_config
@@ -7,7 +8,7 @@ from optclaw.log import setup_logging
 logger = setup_logging(__name__)
 
 
-def resolve_virtual_path(path: str) -> str:
+def resolve_virtual_path(path: str) -> Path | None:
     """Resolve a virtual path to an actual file system path. This is used to securely map virtual paths to real paths within the container.
 
     Args:
