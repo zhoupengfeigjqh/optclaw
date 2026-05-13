@@ -39,8 +39,8 @@ def _refresh_enabled_skills_cache_worker() -> None:
 
         try:
             skills = _load_enabled_skills_sync()
-            print(_enabled_skills_cache)
-            print('ssssdddd')
+            # print(_enabled_skills_cache)
+            # print('ssssdddd')
         except Exception:
             logger.exception("Failed to load enabled skills for prompt injection")
             skills = []
