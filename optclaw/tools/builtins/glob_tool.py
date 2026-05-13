@@ -12,7 +12,7 @@ _DEFAULT_GLOB_MAX_RESULTS = 100
 @tool("glob_file", parse_docstring=True)
 def glob_file_tool(path_pattern: str) -> str:
     """Find files and directories using a path pattern with wildcards (like Linux glob).
-    Use this to list files matching a pattern, e.g., *.log, /data/*.txt, /config/*-prod.yml.
+    Use this to list files matching a pattern, e.g., /mnt/user-data/uploads/*.md
 
     When to use the glob_file tool:
     - Use this when you need to find or list files matching a naming pattern.

@@ -1,6 +1,5 @@
 """Middleware to inject uploaded files information into agent context."""
 
-import logging
 from pathlib import Path
 from typing import NotRequired, override
 
@@ -136,12 +135,12 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
                 self._format_file_entry(file, lines)
 
         lines.append("To work with these files:")
-        lines.append("- Read from the file first — use the outline line numbers and `read_file` to locate relevant sections.")
-        lines.append("- Use `grep` to search for keywords when you are not sure which section to look at")
-        lines.append("  (e.g. `grep(pattern='revenue', path='/mnt/user-data/uploads/')`).")
-        lines.append("- Use `glob` to find files by name pattern")
-        lines.append("  (e.g. `glob(pattern='**/*.md', path='/mnt/user-data/uploads/')`).")
-        lines.append("- Only fall back to web search if the file content is clearly insufficient to answer the question.")
+        lines.append("- Read file content directly — use the `read_file` tool with absolute file path.")
+        lines.append("- Use `grep_file` tool to search for keywords/patterns in a specific text file")
+        lines.append("  (e.g. `grep_file(pattern='revenue', path='/mnt/user-data/uploads/data.md')`).")
+        lines.append("- Use `glob_file` tool to find files by wildcard path pattern")
+        lines.append("  (e.g. `glob_file(path_pattern='/mnt/user-data/uploads/*.md')`).")
+        lines.append("- Do NOT use web search to answer the question.")
         lines.append("</uploaded_files>")
 
         return "\n".join(lines)

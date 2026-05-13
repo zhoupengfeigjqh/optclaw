@@ -10,6 +10,9 @@
         "/path/to/allowed/files"
       ],
       "env": {},
+      "url": null,
+      "headers": {},
+      "oauth": null,
       "description": "Provides filesystem access within allowed directories"
     },
     "github": {
@@ -21,8 +24,11 @@
         "@modelcontextprotocol/server-github"
       ],
       "env": {
-        "GITHUB_TOKEN": "$GITHUB_TOKEN"
+        "GITHUB_TOKEN": ""
       },
+      "url": null,
+      "headers": {},
+      "oauth": null,
       "description": "GitHub MCP server for repository operations"
     },
     "postgres": {
@@ -35,12 +41,18 @@
         "postgresql://localhost/mydb"
       ],
       "env": {},
+      "url": null,
+      "headers": {},
+      "oauth": null,
       "description": "PostgreSQL database access"
     }
   },
   "skills": {
-    "academic-paper-review":{
+    "academic-paper-review": {
       "enabled": false
+    },
+    "bootstrap": {
+      "enabled": true
     }
   }
 }

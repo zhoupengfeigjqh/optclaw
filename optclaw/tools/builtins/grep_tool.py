@@ -9,7 +9,7 @@ _DEFAULT_GREP_MAX_RESULTS = 500
 
 @tool("grep_file", parse_docstring=True)
 def grep_file_tool(path: str, pattern: str) -> str:
-    """Search for a keyword/pattern in a text file and return matching lines with line numbers (like Linux grep).
+    """Search for a keyword/pattern in a text file and return matching lines with line numbers.
     
     When to use the grep_file tool:
     - Use this when you need to quickly find specific content (errors, keywords, configurations) in a file.
