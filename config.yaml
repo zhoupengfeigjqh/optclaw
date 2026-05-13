@@ -168,24 +168,24 @@ models:
   #         type: disabled
 
   # Example: DeepSeek model (with thinking support)
-  # - name: deepseek-v3
-  #   display_name: DeepSeek V3 (Thinking)
-  #   use: optclaw.models.patched_deepseek:PatchedChatDeepSeek
-  #   model: deepseek-reasoner
-  #   api_key: $DEEPSEEK_API_KEY
-  #   timeout: 600.0
-  #   max_retries: 2
-  #   max_tokens: 8192
-  #   supports_thinking: true
-  #   supports_vision: false  # DeepSeek V3 does not support vision
-  #   when_thinking_enabled:
-  #     extra_body:
-  #       thinking:
-  #         type: enabled
-  #   when_thinking_disabled:
-  #     extra_body:
-  #       thinking:
-  #         type: disabled
+  - name: deepseek-v4-flash
+    display_name: Deepseek-V4-Flash (Thinking)
+    use: optclaw.models.patched_deepseek:PatchedChatDeepSeek
+    model: deepseek-v4-flash
+    api_key: $DEEPSEEK_API_KEY
+    timeout: 600.0
+    max_retries: 2
+    max_tokens: 32768
+    supports_thinking: true
+    supports_vision: false  # DeepSeek V3 does not support vision
+    when_thinking_enabled:
+      extra_body:
+        thinking:
+          type: enabled
+    when_thinking_disabled:
+      extra_body:
+        thinking:
+          type: disabled
 
   # Example: Kimi K2.5 model
   # - name: kimi-k2.5
@@ -343,17 +343,17 @@ tool_groups:
 
 tools:
   # Web search tool (uses DuckDuckGo, no API key required)
-  - name: web_search
-    group: web
-    use: optclaw.community.ddg_search.tools:web_search_tool
-    max_results: 5
-
-  # Web search tool (requires Tavily API key)
   # - name: web_search
   #   group: web
-  #   use: optclaw.community.tavily.tools:web_search_tool
+  #   use: optclaw.community.ddg_search.tools:web_search_tool
   #   max_results: 5
-  #   # api_key: $TAVILY_API_KEY  # Set if needed
+
+  # Web search tool (requires Tavily API key)
+  - name: web_search
+    group: web
+    use: optclaw.community.tavily.tools:web_search_tool
+    max_results: 5
+    api_key: $TAVILY_API_KEY  # Set if needed
 
   # Web search tool (uses InfoQuest, requires InfoQuest API key)
   # - name: web_search
@@ -387,10 +387,10 @@ tools:
   #   # api_key: $EXA_API_KEY
 
   # Web fetch tool (uses Jina AI reader)
-  - name: web_fetch
-    group: web
-    use: optclaw.community.jina_ai.tools:web_fetch_tool
-    timeout: 10
+  # - name: web_fetch
+  #   group: web
+  #   use: optclaw.community.jina_ai.tools:web_fetch_tool
+  #   timeout: 10
 
   # Web fetch tool (uses InfoQuest)
   # - name: web_fetch
@@ -411,10 +411,10 @@ tools:
 
   # Image search tool (uses DuckDuckGo)
   # Use this to find reference images before image generation
-  - name: image_search
-    group: web
-    use: optclaw.community.image_search.tools:image_search_tool
-    max_results: 5
+  # - name: image_search
+  #   group: web
+  #   use: optclaw.community.image_search.tools:image_search_tool
+  #   max_results: 5
 
   # Image search tool (uses InfoQuest)
   # - name: image_search
@@ -643,7 +643,7 @@ title:
   enabled: true
   max_words: 6
   max_chars: 60
-  model_name: null # Use default model (first model in models list)
+  model_name: doubao-seed-1.8 # Use default model (first model in models list)
 
 # ============================================================================
 # Summarization Configuration
@@ -656,7 +656,7 @@ summarization:
 
   # Model to use for summarization (null = use default model)
   # Recommended: Use a lightweight, cost-effective model like "gpt-4o-mini" or similar
-  model_name: null
+  model_name: doubao-seed-1.8
 
   # Trigger conditions - at least one required
   # Summarization runs when ANY threshold is met (OR logic)
@@ -701,8 +701,8 @@ summarization:
 memory:
   enabled: true
   storage_path: memory.json # Path relative to backend directory
-  debounce_seconds: 30 # Wait time before processing queued updates
-  model_name: null # Use default model
+  debounce_seconds: 300 # Wait time before processing queued updates
+  model_name: doubao-seed-1.8 # Use default model
   max_facts: 100 # Maximum number of facts to store
   fact_confidence_threshold: 0.7 # Minimum confidence for storing facts
   injection_enabled: true # Whether to inject memory into system prompt
