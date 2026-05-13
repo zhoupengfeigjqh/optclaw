@@ -15,8 +15,9 @@ import subprocess
 import sys
 import tempfile
 
-logging.basicConfig(level=logging.INFO, format="%(message)s")
-logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.INFO, format="%(message)s")
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 try:
     import duckdb

@@ -12,7 +12,8 @@ from langgraph.runtime import Runtime
 from optclaw.config.paths import Paths, get_paths
 from optclaw.utils.file_conversion import extract_outline
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 _OUTLINE_PREVIEW_LINES = 5

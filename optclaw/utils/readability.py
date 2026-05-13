@@ -6,7 +6,8 @@ from urllib.parse import urljoin
 from markdownify import markdownify as md
 from readabilipy import simple_json_from_html_string
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 class Article:

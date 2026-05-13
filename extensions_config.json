@@ -38,5 +38,9 @@
       "description": "PostgreSQL database access"
     }
   },
-  "skills": {}
+  "skills": {
+    "academic-paper-review":{
+      "enabled": false
+    }
+  }
 }

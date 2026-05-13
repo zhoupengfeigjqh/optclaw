@@ -23,7 +23,8 @@ from optclaw.agents.memory.storage import (
 from optclaw.config.memory_config import get_memory_config
 from optclaw.models import create_chat_model
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 _SYNC_MEMORY_UPDATER_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
     max_workers=4,

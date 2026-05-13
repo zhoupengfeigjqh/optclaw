@@ -2,7 +2,7 @@ from .checkpointer import get_checkpointer, reset_checkpointer #, make_checkpoin
 # from .factory import create_optclaw_agent
 # from .features import Next, Prev, RuntimeFeatures
 # from .lead_agent import make_lead_agent
-from .pormpt_manager import prime_enabled_skills_cache
+from .pormpt_manager import prime_enabled_skills_cache, apply_prompt_template
 from .thread_state import SandboxState, ThreadState
 
 # LangGraph imports optclaw.agents when registering the graph. Prime the
@@ -14,5 +14,6 @@ __all__ = [
     "SandboxState",
     "ThreadState",
     "get_checkpointer",
-    "reset_checkpointer"
+    "reset_checkpointer",
+    "apply_prompt_template"
 ]

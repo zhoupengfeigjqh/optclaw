@@ -12,7 +12,8 @@ from optclaw.config.agents_config import AGENT_NAME_PATTERN
 from optclaw.config.memory_config import get_memory_config
 from optclaw.config.paths import get_paths
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 def utc_now_iso_z() -> str:

@@ -8,7 +8,8 @@ from optclaw.config.agents_config import load_agent_soul
 from optclaw.skills import load_skills
 from optclaw.skills.types import Skill
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 _ENABLED_SKILLS_REFRESH_WAIT_TIMEOUT_SECONDS = 5.0
 _enabled_skills_lock = threading.Lock()
@@ -39,8 +40,6 @@ def _refresh_enabled_skills_cache_worker() -> None:
 
         try:
             skills = _load_enabled_skills_sync()
-            # print(_enabled_skills_cache)
-            # print('ssssdddd')
         except Exception:
             logger.exception("Failed to load enabled skills for prompt injection")
             skills = []
@@ -297,19 +296,19 @@ def _get_memory_context(agent_name: str | None = None) -> str:
         from optclaw.config.memory_config import get_memory_config
 
         config = get_memory_config()
+
         if not config.enabled or not config.injection_enabled:
             return ""
-
+        
         memory_data = get_memory_data(agent_name)
+        # memory_data = {"version":"1.0","lastUpdated":"2026-05-12T08:18:49.407150Z","user":{"workContext":{"summary":"AI Agent、生产调度APS、工业软件架构设计，Python全栈开发、数据分析与知识图谱应用","updatedAt":"2026-05-12"},"personalContext":{"summary":"关注学历升学规划、自驾旅行、中药材行业研究、体育赛事与金融量化资讯","updatedAt":"2026-05-12"},"topOfMind":{"summary":"专注AI Agent框架源码解析、跨环境开发适配、工业系统业务流程设计","updatedAt":"2026-05-12"}},"history":{"recentMonths":{"summary":"深耕大模型智能体、LangChain/LangGraph应用，研究ISA-95、MES/ERP/APS工业标准与系统集成","updatedAt":"2026-05-12"},"earlierContext":{"summary":"具备全栈开发、数据库设计、论文学术研究、专业升学对比规划经验","updatedAt":"2026-05-12"},"longTermBackground":{"summary":"工科背景，擅长技术架构设计、算法与AI应用落地、结构化数据治理","updatedAt":"2026-05-12"}},"facts":[]}
+
         memory_content = format_memory_for_injection(memory_data, max_tokens=config.max_injection_tokens)
 
         if not memory_content.strip():
             return ""
 
-        return f"""<memory>
-{memory_content}
-</memory>
-"""
+        return f"""<memory>{memory_content}</memory>"""
     except Exception as e:
         logger.error("Failed to load memory context: %s", e)
         return ""
@@ -383,7 +382,7 @@ def get_agent_soul(agent_name: str | None) -> str:
     return ""
 
 
-def apply_prompt_template(agent_name: str | None = None, available_skills: set[str] | None = None) -> str:
+def apply_prompt_template(agent_name: str | None = None, available_skills: set[str] | None = None, **kwargs) -> str:
     # Get memory context
     memory_context = _get_memory_context(agent_name)
 

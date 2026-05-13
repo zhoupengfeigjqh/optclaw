@@ -19,7 +19,8 @@ import logging
 import re
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 # File extensions that should be converted to markdown
 CONVERTIBLE_EXTENSIONS = {

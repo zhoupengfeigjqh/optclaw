@@ -5,7 +5,8 @@ from pathlib import Path
 from .parser import parse_skill_file
 from .types import Skill
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 def get_skills_root_path() -> Path:
@@ -94,6 +95,8 @@ def load_skills(skills_path: Path | None = None, use_config: bool = True, enable
 
     # Filter by enabled status if requested
     if enabled_only:
+        # for skill in skills:
+        #     print(skill.name, skill.enabled)
         skills = [skill for skill in skills if skill.enabled]
 
     # Sort by name for consistent ordering

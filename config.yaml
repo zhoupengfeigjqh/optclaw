@@ -425,39 +425,39 @@ tools:
   #   # Image size filter. Options: "l" (large), "m" (medium), "i" (icon).
   #   image_size: "i"
 
-  # File operations tools
-  - name: ls
-    group: file:read
-    use: optclaw.sandbox.tools:ls_tool
+  # # File operations tools
+  # - name: ls
+  #   group: file:read
+  #   use: optclaw.sandbox.tools:ls_tool
 
-  - name: read_file
-    group: file:read
-    use: optclaw.sandbox.tools:read_file_tool
+  # - name: read_file
+  #   group: file:read
+  #   use: optclaw.sandbox.tools:read_file_tool
 
-  - name: glob
-    group: file:read
-    use: optclaw.sandbox.tools:glob_tool
-    max_results: 200
+  # - name: glob
+  #   group: file:read
+  #   use: optclaw.sandbox.tools:glob_tool
+  #   max_results: 200
 
-  - name: grep
-    group: file:read
-    use: optclaw.sandbox.tools:grep_tool
-    max_results: 100
+  # - name: grep
+  #   group: file:read
+  #   use: optclaw.sandbox.tools:grep_tool
+  #   max_results: 100
 
-  - name: write_file
-    group: file:write
-    use: optclaw.sandbox.tools:write_file_tool
+  # - name: write_file
+  #   group: file:write
+  #   use: optclaw.sandbox.tools:write_file_tool
 
-  - name: str_replace
-    group: file:write
-    use: optclaw.sandbox.tools:str_replace_tool
+  # - name: str_replace
+  #   group: file:write
+  #   use: optclaw.sandbox.tools:str_replace_tool
 
   # Bash execution tool
   # Active only when using an isolated shell sandbox or when
   # sandbox.allow_host_bash: true explicitly opts into host bash.
-  - name: bash
-    group: bash
-    use: optclaw.sandbox.tools:bash_tool
+  # - name: bash
+  #   group: bash
+  #   use: optclaw.sandbox.tools:bash_tool
 
 # ============================================================================
 # Tool Search Configuration (Deferred Tool Loading)

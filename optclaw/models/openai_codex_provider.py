@@ -24,7 +24,8 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 
 from optclaw.models.credential_loader import CodexCliCredential, load_codex_cli_credential
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex"
 MAX_RETRIES = 3

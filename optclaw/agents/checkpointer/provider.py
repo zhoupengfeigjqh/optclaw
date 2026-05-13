@@ -29,7 +29,8 @@ from optclaw.config.app_config import get_app_config
 from optclaw.config.checkpointer_config import CheckpointerConfig
 from optclaw.agents.checkpointer._sqlite_utils import resolve_sqlite_conn_str
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 # ---------------------------------------------------------------------------
 # Error message constants — imported by aio.provider too
