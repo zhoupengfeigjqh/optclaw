@@ -6,6 +6,7 @@ from optclaw.agents.middlewares.tool_error_handling_middleware import ToolErrorH
 from optclaw.agents.middlewares.summarization_middleware import BeforeSummarizationHook, OptClawSummarizationMiddleware
 from optclaw.config.summarization_config import get_summarization_config
 from optclaw.config.memory_config import get_memory_config
+from optclaw.config import get_app_config
 from optclaw.models import create_chat_model
 from optclaw.agents.memory.summarization_hook import memory_flush_hook
 
@@ -26,7 +27,33 @@ You have access to the `write_todos` tool to help you manage and track complex m
 </todo_list_system>
 """
 
-_TODO_TOOL_DESCRIPTION = "Use this tool to create and manage a structured task list for complex work sessions.  Only use for complex tasks (3+ steps)."
+# _TODO_TOOL_DESCRIPTION = "Use this tool to create and manage a structured task list for complex work sessions.  Only use for complex tasks (3+ steps)."
+_TODO_TOOL_DESCRIPTION = """Use this tool only for complex tasks (3+ steps); for simple requests, complete them directly.
+When to Use
+- Complex multi-step tasks (3+ distinct steps)
+- Tasks needing careful planning
+- User explicitly requests a todo list
+- Multiple tasks to complete
+- Plans that may need updates
+When NOT to Use
+- Straightforward tasks (fewer than 3 steps)
+- Trivial tasks with no tracking benefit
+- Purely conversational/informational tasks
+- Tasks where next steps are clear (just do them)
+How to Use
+- Mark tasks as in_progress before starting
+- Mark tasks as completed immediately after finishing
+- Update the list (add/remove/update tasks) as needed
+Task States
+- pending: Not started
+- in_progress: Currently working on (multiple allowed)
+- completed: Finished successfully
+Key Rules
+- Only mark tasks as completed if fully accomplished (no unresolved issues, partial work, or blockers).
+- If blocked, keep the task in_progress and add a new task to resolve the blocker.
+- Keep tasks specific/actionable; break down complex ones.
+- Always have at least one in_progress task (unless all are completed).
+"""
 
 
 def _create_summarization_middleware() -> OptClawSummarizationMiddleware | None:
@@ -76,7 +103,8 @@ def _create_summarization_middleware() -> OptClawSummarizationMiddleware | None:
 
 
 def build_middlewares(
-    name: str = "default",
+    model_name: str | None,
+    agent_name: str = "default",
     plan_mode: bool = False,
     extra_middleware: list[AgentMiddleware] | None = None,
 ) -> tuple[list[AgentMiddleware]]:
@@ -141,11 +169,14 @@ def build_middlewares(
 
     # --- [6] Memory ---
     from optclaw.agents.middlewares.memory_middleware import MemoryMiddleware
-    chain.append(MemoryMiddleware(agent_name=name))
+    chain.append(MemoryMiddleware(agent_name=agent_name))
 
     # --- [7] Vision ---
     from optclaw.agents.middlewares.view_image_middleware import ViewImageMiddleware
-    chain.append(ViewImageMiddleware())
+    app_config = get_app_config()
+    model_config = app_config.get_model_config(model_name) if model_name else None
+    if model_config is not None and model_config.supports_vision:
+        chain.append(ViewImageMiddleware())
 
     # --- [8] LoopDetection (always) ---
     from optclaw.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
