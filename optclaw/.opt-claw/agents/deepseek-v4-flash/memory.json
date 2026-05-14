@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-05-14T03:03:38.040391Z",
+  "user": {
+    "workContext": {
+      "summary": "",
+      "updatedAt": ""
+    },
+    "personalContext": {
+      "summary": "",
+      "updatedAt": ""
+    },
+    "topOfMind": {
+      "summary": "Currently focused on exploring and verifying the available toolset of the assistant, specifically checking for weather-related tools including `check_weather` and `check_weather1`. Has shown interest in understanding the full range of accessible tools and their functionalities, with a particular curiosity about task management tools like `write_todos` and methods for obtaining weather information.",
+      "updatedAt": "2026-05-14T03:03:38.038392Z"
+    }
+  },
+  "history": {
+    "recentMonths": {
+      "summary": "",
+      "updatedAt": ""
+    },
+    "earlierContext": {
+      "summary": "",
+      "updatedAt": ""
+    },
+    "longTermBackground": {
+      "summary": "",
+      "updatedAt": ""
+    }
+  },
+  "facts": [
+    {
+      "id": "fact_936e23a0",
+      "content": "User inquired about the availability of the `write_todos` tool, showing interest in task management functionality.",
+      "category": "behavior",
+      "confidence": 1.0,
+      "createdAt": "2026-05-14T03:03:38.038392Z",
+      "source": "new22123123"
+    },
+    {
+      "id": "fact_5fb6af69",
+      "content": "User repeatedly checked for weather-specific tools, first asking about `check_weather` twice, then asking about `check_weather1`.",
+      "category": "behavior",
+      "confidence": 1.0,
+      "createdAt": "2026-05-14T03:03:38.038392Z",
+      "source": "new22123123"
+    },
+    {
+      "id": "fact_50f1269c",
+      "content": "User requested a full list of the assistant's available tools to understand the complete toolset.",
+      "category": "behavior",
+      "confidence": 1.0,
+      "createdAt": "2026-05-14T03:03:38.038392Z",
+      "source": "new22123123"
+    }
+  ]
+}
