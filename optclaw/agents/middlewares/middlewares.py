@@ -172,10 +172,10 @@ def build_middlewares(
     chain.append(MemoryMiddleware(agent_name=agent_name))
 
     # --- [7] Vision ---
-    from optclaw.agents.middlewares.view_image_middleware import ViewImageMiddleware
     app_config = get_app_config()
     model_config = app_config.get_model_config(model_name) if model_name else None
     if model_config is not None and model_config.supports_vision:
+        from optclaw.agents.middlewares.view_image_middleware import ViewImageMiddleware
         chain.append(ViewImageMiddleware())
 
     # --- [8] LoopDetection (always) ---

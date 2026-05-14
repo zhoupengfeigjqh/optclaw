@@ -25,7 +25,6 @@ def read_file_tool(path: str) -> str:
         with open(actual_path, encoding="utf-8") as f:
             content = f.read()
         # content = self._reverse_resolve_paths_in_output(content)
-        # 将输出中包含的真实路径替换为容器路径，以避免泄露内部实现细节，同时保持输出的一致性和可理解性
         return content
     except OSError as e:
         # Re-raise with the original path for clearer error messages, hiding internal resolved paths
