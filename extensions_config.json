@@ -49,9 +49,6 @@
   },
   "skills": {
     "academic-paper-review": {
-      "enabled": false
-    },
-    "bootstrap": {
       "enabled": true
     }
   }

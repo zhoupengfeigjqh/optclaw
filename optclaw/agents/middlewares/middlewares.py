@@ -112,16 +112,16 @@ def build_middlewares(
 
     Middleware order matches ``make_lead_agent`` (11 middlewares):
 
-      0-1. ThreadData and Uploads
+      0-1. ThreadData and Uploads (always)
       2. DanglingToolCallMiddleware (always)
-      3. ToolErrorHandlingMiddleware (always)
-      4. SummarizationMiddleware (summarization feature)
-      5. TodoMiddleware (plan_mode parameter)
-      6. TitleMiddleware (auto_title feature)
-      7. MemoryMiddleware (memory feature)
-      8. ViewImageMiddleware (vision feature)
-      9. LoopDetectionMiddleware (always)
-      10. ClarificationMiddleware (always last)
+      3-4. LLMErrorHandlingMiddleware and ToolErrorHandlingMiddleware (always)
+      5. SummarizationMiddleware (always)
+      6. TodoMiddleware (plan_mode parameter)
+      7. TitleMiddleware (always)
+      8. MemoryMiddleware (always)
+      9. ViewImageMiddleware (supports_vision parameter)
+      10. LoopDetectionMiddleware (always)
+      11. ClarificationMiddleware (always last)
 
     Two-phase ordering:
       1. Built-in chain — fixed sequential append.
@@ -138,51 +138,49 @@ def build_middlewares(
     # --- [0-1] Sandbox infrastructure ---
     from optclaw.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
     from optclaw.agents.middlewares.uploads_middleware import UploadsMiddleware
+    from optclaw.agents.middlewares.llm_error_handling_middleware import LLMErrorHandlingMiddleware
     chain.append(ThreadDataMiddleware(lazy_init=False))
     chain.append(UploadsMiddleware())
 
     # --- [2] DanglingToolCall (always) ---
     chain.append(DanglingToolCallMiddleware())
 
-    # safe check
-    # if feat.guardrail is not False:
-    #     if isinstance(feat.guardrail, AgentMiddleware):
-    #         chain.append(feat.guardrail)
-    #     else:
-    #         raise ValueError("guardrail=True requires a custom AgentMiddleware instance (no built-in GuardrailMiddleware yet)")
+    # --- [3-4] LLMErrorHandling (always) ---
+    chain.append(LLMErrorHandlingMiddleware())
+    chain.append(ToolErrorHandlingMiddleware())
 
-    # --- [3] ToolErrorHandling (always) ---
+    # --- [5] ToolErrorHandling (always) ---
     summarization_middleware = _create_summarization_middleware()
     if summarization_middleware is not None:
         chain.append(summarization_middleware)
     else:
         raise ValueError("summarization=True requires a custom AgentMiddleware instance (SummarizationMiddleware needs a model argument)")
 
-    # --- [4] TodoMiddleware (plan_mode) ---
+    # --- [6] TodoMiddleware (plan_mode) ---
     if plan_mode:
         from optclaw.agents.middlewares.todo_middleware import TodoMiddleware
         chain.append(TodoMiddleware(system_prompt=_TODO_SYSTEM_PROMPT, tool_description=_TODO_TOOL_DESCRIPTION))
 
-    # --- [5] Auto Title ---
+    # --- [7] Auto Title ---
     from optclaw.agents.middlewares.title_middleware import TitleMiddleware
     chain.append(TitleMiddleware())
 
-    # --- [6] Memory ---
+    # --- [8] Memory ---
     from optclaw.agents.middlewares.memory_middleware import MemoryMiddleware
     chain.append(MemoryMiddleware(agent_name=agent_name))
 
-    # --- [7] Vision ---
+    # --- [9] Vision ---
     app_config = get_app_config()
     model_config = app_config.get_model_config(model_name) if model_name else None
     if model_config is not None and model_config.supports_vision:
         from optclaw.agents.middlewares.view_image_middleware import ViewImageMiddleware
         chain.append(ViewImageMiddleware())
 
-    # --- [8] LoopDetection (always) ---
+    # --- [10] LoopDetection (always) ---
     from optclaw.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
     chain.append(LoopDetectionMiddleware())
 
-    # --- [9] Clarification (always last among built-ins) ---
+    # --- [11] Clarification (always last among built-ins) ---
     chain.append(ClarificationMiddleware())
 
     # --- Insert extra_middleware via @Next/@Prev ---

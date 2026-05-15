@@ -664,7 +664,7 @@ summarization:
   trigger:
     # Trigger when token count reaches 15564
     - type: tokens
-      value: 15564
+      value: 20000
     # Uncomment to also trigger when message count reaches 50
     # - type: messages
     #   value: 50
@@ -703,10 +703,10 @@ memory:
   storage_path: memory.json # Path relative to backend directory
   debounce_seconds: 300 # Wait time before processing queued updates
   model_name: doubao-seed-1.8 # Use default model
-  max_facts: 100 # Maximum number of facts to store
+  max_facts: 30 # Maximum number of facts to store
   fact_confidence_threshold: 0.7 # Minimum confidence for storing facts
   injection_enabled: true # Whether to inject memory into system prompt
-  max_injection_tokens: 2000 # Maximum tokens for memory injection
+  max_injection_tokens: 5000 # Maximum tokens for memory injection
 
 # ============================================================================
 # Custom Agent Management API
@@ -903,8 +903,8 @@ checkpointer:
 # - Reducing resource exhaustion from retry loops
 # - Gracefully degrading when LLM services are unavailable
 
-# circuit_breaker:
-#   # Number of consecutive failures before opening the circuit (default: 5)
-#   failure_threshold: 5
-#   # Time in seconds before attempting to recover (default: 60)
-#   recovery_timeout_sec: 60
+circuit_breaker:
+  # Number of consecutive failures before opening the circuit (default: 5)
+  failure_threshold: 5
+  # Time in seconds before attempting to recover (default: 60)
+  recovery_timeout_sec: 60

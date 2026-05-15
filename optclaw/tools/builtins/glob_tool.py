@@ -9,7 +9,7 @@ logger = setup_logging(__name__)
 _DEFAULT_GLOB_MAX_RESULTS = 100
 
 
-# @tool("glob_file", parse_docstring=True)
+@tool("glob_file", parse_docstring=True)
 def glob_file_tool(path_pattern: str) -> str:
     """Find files and directories using a path pattern with wildcards (like Linux glob).
     Use this to list files matching a pattern, e.g., /mnt/user-data/uploads/*.md

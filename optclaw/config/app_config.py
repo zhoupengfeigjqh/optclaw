@@ -65,7 +65,7 @@ class AppConfig(BaseModel):
     # agents_api: AgentsApiConfig = Field(default_factory=AgentsApiConfig, description="Custom-agent management API configuration")
     # subagents: SubagentsAppConfig = Field(default_factory=SubagentsAppConfig, description="Subagent runtime configuration")
     # guardrails: GuardrailsConfig = Field(default_factory=GuardrailsConfig, description="Guardrail middleware configuration")
-    # circuit_breaker: CircuitBreakerConfig = Field(default_factory=CircuitBreakerConfig, description="LLM circuit breaker configuration")
+    circuit_breaker: CircuitBreakerConfig = Field(default_factory=CircuitBreakerConfig, description="LLM circuit breaker configuration")
     model_config = ConfigDict(extra="allow", frozen=False)
     checkpointer: CheckpointerConfig | None = Field(default=None, description="Checkpointer configuration")
     # stream_bridge: StreamBridgeConfig | None = Field(default=None, description="Stream bridge configuration")
@@ -148,9 +148,9 @@ class AppConfig(BaseModel):
         # if "guardrails" in config_data:
         #     load_guardrails_config_from_dict(config_data["guardrails"])
 
-        # # Load circuit_breaker config if present
-        # if "circuit_breaker" in config_data:
-        #     config_data["circuit_breaker"] = config_data["circuit_breaker"]
+        # Load circuit_breaker config if present
+        if "circuit_breaker" in config_data:
+            config_data["circuit_breaker"] = config_data["circuit_breaker"]
 
         # Load checkpointer config if present
         if "checkpointer" in config_data:

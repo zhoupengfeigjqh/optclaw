@@ -4,19 +4,25 @@ from langchain.tools import BaseTool
 
 from optclaw.config import get_app_config
 from optclaw.reflection import resolve_variable
-from optclaw.tools.builtins import ask_clarification_tool, present_file_tool, write_file_tool, read_file_tool, glob_file_tool, grep_file_tool, view_image_tool
+from optclaw.tools.builtins import ask_clarification_tool, present_file_tool, write_file_tool, \
+    read_file_tool, glob_file_tool, grep_file_tool, view_image_tool,\
+          tail_file_tool, str_replace_tool, setup_agent_tool
 
 from optclaw.log import setup_logging
 logger = setup_logging(__name__)
 
 
 BUILTIN_TOOLS = [
-    present_file_tool,
-    ask_clarification_tool,
     read_file_tool,
     write_file_tool,
     glob_file_tool, 
-    grep_file_tool
+    grep_file_tool,
+    tail_file_tool,
+    view_image_tool,
+    present_file_tool,
+    ask_clarification_tool,
+    str_replace_tool,
+    setup_agent_tool
 ]
 
 
