@@ -22,7 +22,8 @@ from langgraph.errors import GraphBubbleUp
 
 from optclaw.config import get_app_config
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 _RETRIABLE_STATUS_CODES = {408, 409, 425, 429, 500, 502, 503, 504}
 _BUSY_PATTERNS = (

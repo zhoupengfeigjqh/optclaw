@@ -8,7 +8,8 @@ from langgraph.types import Command
 
 from optclaw.config.paths import get_paths
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 @tool("setup_agent", parse_docstring=True)

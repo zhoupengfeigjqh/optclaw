@@ -11,7 +11,8 @@ from langgraph.errors import GraphBubbleUp
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 _MISSING_TOOL_CALL_ID = "missing_tool_call_id"
 
