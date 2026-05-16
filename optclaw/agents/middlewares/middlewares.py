@@ -135,10 +135,9 @@ def build_middlewares(
     """
     chain: list[AgentMiddleware] = []
 
-    # --- [0-1] Sandbox infrastructure ---
+    # --- [0-1] infrastructure ---
     from optclaw.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
     from optclaw.agents.middlewares.uploads_middleware import UploadsMiddleware
-    from optclaw.agents.middlewares.llm_error_handling_middleware import LLMErrorHandlingMiddleware
     chain.append(ThreadDataMiddleware(lazy_init=False))
     chain.append(UploadsMiddleware())
 
@@ -146,6 +145,7 @@ def build_middlewares(
     chain.append(DanglingToolCallMiddleware())
 
     # --- [3-4] LLMErrorHandling (always) ---
+    from optclaw.agents.middlewares.llm_error_handling_middleware import LLMErrorHandlingMiddleware
     chain.append(LLMErrorHandlingMiddleware())
     chain.append(ToolErrorHandlingMiddleware())
 
