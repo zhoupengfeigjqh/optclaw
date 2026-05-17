@@ -156,7 +156,7 @@ def build_middlewares(
     else:
         raise ValueError("summarization=True requires a custom AgentMiddleware instance (SummarizationMiddleware needs a model argument)")
 
-    # --- [6] TodoMiddleware (plan_mode) ---
+    # --- [6] TodoMiddleware (plan_mode) ---  ontology can be applied here
     if plan_mode:
         from optclaw.agents.middlewares.todo_middleware import TodoMiddleware
         chain.append(TodoMiddleware(system_prompt=_TODO_SYSTEM_PROMPT, tool_description=_TODO_TOOL_DESCRIPTION))
