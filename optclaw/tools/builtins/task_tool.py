@@ -29,19 +29,14 @@ async def task_tool(
 ) -> str:
     """Delegate tasks to dedicated subagents with independent running contexts.
 
-    Two dedicated subagents for task division:
-    - **coder**: Specialized in code generation, running and command execution
-    - **general-purpose**: Handles all non-coding work, such as document reading/writing, data analysis, scenario exploration and logical arrangement
+    Only one subagent type for task division:
+    - **general-purpose**: Undertakes subtasks from the parent agent, including file operations, code runnding, data analysis, scenario research and logic organization.
 
     Core benefits:
     - Clearly split coding and non-coding work
     - Automatically finish multi-step complex tasks
     - Isolate independent context without polluting main conversation
     - Support parallel task processing
-
-    Available types:
-    - **general-purpose**: For document operation, analysis, exploration and other general affairs
-    - **coder**: Only for code writing and shell commands, enabled in authorized sandbox only
 
     When to use:
     - Multi-step complex tasks

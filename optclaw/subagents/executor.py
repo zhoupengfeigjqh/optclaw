@@ -172,10 +172,10 @@ class SubagentExecutor:
         model_name = _get_model_name(self.config, self.parent_model)
         model = create_chat_model(name=model_name, thinking_enabled=False)
 
-        from optclaw.agents.middlewares import build_middlewares
+        from optclaw.agents.middlewares import build_subagent_middlewares
 
-        # # Reuse shared middleware composition with lead agent.
-        middlewares = build_middlewares()
+        # Reuse shared middleware composition with lead agent.
+        middlewares = build_subagent_middlewares()
 
         return create_agent(
             model=model,

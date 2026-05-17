@@ -1,4 +1,5 @@
 from langchain.agents.middleware import AgentMiddleware
+from langchain_core.runnables import RunnableConfig
 
 from optclaw.agents.middlewares.clarification_middleware import ClarificationMiddleware
 from optclaw.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
@@ -102,15 +103,15 @@ def _create_summarization_middleware() -> OptClawSummarizationMiddleware | None:
     return OptClawSummarizationMiddleware(**kwargs, before_summarization=hooks)
 
 
-def build_middlewares(
+def build_leadagent_middlewares(
+    config: RunnableConfig,
     model_name: str | None,
     agent_name: str = "default",
-    plan_mode: bool = False,
-    extra_middleware: list[AgentMiddleware] | None = None,
+    plan_mode: bool = False
 ) -> tuple[list[AgentMiddleware]]:
-    """Build an ordered middleware chain + extra tools from *feat*.
+    """Build an ordered middleware chain.
 
-    Middleware order matches ``make_lead_agent`` (11 middlewares):
+    Middleware order matches ``leadagent`` (13 middlewares):
 
       0-1. ThreadData and Uploads (always)
       2. DanglingToolCallMiddleware (always)
@@ -120,76 +121,97 @@ def build_middlewares(
       7. TitleMiddleware (always)
       8. MemoryMiddleware (always)
       9. ViewImageMiddleware (supports_vision parameter)
-      10. LoopDetectionMiddleware (always)
-      11. ClarificationMiddleware (always last)
-
-    Two-phase ordering:
-      1. Built-in chain — fixed sequential append.
-      2. Extra middleware — inserted via @Next/@Prev.
-
-    Each feature value is handled as:
-      - ``False``: skip
-      - ``True``: create the built-in default middleware (not available for
-        ``summarization`` and ``guardrail`` — these require a custom instance)
-      - ``AgentMiddleware`` instance: use directly (custom replacement)
+      10. SubagentLimitMiddleware (subagent_enabled parameter)
+      11. LoopDetectionMiddleware (always)
+      12. ClarificationMiddleware (always last)
     """
-    chain: list[AgentMiddleware] = []
+    middlewares: list[AgentMiddleware] = []
 
     # --- [0-1] infrastructure ---
     from optclaw.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
     from optclaw.agents.middlewares.uploads_middleware import UploadsMiddleware
-    chain.append(ThreadDataMiddleware(lazy_init=False))
-    chain.append(UploadsMiddleware())
+    middlewares.append(ThreadDataMiddleware(lazy_init=False))
+    middlewares.append(UploadsMiddleware())
 
     # --- [2] DanglingToolCall (always) ---
-    chain.append(DanglingToolCallMiddleware())
+    middlewares.append(DanglingToolCallMiddleware())
 
     # --- [3-4] LLMErrorHandling (always) ---
     from optclaw.agents.middlewares.llm_error_handling_middleware import LLMErrorHandlingMiddleware
-    chain.append(LLMErrorHandlingMiddleware())
-    chain.append(ToolErrorHandlingMiddleware())
+    middlewares.append(LLMErrorHandlingMiddleware())
+    middlewares.append(ToolErrorHandlingMiddleware())
 
     # --- [5] ToolErrorHandling (always) ---
     summarization_middleware = _create_summarization_middleware()
     if summarization_middleware is not None:
-        chain.append(summarization_middleware)
+        middlewares.append(summarization_middleware)
     else:
         raise ValueError("summarization=True requires a custom AgentMiddleware instance (SummarizationMiddleware needs a model argument)")
 
     # --- [6] TodoMiddleware (plan_mode) ---  ontology can be applied here
     if plan_mode:
         from optclaw.agents.middlewares.todo_middleware import TodoMiddleware
-        chain.append(TodoMiddleware(system_prompt=_TODO_SYSTEM_PROMPT, tool_description=_TODO_TOOL_DESCRIPTION))
+        middlewares.append(TodoMiddleware(system_prompt=_TODO_SYSTEM_PROMPT, tool_description=_TODO_TOOL_DESCRIPTION))
 
     # --- [7] Auto Title ---
     from optclaw.agents.middlewares.title_middleware import TitleMiddleware
-    chain.append(TitleMiddleware())
+    middlewares.append(TitleMiddleware())
 
     # --- [8] Memory ---
     from optclaw.agents.middlewares.memory_middleware import MemoryMiddleware
-    chain.append(MemoryMiddleware(agent_name=agent_name))
+    middlewares.append(MemoryMiddleware(agent_name=agent_name))
 
     # --- [9] Vision ---
     app_config = get_app_config()
     model_config = app_config.get_model_config(model_name) if model_name else None
     if model_config is not None and model_config.supports_vision:
         from optclaw.agents.middlewares.view_image_middleware import ViewImageMiddleware
-        chain.append(ViewImageMiddleware())
+        middlewares.append(ViewImageMiddleware())
 
-    # --- [10] LoopDetection (always) ---
+    # --- [10] subagent limit ---
+    # Add SubagentLimitMiddleware to truncate excess parallel task calls
+    subagent_enabled = config.get("configurable", {}).get("subagent_enabled", False)
+    if subagent_enabled:
+        from optclaw.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
+        max_concurrent_subagents = config.get("configurable", {}).get("max_concurrent_subagents", 3)
+        middlewares.append(SubagentLimitMiddleware(max_concurrent=max_concurrent_subagents))
+
+    # --- [11] LoopDetection (always) ---
     from optclaw.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
-    chain.append(LoopDetectionMiddleware())
+    middlewares.append(LoopDetectionMiddleware())
 
-    # --- [11] Clarification (always last among built-ins) ---
-    chain.append(ClarificationMiddleware())
+    # --- [12] Clarification (always last among built-ins) ---
+    middlewares.append(ClarificationMiddleware())
 
     # --- Insert extra_middleware via @Next/@Prev ---
     # if extra_middleware:
-    #     _insert_extra(chain, extra_middleware)
+    #     _insert_extra(middlewares, extra_middleware)
     #     # Invariant: ClarificationMiddleware must always be last.
     #     # @Next(ClarificationMiddleware) could push it off the tail.
-    #     clar_idx = next(i for i, m in enumerate(chain) if isinstance(m, ClarificationMiddleware))
-    #     if clar_idx != len(chain) - 1:
-    #         chain.append(chain.pop(clar_idx))
+    #     clar_idx = next(i for i, m in enumerate(middlewares) if isinstance(m, ClarificationMiddleware))
+    #     if clar_idx != len(middlewares) - 1:
+    #         middlewares.append(middlewares.pop(clar_idx))
 
-    return chain
+    return middlewares
+
+
+def build_subagent_middlewares() -> tuple[list[AgentMiddleware]]:
+    """Build an ordered middleware chain.
+
+    Middleware order matches ``subagent`` (3 middlewares):
+
+      0. ThreadData (always)
+      1. LLMErrorHandlingMiddleware (always) 
+      2. ToolErrorHandlingMiddleware (always)
+
+    """
+    middlewares: list[AgentMiddleware] = [] 
+
+    from optclaw.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
+    middlewares.append(ThreadDataMiddleware(lazy_init=False))
+
+    from optclaw.agents.middlewares.llm_error_handling_middleware import LLMErrorHandlingMiddleware
+    middlewares.append(LLMErrorHandlingMiddleware())
+    middlewares.append(ToolErrorHandlingMiddleware())
+
+    return middlewares

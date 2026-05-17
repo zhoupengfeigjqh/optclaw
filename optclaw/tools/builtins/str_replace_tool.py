@@ -22,10 +22,12 @@ def str_replace_tool(path: str, old_pattern: str, new_text: str, is_regex: bool 
         is_regex: If True, treats old_pattern as a regular expression. Defaults to False.
     """
     # 1. 解析虚拟路径（保持安全逻辑一致）
-    actual_path = str(resolve_virtual_path(path))
+    actual_path = resolve_virtual_path(path)
 
     if not actual_path:
         raise ValueError(f"Path: {path} resolve to None, access denied for security reasons! Please use absolute path.") from None
+    
+    actual_path = str(actual_path)
 
     # 提取最后一层文件名展示，隐藏真实路径
     display_name = os.path.basename(actual_path)

@@ -23,10 +23,12 @@ def tail_file_tool(path: str, lines: int = _DEFAULT_TAIL_MAX_LINES) -> str:
         lines: The number of lines to read from the end of the file. Defaults to 100.
     """
     # 1. 解析虚拟路径（保持安全逻辑一致）
-    actual_path = str(resolve_virtual_path(path))
+    actual_path = resolve_virtual_path(path)
 
     if not actual_path:
         raise ValueError(f"Path: {path} resolve to None, access denied for security reasons! Please use absolute path.") from None
+    
+    actual_path = str(actual_path)
 
     # 2. 参数校验与限制
     if lines <= 0:
