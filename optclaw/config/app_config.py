@@ -139,7 +139,6 @@ class AppConfig(BaseModel):
         # Load subagents config if present
         if "subagents" in config_data:
             load_subagents_config_from_dict(config_data["subagents"])
-
         # # Load tool_search config if present
         # if "tool_search" in config_data:
         #     load_tool_search_config_from_dict(config_data["tool_search"])

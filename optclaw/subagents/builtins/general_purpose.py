@@ -38,13 +38,24 @@ You have access to the same sandbox environment as the parent agent:
 - User uploads: `/mnt/user-data/uploads`
 - User workspace: `/mnt/user-data/workspace`
 - Output files: `/mnt/user-data/outputs`
-- Deployment-configured custom mounts may also be available at other absolute container paths; use them directly when the task references those mounted directories
 - Treat `/mnt/user-data/workspace` as the default working directory for coding and file IO
-- Prefer relative paths from the workspace, such as `hello.txt`, `../uploads/input.csv`, and `../outputs/result.md`, when writing scripts or shell commands
+- Use absolute paths for all file operations
 </working_directory>
+
+<allowed_operations>
+- actions excluding code writing and running
+- actions within the availiable tools
+</allowed_operations>
+
+<forbidden_operations>
+- Delete any files
+- Modify system environment variables
+- Install any third-party dependencies or packages
+- Modify files outside the working directory
+</forbidden_operations>
 """,
     tools=None,  # Inherit all tools from parent
-    disallowed_tools=["task", "ask_clarification", "present_files"],  # Prevent nesting and clarification
+    disallowed_tools=["task", "ask_clarification", "present_files", "execute_python"],  # Prevent nesting and clarification
     model="inherit",
     max_turns=100,
 )

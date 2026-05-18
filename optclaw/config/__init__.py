@@ -1,6 +1,6 @@
 from .app_config import get_app_config
 from .extensions_config import ExtensionsConfig, get_extensions_config
-# from .memory_config import MemoryConfig, get_memory_config
+from .memory_config import MemoryConfig, get_memory_config
 from .paths import Paths, get_paths, resolve_path
 from .skill_evolution_config import SkillEvolutionConfig
 from .skills_config import SkillsConfig

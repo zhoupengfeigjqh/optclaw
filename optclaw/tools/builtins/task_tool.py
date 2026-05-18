@@ -29,9 +29,10 @@ async def task_tool(
 ) -> str:
     """Delegate tasks to dedicated subagents with independent running contexts.
 
-    Only one subagent type for task division:
+    Two subagent type for task division:
     - **general-purpose**: Undertakes subtasks from the parent agent, including file operations, code runnding, data analysis, scenario research and logic organization.
-
+    - **coder**: Responsible for coding and running Python scripts.
+    
     Core benefits:
     - Clearly split coding and non-coding work
     - Automatically finish multi-step complex tasks
