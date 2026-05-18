@@ -23,8 +23,12 @@ BUILTIN_TOOLS = [
     ask_clarification_tool,
     str_replace_tool,
     list_directory_tool,
-    setup_agent_tool,
-    task_tool
+    setup_agent_tool
+]
+
+SUBAGENT_TOOLS = [
+    task_tool,
+    # task_status_tool is no longer exposed to LLM (backend handles polling internally)
 ]
 
 
@@ -57,6 +61,10 @@ def get_available_tools(
 
     # Conditionally add tools based on config
     builtin_tools = BUILTIN_TOOLS.copy()
+
+    if subagent_enabled:
+        builtin_tools.extend(SUBAGENT_TOOLS)
+        logger.info("Including subagent tools (task)")
 
     # skill_evolution_config = getattr(config, "skill_evolution", None)
     # if getattr(skill_evolution_config, "enabled", False):
