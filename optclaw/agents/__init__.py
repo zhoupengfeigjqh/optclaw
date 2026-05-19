@@ -1,4 +1,4 @@
-from .checkpointer import get_checkpointer, reset_checkpointer #, make_checkpointer
+from .checkpointer import get_checkpointer, reset_checkpointer, make_checkpointer
 # from .factory import create_optclaw_agent
 # from .features import Next, Prev, RuntimeFeatures
 # from .lead_agent import make_lead_agent
@@ -15,5 +15,6 @@ __all__ = [
     "ThreadState",
     "get_checkpointer",
     "reset_checkpointer",
-    "apply_prompt_template"
+    "apply_prompt_template",
+    "make_checkpointer"
 ]
