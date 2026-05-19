@@ -7,22 +7,21 @@ Usage:
     from optclaw.client import OptClawClient
 
     client = OptClawClient()
-    response = client.chat("Analyze this paper for me", thread_id="my-thread")
+    response = await client.chat("Analyze this paper for me", thread_id="my-thread")
     print(response)
 
     # Streaming
-    for event in client.stream("hello"):
+    async for event in client.stream("hello"):
         print(event)
 """
 
 import asyncio
 import json
-import logging
 import mimetypes
 import shutil
 import tempfile
 import uuid
-from collections.abc import Generator, Sequence
+from collections.abc import AsyncGenerator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
@@ -32,15 +31,14 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
-# from optclaw.agents.lead_agent.agent import _build_middlewares
-# from optclaw.agents.lead_agent.prompt import apply_prompt_template
+from optclaw.agents import apply_prompt_template
 from optclaw.agents.thread_state import ThreadState
 from optclaw.config.agents_config import AGENT_NAME_PATTERN
 from optclaw.config.app_config import get_app_config, reload_app_config
-# from optclaw.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
+from optclaw.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from optclaw.config.paths import get_paths
 from optclaw.models import create_chat_model
-# from optclaw.skills.installer import install_skill_from_archive
+from optclaw.skills.installer import install_skill_from_archive
 from optclaw.uploads.manager import (
     claim_unique_filename,
     delete_file_safe,
@@ -51,6 +49,7 @@ from optclaw.uploads.manager import (
     upload_artifact_url,
     upload_virtual_path,
 )
+from optclaw.agents.middlewares import build_leadagent_middlewares
 
 from optclaw.log import setup_logging
 logger = setup_logging(__name__)
@@ -100,10 +99,10 @@ class OptClawClient:
         client = OptClawClient()
 
         # Simple one-shot
-        print(client.chat("hello"))
+        print(await client.chat("hello"))
 
         # Streaming
-        for event in client.stream("hello"):
+        async for event in client.stream("hello"):
             print(event.type, event.data)
 
         # Configuration queries
@@ -114,12 +113,12 @@ class OptClawClient:
     def __init__(
         self,
         config_path: str | None = None,
-        checkpointer=None,
+        checkpointer = None,
         *,
         model_name: str | None = None,
-        thinking_enabled: bool = True,
+        thinking_enabled: bool = False,
         subagent_enabled: bool = False,
-        plan_mode: bool = False,
+        plan_mode: bool = True,
         agent_name: str | None = None,
         available_skills: set[str] | None = None,
         middlewares: Sequence[AgentMiddleware] | None = None,
@@ -161,6 +160,19 @@ class OptClawClient:
         self._agent = None
         self._agent_config_key: tuple | None = None
 
+        # Async checkpointer lifecycle
+        self._async_checkpointer_ctx = None
+
+    async def close(self) -> None:
+        """Close the async checkpointer context manager, releasing resources."""
+        if self._async_checkpointer_ctx is not None:
+            try:
+                await self._async_checkpointer_ctx.__aexit__(None, None, None)
+            except Exception:
+                logger.warning("Error during async checkpointer cleanup", exc_info=True)
+            self._async_checkpointer_ctx = None
+            self._checkpointer = None
+
     def reset_agent(self) -> None:
         """Force the internal agent to be recreated on the next call.
 
@@ -174,6 +186,22 @@ class OptClawClient:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    async def _ensure_checkpointer(self):
+        """Ensure an async-compatible checkpointer is available.
+
+        If the user provided a checkpointer at init, use it directly.
+        Otherwise, lazily enter the ``make_checkpointer()`` async context
+        manager and store the reference for lifecycle management.
+        """
+        if self._checkpointer is not None:
+            return
+
+        from optclaw.agents.checkpointer import make_checkpointer
+
+        ctx = make_checkpointer()
+        self._checkpointer = await ctx.__aenter__()
+        self._async_checkpointer_ctx = ctx
 
     @staticmethod
     def _atomic_write_json(path: Path, data: dict) -> None:
@@ -207,7 +235,7 @@ class OptClawClient:
             recursion_limit=overrides.get("recursion_limit", 100),
         )
 
-    def _ensure_agent(self, config: RunnableConfig):
+    async def _ensure_agent(self, config: RunnableConfig):
         """Create (or recreate) the agent when config-dependent params change."""
         cfg = config.get("configurable", {})
         key = (
@@ -225,25 +253,27 @@ class OptClawClient:
         thinking_enabled = cfg.get("thinking_enabled", True)
         model_name = cfg.get("model_name")
         subagent_enabled = cfg.get("subagent_enabled", False)
-        max_concurrent_subagents = cfg.get("max_concurrent_subagents", 3)
+        max_concurrent_subagents = cfg.get("max_concurrent_subagents", 1)
 
         kwargs: dict[str, Any] = {
             "model": create_chat_model(name=model_name, thinking_enabled=thinking_enabled),
             "tools": self._get_tools(model_name=model_name, subagent_enabled=subagent_enabled),
-            "middleware": _build_middlewares(config, model_name=model_name, agent_name=self._agent_name, custom_middlewares=self._middlewares),
+            # If an agent_name is provided, the path refers to agent-specific memory; otherwise, it refers to common shared memory.
+            "middleware": build_leadagent_middlewares(config=config, model_name=model_name, agent_name=self._agent_name, plan_mode=self._plan_mode),
             "system_prompt": apply_prompt_template(
-                subagent_enabled=subagent_enabled,
-                max_concurrent_subagents=max_concurrent_subagents,
                 agent_name=self._agent_name,
                 available_skills=self._available_skills,
+                subagent_enabled=subagent_enabled,
+                max_concurrent_subagents=max_concurrent_subagents
             ),
-            "state_schema": ThreadState,
+            "state_schema": ThreadState,  # record state info during the chat
+            # "context_schema": None  # provide context info such as user id, read-only mode
         }
         checkpointer = self._checkpointer
         if checkpointer is None:
-            from optclaw.agents.checkpointer import get_checkpointer
+            await self._ensure_checkpointer()
+            checkpointer = self._checkpointer
 
-            checkpointer = get_checkpointer()
         if checkpointer is not None:
             kwargs["checkpointer"] = checkpointer
 
@@ -358,12 +388,11 @@ class OptClawClient:
             flush_pending_str_parts()
             return "\n".join(pieces) if pieces else ""
         return str(content)
-
+    
     # ------------------------------------------------------------------
     # Public API — threads
     # ------------------------------------------------------------------
-
-    def list_threads(self, limit: int = 10) -> dict:
+    async def list_threads(self, limit: int = 10) -> dict:
         """List the recent N threads.
 
         Args:
@@ -375,15 +404,17 @@ class OptClawClient:
         """
         checkpointer = self._checkpointer
         if checkpointer is None:
-            from optclaw.agents.checkpointer.provider import get_checkpointer
-
-            checkpointer = get_checkpointer()
+            await self._ensure_checkpointer()
+            checkpointer = self._checkpointer
 
         thread_info_map = {}
 
-        for cp in checkpointer.list(config=None, limit=limit):
+        cnt = 0
+
+        async for cp in checkpointer.alist(config=None, limit=10000):
             cfg = cp.config.get("configurable", {})
             thread_id = cfg.get("thread_id")
+            
             if not thread_id:
                 continue
 
@@ -399,6 +430,9 @@ class OptClawClient:
                     "latest_checkpoint_id": checkpoint_id,
                     "title": channel_values.get("title"),
                 }
+                cnt = cnt + 1
+                if cnt >= limit:
+                    break
             else:
                 # Explicitly compare timestamps to ensure accuracy when iterating over unordered namespaces.
                 # Treat None as "missing" and only compare when existing values are non-None.
@@ -419,7 +453,7 @@ class OptClawClient:
 
         return {"thread_list": threads[:limit]}
 
-    def get_thread(self, thread_id: str) -> dict:
+    async def get_thread(self, thread_id: str) -> dict:
         """Get the complete thread record, including all node execution records.
 
         Args:
@@ -430,14 +464,13 @@ class OptClawClient:
         """
         checkpointer = self._checkpointer
         if checkpointer is None:
-            from optclaw.agents.checkpointer.provider import get_checkpointer
-
-            checkpointer = get_checkpointer()
+            await self._ensure_checkpointer()
+            checkpointer = self._checkpointer
 
         config = {"configurable": {"thread_id": thread_id}}
         checkpoints = []
 
-        for cp in checkpointer.list(config):
+        async for cp in checkpointer.alist(config):
             channel_values = dict(cp.checkpoint.get("channel_values", {}))
             if "messages" in channel_values:
                 channel_values["messages"] = [self._serialize_message(m) if hasattr(m, "content") else m for m in channel_values["messages"]]
@@ -460,257 +493,6 @@ class OptClawClient:
         checkpoints.sort(key=lambda x: x["ts"] if x["ts"] else "")
 
         return {"thread_id": thread_id, "checkpoints": checkpoints}
-
-    # ------------------------------------------------------------------
-    # Public API — conversation
-    # ------------------------------------------------------------------
-
-    def stream(
-        self,
-        message: str,
-        *,
-        thread_id: str | None = None,
-        **kwargs,
-    ) -> Generator[StreamEvent, None, None]:
-        """Stream a conversation turn, yielding events incrementally.
-
-        Each call sends one user message and yields events until the agent
-        finishes its turn. A ``checkpointer`` must be provided at init time
-        for multi-turn context to be preserved across calls.
-
-        Event types align with the LangGraph SSE protocol so that
-        consumers can switch between HTTP streaming and embedded mode
-        without changing their event-handling logic.
-
-        Token-level streaming
-        ~~~~~~~~~~~~~~~~~~~~~
-        This method subscribes to LangGraph's ``messages`` stream mode, so
-        ``messages-tuple`` events for AI text are emitted as **deltas** as
-        the model generates tokens, not as one cumulative dump at node
-        completion.  Each delta carries a stable ``id`` — consumers that
-        want the full text must accumulate ``content`` per ``id``.
-        ``chat()`` already does this for you.
-
-        Tool calls and tool results are still emitted once per logical
-        message.  ``values`` events continue to carry full state snapshots
-        after each graph node finishes; AI text already delivered via the
-        ``messages`` stream is **not** re-synthesized from the snapshot to
-        avoid duplicate deliveries.
-
-        Why not reuse Gateway's ``run_agent``?
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        Gateway (``runtime/runs/worker.py``) has a complete streaming
-        pipeline: ``run_agent`` → ``StreamBridge`` → ``sse_consumer``.  It
-        looks like this client duplicates that work, but the two paths
-        serve different audiences and **cannot** share execution:
-
-        * ``run_agent`` is ``async def`` and uses ``agent.astream()``;
-          this method is a sync generator using ``agent.stream()`` so
-          callers can write ``for event in client.stream(...)`` without
-          touching asyncio.  Bridging the two would require spinning up
-          an event loop + thread per call.
-        * Gateway events are JSON-serialized by ``serialize()`` for SSE
-          wire transmission.  This client yields in-process stream event
-          payloads directly as Python data structures (``StreamEvent``
-          with ``data`` as a plain ``dict``), without the extra
-          JSON/SSE serialization layer used for HTTP delivery.
-        * ``StreamBridge`` is an asyncio-queue decoupling producers from
-          consumers across an HTTP boundary (``Last-Event-ID`` replay,
-          heartbeats, multi-subscriber fan-out).  A single in-process
-          caller with a direct iterator needs none of that.
-
-        So ``OptClawClient.stream()`` is a parallel, sync, in-process
-        consumer of the same ``create_agent()`` factory — not a wrapper
-        around Gateway.  The two paths **should** stay in sync on which
-        LangGraph stream modes they subscribe to; that invariant is
-        enforced by ``tests/test_client.py::test_messages_mode_emits_token_deltas``
-        rather than by a shared constant, because the three layers
-        (Graph, Platform SDK, HTTP) each use their own naming
-        (``messages`` vs ``messages-tuple``) and cannot literally share
-        a string.
-
-        Args:
-            message: User message text.
-            thread_id: Thread ID for conversation context. Auto-generated if None.
-            **kwargs: Override client defaults (model_name, thinking_enabled,
-                plan_mode, subagent_enabled, recursion_limit).
-
-        Yields:
-            StreamEvent with one of:
-            - type="values"          data={"title": str|None, "messages": [...], "artifacts": [...]}
-            - type="custom"          data={...}
-            - type="messages-tuple"  data={"type": "ai", "content": <delta>, "id": str}
-            - type="messages-tuple"  data={"type": "ai", "content": <delta>, "id": str, "usage_metadata": {...}}
-            - type="messages-tuple"  data={"type": "ai", "content": "", "id": str, "tool_calls": [...]}
-            - type="messages-tuple"  data={"type": "tool", "content": str, "name": str, "tool_call_id": str, "id": str}
-            - type="end"             data={"usage": {"input_tokens": int, "output_tokens": int, "total_tokens": int}}
-        """
-        if thread_id is None:
-            thread_id = str(uuid.uuid4())
-
-        config = self._get_runnable_config(thread_id, **kwargs)
-        self._ensure_agent(config)
-
-        state: dict[str, Any] = {"messages": [HumanMessage(content=message)]}
-        context = {"thread_id": thread_id}
-        if self._agent_name:
-            context["agent_name"] = self._agent_name
-
-        seen_ids: set[str] = set()
-        # Cross-mode handoff: ids already streamed via LangGraph ``messages``
-        # mode so the ``values`` path skips re-synthesis of the same message.
-        streamed_ids: set[str] = set()
-        # The same message id carries identical cumulative ``usage_metadata``
-        # in both the final ``messages`` chunk and the values snapshot —
-        # count it only on whichever arrives first.
-        counted_usage_ids: set[str] = set()
-        cumulative_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
-
-        def _account_usage(msg_id: str | None, usage: Any) -> dict | None:
-            """Add *usage* to cumulative totals if this id has not been counted.
-
-            ``usage`` is a ``langchain_core.messages.UsageMetadata`` TypedDict
-            or ``None``; typed as ``Any`` because TypedDicts are not
-            structurally assignable to plain ``dict`` under strict type
-            checking.  Returns the normalized usage dict (for attaching
-            to an event) when we accepted it, otherwise ``None``.
-            """
-            if not usage:
-                return None
-            if msg_id and msg_id in counted_usage_ids:
-                return None
-            if msg_id:
-                counted_usage_ids.add(msg_id)
-            input_tokens = usage.get("input_tokens", 0) or 0
-            output_tokens = usage.get("output_tokens", 0) or 0
-            total_tokens = usage.get("total_tokens", 0) or 0
-            cumulative_usage["input_tokens"] += input_tokens
-            cumulative_usage["output_tokens"] += output_tokens
-            cumulative_usage["total_tokens"] += total_tokens
-            return {
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "total_tokens": total_tokens,
-            }
-
-        for item in self._agent.stream(
-            state,
-            config=config,
-            context=context,
-            stream_mode=["values", "messages", "custom"],
-        ):
-            if isinstance(item, tuple) and len(item) == 2:
-                mode, chunk = item
-                mode = str(mode)
-            else:
-                mode, chunk = "values", item
-
-            if mode == "custom":
-                yield StreamEvent(type="custom", data=chunk)
-                continue
-
-            if mode == "messages":
-                # LangGraph ``messages`` mode emits ``(message_chunk, metadata)``.
-                if isinstance(chunk, tuple) and len(chunk) == 2:
-                    msg_chunk, _metadata = chunk
-                else:
-                    msg_chunk = chunk
-
-                msg_id = getattr(msg_chunk, "id", None)
-
-                if isinstance(msg_chunk, AIMessage):
-                    text = self._extract_text(msg_chunk.content)
-                    counted_usage = _account_usage(msg_id, msg_chunk.usage_metadata)
-
-                    if text:
-                        if msg_id:
-                            streamed_ids.add(msg_id)
-                        yield self._ai_text_event(msg_id, text, counted_usage)
-
-                    if msg_chunk.tool_calls:
-                        if msg_id:
-                            streamed_ids.add(msg_id)
-                        yield self._ai_tool_calls_event(msg_id, msg_chunk.tool_calls)
-
-                elif isinstance(msg_chunk, ToolMessage):
-                    if msg_id:
-                        streamed_ids.add(msg_id)
-                    yield self._tool_message_event(msg_chunk)
-                continue
-
-            # mode == "values"
-            messages = chunk.get("messages", [])
-
-            for msg in messages:
-                msg_id = getattr(msg, "id", None)
-                if msg_id and msg_id in seen_ids:
-                    continue
-                if msg_id:
-                    seen_ids.add(msg_id)
-
-                # Already streamed via ``messages`` mode; only (defensively)
-                # capture usage here and skip re-synthesizing the event.
-                if msg_id and msg_id in streamed_ids:
-                    if isinstance(msg, AIMessage):
-                        _account_usage(msg_id, getattr(msg, "usage_metadata", None))
-                    continue
-
-                if isinstance(msg, AIMessage):
-                    counted_usage = _account_usage(msg_id, msg.usage_metadata)
-
-                    if msg.tool_calls:
-                        yield self._ai_tool_calls_event(msg_id, msg.tool_calls)
-
-                    text = self._extract_text(msg.content)
-                    if text:
-                        yield self._ai_text_event(msg_id, text, counted_usage)
-
-                elif isinstance(msg, ToolMessage):
-                    yield self._tool_message_event(msg)
-
-            # Emit a values event for each state snapshot
-            yield StreamEvent(
-                type="values",
-                data={
-                    "title": chunk.get("title"),
-                    "messages": [self._serialize_message(m) for m in messages],
-                    "artifacts": chunk.get("artifacts", []),
-                },
-            )
-
-        yield StreamEvent(type="end", data={"usage": cumulative_usage})
-
-    def chat(self, message: str, *, thread_id: str | None = None, **kwargs) -> str:
-        """Send a message and return the final text response.
-
-        Convenience wrapper around :meth:`stream` that accumulates delta
-        ``messages-tuple`` events per ``id`` and returns the text of the
-        **last** AI message to complete.  Intermediate AI messages (e.g.
-        planner drafts) are discarded — only the final id's accumulated
-        text is returned.  Use :meth:`stream` directly if you need every
-        delta as it arrives.
-
-        Args:
-            message: User message text.
-            thread_id: Thread ID for conversation context. Auto-generated if None.
-            **kwargs: Override client defaults (same as stream()).
-
-        Returns:
-            The accumulated text of the last AI message, or empty string
-            if no AI text was produced.
-        """
-        # Per-id delta lists joined once at the end — avoids the O(n²) cost
-        # of repeated ``str + str`` on a growing buffer for long responses.
-        chunks: dict[str, list[str]] = {}
-        last_id: str = ""
-        for event in self.stream(message, thread_id=thread_id, **kwargs):
-            if event.type == "messages-tuple" and event.data.get("type") == "ai":
-                msg_id = event.data.get("id") or ""
-                delta = event.data.get("content", "")
-                if delta:
-                    chunks.setdefault(msg_id, []).append(delta)
-                    last_id = msg_id
-        return "".join(chunks.get(last_id, ()))
 
     # ------------------------------------------------------------------
     # Public API — configuration queries
@@ -805,54 +587,6 @@ class OptClawClient:
             "supports_thinking": getattr(model, "supports_thinking", False),
             "supports_reasoning_effort": getattr(model, "supports_reasoning_effort", False),
         }
-
-    # ------------------------------------------------------------------
-    # Public API — MCP configuration
-    # ------------------------------------------------------------------
-
-    def get_mcp_config(self) -> dict:
-        """Get MCP server configurations.
-
-        Returns:
-            Dict with "mcp_servers" key mapping server name to config,
-            matching the Gateway API ``McpConfigResponse`` schema.
-        """
-        config = get_extensions_config()
-        return {"mcp_servers": {name: server.model_dump() for name, server in config.mcp_servers.items()}}
-
-    def update_mcp_config(self, mcp_servers: dict[str, dict]) -> dict:
-        """Update MCP server configurations.
-
-        Writes to extensions_config.json and reloads the cache.
-
-        Args:
-            mcp_servers: Dict mapping server name to config dict.
-                Each value should contain keys like enabled, type, command, args, env, url, etc.
-
-        Returns:
-            Dict with "mcp_servers" key, matching the Gateway API
-            ``McpConfigResponse`` schema.
-
-        Raises:
-            OSError: If the config file cannot be written.
-        """
-        config_path = ExtensionsConfig.resolve_config_path()
-        if config_path is None:
-            raise FileNotFoundError("Cannot locate extensions_config.json. Set OPT_CLAW_EXTENSIONS_CONFIG_PATH or ensure it exists in the project root.")
-
-        current_config = get_extensions_config()
-
-        config_data = {
-            "mcpServers": mcp_servers,
-            "skills": {name: {"enabled": skill.enabled} for name, skill in current_config.skills.items()},
-        }
-
-        self._atomic_write_json(config_path, config_data)
-
-        self._agent = None
-        self._agent_config_key = None
-        reloaded = reload_extensions_config()
-        return {"mcp_servers": {name: server.model_dump() for name, server in reloaded.mcp_servers.items()}}
 
     # ------------------------------------------------------------------
     # Public API — skills management
@@ -1011,6 +745,7 @@ class OptClawClient:
             "fact_confidence_threshold": config.fact_confidence_threshold,
             "injection_enabled": config.injection_enabled,
             "max_injection_tokens": config.max_injection_tokens,
+            "model_name":config.model_name
         }
 
     def get_memory_status(self) -> dict:
@@ -1194,3 +929,199 @@ class OptClawClient:
 
         mime_type, _ = mimetypes.guess_type(actual)
         return actual.read_bytes(), mime_type or "application/octet-stream"
+
+    # ------------------------------------------------------------------
+    # Public API — conversation
+    # ------------------------------------------------------------------
+
+    async def stream(
+        self,
+        message: str,
+        *,
+        thread_id: str | None = None,
+        **kwargs,
+    ) -> AsyncGenerator[StreamEvent, None]:
+        """Stream a conversation turn, yielding events incrementally.
+        Args:
+            message: User message text.
+            thread_id: Thread ID for conversation context. Auto-generated if None.
+            **kwargs: Override client defaults (model_name, thinking_enabled,
+                plan_mode, subagent_enabled, recursion_limit).
+
+        Yields:
+            StreamEvent with one of:
+            - type="values"          data={"title": str|None, "messages": [...], "artifacts": [...]}
+            - type="custom"          data={...}
+            - type="messages-tuple"  data={"type": "ai", "content": <delta>, "id": str}
+            - type="messages-tuple"  data={"type": "ai", "content": <delta>, "id": str, "usage_metadata": {...}}
+            - type="messages-tuple"  data={"type": "ai", "content": "", "id": str, "tool_calls": [...]}
+            - type="messages-tuple"  data={"type": "tool", "content": str, "name": str, "tool_call_id": str, "id": str}
+            - type="end"             data={"usage": {"input_tokens": int, "output_tokens": int, "total_tokens": int}}
+        """
+        if thread_id is None:
+            thread_id = str(uuid.uuid4())
+
+        config = self._get_runnable_config(thread_id, **kwargs)
+        await self._ensure_agent(config)
+
+        state: dict[str, Any] = {"messages": [HumanMessage(content=message)]}
+        context = {"thread_id": thread_id}
+        if self._agent_name:
+            context["agent_name"] = self._agent_name
+
+        seen_ids: set[str] = set()
+        # Cross-mode handoff: ids already streamed via LangGraph ``messages``
+        # mode so the ``values`` path skips re-synthesis of the same message.
+        streamed_ids: set[str] = set()
+        # The same message id carries identical cumulative ``usage_metadata``
+        # in both the final ``messages`` chunk and the values snapshot —
+        # count it only on whichever arrives first.
+        counted_usage_ids: set[str] = set()
+        cumulative_usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+
+        def _account_usage(msg_id: str | None, usage: Any) -> dict | None:
+            """Add *usage* to cumulative totals if this id has not been counted.
+
+            ``usage`` is a ``langchain_core.messages.UsageMetadata`` TypedDict
+            or ``None``; typed as ``Any`` because TypedDicts are not
+            structurally assignable to plain ``dict`` under strict type
+            checking.  Returns the normalized usage dict (for attaching
+            to an event) when we accepted it, otherwise ``None``.
+            """
+            if not usage:
+                return None
+            if msg_id and msg_id in counted_usage_ids:
+                return None
+            if msg_id:
+                counted_usage_ids.add(msg_id)
+            input_tokens = usage.get("input_tokens", 0) or 0
+            output_tokens = usage.get("output_tokens", 0) or 0
+            total_tokens = usage.get("total_tokens", 0) or 0
+            cumulative_usage["input_tokens"] += input_tokens
+            cumulative_usage["output_tokens"] += output_tokens
+            cumulative_usage["total_tokens"] += total_tokens
+            return {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": total_tokens,
+            }
+
+        async for item in self._agent.astream(
+            state,
+            config=config,
+            context=context,
+            # stream_mode=["values", "messages", "custom"],
+            stream_mode=["values", "custom"],
+        ):
+            if isinstance(item, tuple) and len(item) == 2:
+                mode, chunk = item
+                mode = str(mode)
+            else:
+                mode, chunk = "values", item
+
+            if mode == "custom":
+                yield StreamEvent(type="custom", data=chunk)
+                continue
+
+            if mode == "messages":
+                # LangGraph ``messages`` mode emits ``(message_chunk, metadata)``.
+                if isinstance(chunk, tuple) and len(chunk) == 2:
+                    msg_chunk, _metadata = chunk
+                else:
+                    msg_chunk = chunk
+
+                msg_id = getattr(msg_chunk, "id", None)
+
+                if isinstance(msg_chunk, AIMessage):
+                    text = self._extract_text(msg_chunk.content)
+                    counted_usage = _account_usage(msg_id, msg_chunk.usage_metadata)
+
+                    if text:
+                        if msg_id:
+                            streamed_ids.add(msg_id)
+                        yield self._ai_text_event(msg_id, text, counted_usage)
+
+                    if msg_chunk.tool_calls:
+                        if msg_id:
+                            streamed_ids.add(msg_id)
+                        yield self._ai_tool_calls_event(msg_id, msg_chunk.tool_calls)
+
+                elif isinstance(msg_chunk, ToolMessage):
+                    if msg_id:
+                        streamed_ids.add(msg_id)
+                    yield self._tool_message_event(msg_chunk)
+                continue
+
+            # mode == "values"
+            messages = chunk.get("messages", [])
+
+            for msg in messages:
+                msg_id = getattr(msg, "id", None)
+                if msg_id and msg_id in seen_ids:
+                    continue
+                if msg_id:
+                    seen_ids.add(msg_id)
+
+                # Already streamed via ``messages`` mode; only (defensively)
+                # capture usage here and skip re-synthesizing the event.
+                if msg_id and msg_id in streamed_ids:
+                    if isinstance(msg, AIMessage):
+                        _account_usage(msg_id, getattr(msg, "usage_metadata", None))
+                    continue
+
+                if isinstance(msg, AIMessage):
+                    counted_usage = _account_usage(msg_id, msg.usage_metadata)
+
+                    if msg.tool_calls:
+                        yield self._ai_tool_calls_event(msg_id, msg.tool_calls)
+
+                    text = self._extract_text(msg.content)
+                    if text:
+                        yield self._ai_text_event(msg_id, text, counted_usage)
+
+                elif isinstance(msg, ToolMessage):
+                    yield self._tool_message_event(msg)
+
+            # Emit a values event for each state snapshot
+            yield StreamEvent(
+                type="values",
+                data={
+                    "title": chunk.get("title"),
+                    "messages": [self._serialize_message(m) for m in messages],
+                    "artifacts": chunk.get("artifacts", []),
+                },
+            )
+
+        yield StreamEvent(type="end", data={"usage": cumulative_usage})
+
+    async def chat(self, message: str, *, thread_id: str | None = None, **kwargs) -> str:
+        """Send a message and return the final text response.
+
+        Convenience wrapper around :meth:`stream` that accumulates delta
+        ``messages-tuple`` events per ``id`` and returns the text of the
+        **last** AI message to complete.  Intermediate AI messages (e.g.
+        planner drafts) are discarded — only the final id's accumulated
+        text is returned.  Use :meth:`stream` directly if you need every
+        delta as it arrives.
+
+        Args:
+            message: User message text.
+            thread_id: Thread ID for conversation context. Auto-generated if None.
+            **kwargs: Override client defaults (same as stream()).
+
+        Returns:
+            The accumulated text of the last AI message, or empty string
+            if no AI text was produced.
+        """
+        # Per-id delta lists joined once at the end — avoids the O(n²) cost
+        # of repeated ``str + str`` on a growing buffer for long responses.
+        chunks: dict[str, list[str]] = {}
+        last_id: str = ""
+        async for event in self.stream(message, thread_id=thread_id, **kwargs):
+            if event.type == "messages-tuple" and event.data.get("type") == "ai":
+                msg_id = event.data.get("id") or ""
+                delta = event.data.get("content", "")
+                if delta:
+                    chunks.setdefault(msg_id, []).append(delta)
+                    last_id = msg_id
+        return "".join(chunks.get(last_id, ()))
