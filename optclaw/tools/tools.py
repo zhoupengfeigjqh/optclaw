@@ -6,7 +6,7 @@ from optclaw.config import get_app_config
 from optclaw.reflection import resolve_variable
 from optclaw.tools.builtins import ask_clarification_tool, present_file_tool, write_file_tool, \
     read_file_tool, glob_file_tool, grep_file_tool, view_image_tool,\
-          tail_file_tool, str_replace_tool, setup_agent_tool, task_tool, list_directory_tool
+          tail_file_tool, str_replace_tool, setup_agent_tool, task_tool, list_directory_tool, execute_python_file_tool
 
 from optclaw.log import setup_logging
 logger = setup_logging(__name__)
@@ -23,7 +23,8 @@ BUILTIN_TOOLS = [
     ask_clarification_tool,
     str_replace_tool,
     list_directory_tool,
-    setup_agent_tool
+    setup_agent_tool,
+    execute_python_file_tool
 ]
 
 SUBAGENT_TOOLS = [

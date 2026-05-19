@@ -10,6 +10,7 @@ from .str_replace_tool import str_replace_tool
 from .setup_agent_tool import setup_agent_tool
 from .task_tool import task_tool
 from .list_dir_tool import list_directory_tool
+from .execute_tool import execute_python_file_tool
 
 __all__ = [
     "present_file_tool",
@@ -24,5 +25,6 @@ __all__ = [
     "str_replace_tool",
     "setup_agent_tool",
     "task_tool",
-    "list_directory_tool"
+    "list_directory_tool",
+    "execute_python_file_tool"
 ]
