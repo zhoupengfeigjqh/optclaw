@@ -356,13 +356,28 @@ class LoopDetectionMiddleware(AgentMiddleware[AgentState]):
             stripped_msg = last_msg.model_copy(update=self._build_hard_stop_update(last_msg, content))
             return {"messages": [stripped_msg]}
 
+        # if warning:
+        #     # Inject as HumanMessage instead of SystemMessage to avoid
+        #     # Anthropic's "multiple non-consecutive system messages" error.
+        #     # Anthropic models require system messages only at the start of
+        #     # the conversation; injecting one mid-conversation crashes
+        #     # langchain_anthropic's _format_messages(). HumanMessage works
+        #     # with all providers. See #1299.
+        #     return {"messages": [HumanMessage(content=warning)]}
         if warning:
-            # Inject as HumanMessage instead of SystemMessage to avoid
-            # Anthropic's "multiple non-consecutive system messages" error.
-            # Anthropic models require system messages only at the start of
-            # the conversation; injecting one mid-conversation crashes
-            # langchain_anthropic's _format_messages(). HumanMessage works
-            # with all providers. See #1299.
+            messages = state.get("messages", [])
+            if not messages:
+                return None
+            
+            last_msg = messages[-1]
+            # Critical fix: Check if the last message is from AI and contains tool_calls
+            if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+                # If the AI has already called a tool → must use hard-stop logic to avoid errors
+                content = self._append_text(last_msg.content, warning or _HARD_STOP_MSG)
+                stripped_msg = last_msg.model_copy(update=self._build_hard_stop_update(last_msg, content))
+                return {"messages": [stripped_msg]}
+            
+            # Safe scenario: no tool_calls, insert warning normally
             return {"messages": [HumanMessage(content=warning)]}
 
         return None
