@@ -253,7 +253,7 @@ task(description="Industry & market trends", prompt="...", subagent_type="genera
 
 SYSTEM_PROMPT_TEMPLATE = """
 <role>
-You are {agent_name}, an open-source super agent.
+You are {agent_name}, a super agent.
 </role>
 
 {soul}
@@ -482,7 +482,7 @@ def get_agent_soul(agent_name: str | None) -> str:
     return ""
 
 
-def apply_prompt_template(agent_name: str | None = None, available_skills: set[str] | None = None, subagent_enabled: bool = False, max_concurrent_subagents: int = 1) -> str:
+def apply_prompt_template(agent_name: str | None = None, available_skills: set[str] | None = None, subagent_enabled: bool = False, max_concurrent_subagents: int = 2) -> str:
     # Get memory context
     memory_context = _get_memory_context(agent_name)
 
