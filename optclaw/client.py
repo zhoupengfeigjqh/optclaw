@@ -1010,8 +1010,7 @@ class OptClawClient:
             state,
             config=config,
             context=context,
-            # stream_mode=["values", "messages", "custom"],
-            stream_mode=["values", "custom"],
+            stream_mode=["messages"],  # ["values", "messages", "custom"],
         ):
             if isinstance(item, tuple) and len(item) == 2:
                 mode, chunk = item
@@ -1094,6 +1093,25 @@ class OptClawClient:
 
         yield StreamEvent(type="end", data={"usage": cumulative_usage})
 
+    async def chat_stream(self, message: str, *, thread_id: str | None = None, **kwargs) -> AsyncGenerator[str, None]:
+        """Streaming version
+           Send messages and yield AI response content word by word for real-time frontend streaming display.
+        """
+        current_text_chunks: list[str] = []
+        last_msg_id = ""
+        
+        async for event in self.stream(message, thread_id=thread_id, **kwargs):
+            if event.type == "messages-tuple" and event.data.get("type") == "ai":
+                msg_id = event.data.get("id", "")
+                delta_content = event.data.get("content", "")
+
+                if delta_content:
+                    if msg_id != last_msg_id:
+                        last_msg_id = msg_id
+                        current_text_chunks.clear()
+                    
+                    yield delta_content
+
     async def chat(self, message: str, *, thread_id: str | None = None, **kwargs) -> str:
         """Send a message and return the final text response.
 
@@ -1118,6 +1136,7 @@ class OptClawClient:
         chunks: dict[str, list[str]] = {}
         last_id: str = ""
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
+            # print(event.type)
             if event.type == "messages-tuple" and event.data.get("type") == "ai":
                 msg_id = event.data.get("id") or ""
                 delta = event.data.get("content", "")

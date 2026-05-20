@@ -19,6 +19,7 @@ def setup_agent_tool(
     runtime: ToolRuntime,
 ) -> Command:
     """Setup the custom optclaw agent.
+    When the user wants to setup a custom agent with a specific role, please call this tool.
 
     Args:
         soul: Full SOUL.md content defining the agent's personality and behavior.
