@@ -16,8 +16,11 @@
 
 3 提取后端工程代码需要的requirement.txt
 
-4 构建docker-compose文件，用于后续打包和启动项目
+4 构建docker-compose文件，用于后续打包和启动项目，注意python务必是3.12版本的
 
 5 千万不要修改optclaw里的代码
 
-6 若要修改client.py，请告知我！
+6 注意python务必是3.12版本的
+
+7 若要修改client.py，请告知我！
+
