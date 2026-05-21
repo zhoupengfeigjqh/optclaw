@@ -7,7 +7,64 @@
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<div class="app">
+<div class="intro-page" id="introPage">
+  <div class="intro-bg">
+    <canvas id="introCanvas"></canvas>
+  </div>
+  <div class="intro-content">
+    <div class="intro-logo">
+      <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+        <circle cx="40" cy="40" r="36" stroke="url(#grad1)" stroke-width="2" fill="none" opacity="0.6"/>
+        <circle cx="40" cy="40" r="24" stroke="url(#grad1)" stroke-width="1.5" fill="none" opacity="0.4"/>
+        <path d="M28 40L40 28L52 40L40 52Z" stroke="url(#grad1)" stroke-width="2" fill="none"/>
+        <circle cx="40" cy="40" r="4" fill="url(#grad1)"/>
+        <line x1="40" y1="4" x2="40" y2="28" stroke="url(#grad1)" stroke-width="1" opacity="0.5"/>
+        <line x1="40" y1="52" x2="40" y2="76" stroke="url(#grad1)" stroke-width="1" opacity="0.5"/>
+        <line x1="4" y1="40" x2="28" y2="40" stroke="url(#grad1)" stroke-width="1" opacity="0.5"/>
+        <line x1="52" y1="40" x2="76" y2="40" stroke="url(#grad1)" stroke-width="1" opacity="0.5"/>
+        <defs><linearGradient id="grad1" x1="0" y1="0" x2="80" y2="80"><stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#7b2d8e"/></linearGradient></defs>
+      </svg>
+    </div>
+    <h1 class="intro-title">OptClaw Agent</h1>
+    <p class="intro-subtitle">面向工业APS系统的智能决策引擎</p>
+    <div class="intro-features">
+      <div class="intro-feature">
+        <div class="feature-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <h3>多模型智能调度</h3>
+        <p>支持DeepSeek、OpenAI、Anthropic等多模型动态切换，思考模式深度推理</p>
+      </div>
+      <div class="intro-feature">
+        <div class="feature-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        </div>
+        <h3>APS排产优化</h3>
+        <p>面向高级计划与排程(APS)场景，提供产能分析、订单排程、资源优化决策</p>
+      </div>
+      <div class="intro-feature">
+        <div class="feature-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <h3>多Agent协同</h3>
+        <p>子Agent架构协同作业，工具调用、文件处理、知识检索一体化</p>
+      </div>
+      <div class="intro-feature">
+        <div class="feature-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </div>
+        <h3>工业数据洞察</h3>
+        <p>DuckDB内嵌分析引擎，直接对生产数据SQL查询与可视化分析</p>
+      </div>
+    </div>
+    <button class="btn-start" id="btnStart">
+      <span>开 始</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="app" id="appMain" style="display:none;">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <button class="btn-new-chat" id="btnNewChat">
@@ -20,6 +77,16 @@
     </div>
     <div class="thread-list" id="threadList"></div>
     <div class="sidebar-footer">
+      <div class="sidebar-actions">
+        <button class="btn-sidebar-action" id="btnShowMemory" title="记忆管理">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 6v6l4 2"/></svg>
+          <span>记忆</span>
+        </button>
+        <button class="btn-sidebar-action" id="btnShowSkills" title="技能管理">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>技能</span>
+        </button>
+      </div>
       <div class="sidebar-toggle-group">
         <label class="toggle-item">
           <span>思考模式</span>
@@ -43,6 +110,9 @@
       <div class="model-selector">
         <select id="modelSelect"></select>
       </div>
+      <div class="health-badge" id="healthBadge" title="服务状态">
+        <span class="health-dot"></span>
+      </div>
     </div>
 
     <div class="chat-messages" id="chatMessages">
@@ -61,6 +131,9 @@
         <button class="btn-upload" id="btnUpload" title="上传文件">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 15.91l-1 4a2 2 0 01-2 2H5.56a2 2 0 01-2-2l-1-4"/><polyline points="17 7 12 2 7 7"/><line x1="12" y1="2" x2="12" y2="16"/></svg>
         </button>
+        <button class="btn-upload-list" id="btnUploadList" title="已上传文件">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </button>
         <input type="file" id="fileInput" multiple hidden />
       </div>
       <div class="input-row">
@@ -71,6 +144,54 @@
       </div>
     </div>
   </main>
+
+  <div class="panel-overlay" id="panelOverlay"></div>
+  <div class="panel" id="memoryPanel">
+    <div class="panel-header">
+      <h3>记忆管理</h3>
+      <button class="btn-panel-close" id="btnCloseMemory">&times;</button>
+    </div>
+    <div class="panel-section" id="memoryConfigSection">
+      <div class="panel-section-title">配置参数</div>
+      <div class="config-edit-grid" id="memoryConfigGrid"></div>
+      <div class="config-edit-actions">
+        <button class="btn-config-save" id="btnSaveConfig">保存配置</button>
+      </div>
+    </div>
+    <div class="panel-toolbar">
+      <input type="text" id="newFactContent" placeholder="输入新记忆内容..." />
+      <select id="newFactCategory">
+        <option value="preference">偏好 (preference)</option>
+        <option value="knowledge">知识 (knowledge)</option>
+        <option value="context">背景 (context)</option>
+        <option value="behavior">行为 (behavior)</option>
+        <option value="goal">目标 (goal)</option>
+        <option value="correction">纠正 (correction)</option>
+      </select>
+      <button class="btn-panel-add" id="btnAddFact">添加</button>
+    </div>
+    <div class="panel-body" id="memoryList"></div>
+    <div class="panel-footer">
+      <button class="btn-panel-danger" id="btnClearMemory">清空全部记忆</button>
+      <button class="btn-panel-reload" id="btnReloadMemory">重载记忆</button>
+    </div>
+  </div>
+
+  <div class="panel" id="skillsPanel">
+    <div class="panel-header">
+      <h3>技能列表</h3>
+      <button class="btn-panel-close" id="btnCloseSkills">&times;</button>
+    </div>
+    <div class="panel-body" id="skillsList"></div>
+  </div>
+
+  <div class="panel" id="uploadsPanel">
+    <div class="panel-header">
+      <h3>已上传文件</h3>
+      <button class="btn-panel-close" id="btnCloseUploads">&times;</button>
+    </div>
+    <div class="panel-body" id="uploadsList"></div>
+  </div>
 </div>
 
 <script src="/js/app.js"></script>

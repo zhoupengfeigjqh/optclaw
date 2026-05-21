@@ -494,6 +494,31 @@ class OptClawClient:
 
         return {"thread_id": thread_id, "checkpoints": checkpoints}
 
+    async def delete_thread(self, thread_id: str) -> dict:
+        """Delete a thread and all its checkpoints via the checkpointer API.
+
+        Args:
+            thread_id: Thread ID to delete.
+
+        Returns:
+            Dict with success status.
+        """
+        checkpointer = self._checkpointer
+        if checkpointer is None:
+            await self._ensure_checkpointer()
+            checkpointer = self._checkpointer
+
+        config = {"configurable": {"thread_id": thread_id}}
+
+        if hasattr(checkpointer, "adelete_thread"):
+            await checkpointer.adelete_thread(thread_id)
+        elif hasattr(checkpointer, "delete_thread"):
+            checkpointer.delete_thread(thread_id)
+        else:
+            return {"success": False, "error": "Checkpointer does not support delete_thread"}
+
+        return {"success": True, "thread_id": thread_id}
+
     # ------------------------------------------------------------------
     # Public API — configuration queries
     # ------------------------------------------------------------------
@@ -746,6 +771,85 @@ class OptClawClient:
             "injection_enabled": config.injection_enabled,
             "max_injection_tokens": config.max_injection_tokens,
             "model_name":config.model_name
+        }
+
+    def update_memory_config(self, updates: dict) -> dict:
+        """Update memory configuration both in-memory and in config.yaml.
+
+        Args:
+            updates: Dict of config fields to update. Supported keys:
+                enabled, storage_path, debounce_seconds, max_facts,
+                fact_confidence_threshold, injection_enabled,
+                max_injection_tokens, model_name.
+
+        Returns:
+            Updated config dict.
+        """
+        import yaml
+
+        from optclaw.config.memory_config import get_memory_config, load_memory_config_from_dict
+        from optclaw.config.paths import resolve_path
+
+        current = self.get_memory_config()
+        merged = {**current, **updates}
+
+        load_memory_config_from_dict(merged)
+
+        config_path = resolve_path("config.yaml")
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f) or {}
+        except FileNotFoundError:
+            cfg = {}
+
+        mem_section = cfg.get("memory", {})
+        field_map = {
+            "enabled": "enabled",
+            "storage_path": "storage_path",
+            "debounce_seconds": "debounce_seconds",
+            "max_facts": "max_facts",
+            "fact_confidence_threshold": "fact_confidence_threshold",
+            "injection_enabled": "injection_enabled",
+            "max_injection_tokens": "max_injection_tokens",
+            "model_name": "model_name",
+        }
+        for key, yaml_key in field_map.items():
+            if key in updates:
+                mem_section[yaml_key] = updates[key]
+        cfg["memory"] = mem_section
+
+        with open(config_path, "w", encoding="utf-8") as f:
+            yaml.dump(cfg, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+        return self.get_memory_config()
+
+    def reload_memory(self) -> dict:
+        """Reload memory configuration from config.yaml and reset agent.
+
+        Returns:
+            Dict with reloaded config and memory data.
+        """
+        import yaml
+
+        from optclaw.config.memory_config import load_memory_config_from_dict
+        from optclaw.config.paths import resolve_path
+
+        config_path = resolve_path("config.yaml")
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f) or {}
+        except FileNotFoundError:
+            cfg = {}
+
+        mem_section = cfg.get("memory", {})
+        if mem_section:
+            load_memory_config_from_dict(mem_section)
+
+        self.reset_agent()
+
+        return {
+            "config": self.get_memory_config(),
+            "data": self.get_memory(),
         }
 
     def get_memory_status(self) -> dict:

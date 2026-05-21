@@ -20,14 +20,33 @@ from optclaw.client import OptClawClient
 client: OptClawClient | None = None
 
 
+def _sanitize(obj):
+    try:
+        return json.loads(json.dumps(obj, default=str, ensure_ascii=False))
+    except (TypeError, ValueError):
+        return str(obj)
+
+
+def _silent_event_loop_closed_handler(loop, context):
+    msg = context.get("message", "")
+    exc = context.get("exception")
+    if exc and isinstance(exc, RuntimeError) and "Event loop is closed" in str(exc):
+        return
+    loop.default_exception_handler(context)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global client
+    try:
+        loop = asyncio.get_running_loop()
+        loop.set_exception_handler(_silent_event_loop_closed_handler)
+    except RuntimeError:
+        pass
     client = OptClawClient()
     await client._ensure_checkpointer()
     yield
-    if client:
-        await client.close()
+    client = None
 
 
 app = FastAPI(title="OptClaw API", lifespan=lifespan)
@@ -50,24 +69,54 @@ class ChatRequest(BaseModel):
     subagent_enabled: bool | None = None
 
 
+class MemoryFactRequest(BaseModel):
+    content: str
+    category: str = "context"
+    confidence: float = 0.5
+
+
+class MemoryFactUpdateRequest(BaseModel):
+    content: str | None = None
+    category: str | None = None
+    confidence: float | None = None
+
+
+class MemoryConfigUpdateRequest(BaseModel):
+    enabled: bool | None = None
+    storage_path: str | None = None
+    debounce_seconds: int | None = None
+    max_facts: int | None = None
+    fact_confidence_threshold: float | None = None
+    injection_enabled: bool | None = None
+    max_injection_tokens: int | None = None
+    model_name: str | None = None
+
+
 @app.get("/api/models")
 async def list_models():
-    return client.list_models()
+    return _sanitize(client.list_models())
 
 
 @app.get("/api/skills")
 async def list_skills(enabled_only: bool = False):
-    return client.list_skills(enabled_only=enabled_only)
+    return _sanitize(client.list_skills(enabled_only=enabled_only))
 
 
 @app.get("/api/threads")
 async def list_threads(limit: int = Query(default=20, ge=1, le=100)):
-    return await client.list_threads(limit=limit)
+    data = await client.list_threads(limit=limit)
+    return _sanitize(data)
 
 
 @app.get("/api/threads/{thread_id}")
 async def get_thread(thread_id: str):
-    return await client.get_thread(thread_id)
+    data = await client.get_thread(thread_id)
+    return _sanitize(data)
+
+
+@app.delete("/api/threads/{thread_id}")
+async def delete_thread(thread_id: str):
+    return await client.delete_thread(thread_id)
 
 
 @app.post("/api/chat/stream")
@@ -81,8 +130,8 @@ async def chat_stream(req: ChatRequest):
         kwargs["subagent_enabled"] = req.subagent_enabled
 
     async def event_generator() -> AsyncGenerator[str, None]:
-        async for event in client.stream(req.message, thread_id=req.thread_id, **kwargs):
-            payload = {"type": event.type, "data": event.data}
+        async for delta in client.chat_stream(req.message, thread_id=req.thread_id, **kwargs):
+            payload = {"type": "delta", "data": {"content": delta}}
             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
 
@@ -126,14 +175,48 @@ async def delete_upload(thread_id: str, filename: str):
 
 @app.get("/api/memory")
 async def get_memory():
-    return client.get_memory()
+    return _sanitize(client.get_memory())
+
+
+@app.get("/api/memory/status")
+async def get_memory_status():
+    return _sanitize(client.get_memory_status())
+
+
+@app.patch("/api/memory/config")
+async def update_memory_config(req: MemoryConfigUpdateRequest):
+    updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    if not updates:
+        return _sanitize(client.get_memory_config())
+    return _sanitize(client.update_memory_config(updates))
+
+
+@app.post("/api/memory/reload")
+async def reload_memory():
+    return _sanitize(client.reload_memory())
+
+
+@app.post("/api/memory/facts")
+async def create_memory_fact(req: MemoryFactRequest):
+    return client.create_memory_fact(content=req.content, category=req.category, confidence=req.confidence)
+
+
+@app.delete("/api/memory/facts/{fact_id}")
+async def delete_memory_fact(fact_id: str):
+    return client.delete_memory_fact(fact_id=fact_id)
+
+
+@app.patch("/api/memory/facts/{fact_id}")
+async def update_memory_fact(fact_id: str, req: MemoryFactUpdateRequest):
+    return client.update_memory_fact(
+        fact_id=fact_id, content=req.content, category=req.category, confidence=req.confidence
+    )
 
 
 @app.post("/api/memory/clear")
 async def clear_memory():
     client.clear_memory()
-    client.reset_agent()
-    return {"success": True}
+    return _sanitize(client.reload_memory())
 
 
 @app.get("/api/health")
