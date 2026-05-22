@@ -76,30 +76,6 @@
       <input type="text" id="searchThreads" placeholder="搜索对话..." />
     </div>
     <div class="thread-list" id="threadList"></div>
-    <div class="sidebar-footer">
-      <div class="sidebar-actions">
-        <button class="btn-sidebar-action" id="btnShowMemory" title="记忆管理">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 6v6l4 2"/></svg>
-          <span>记忆</span>
-        </button>
-        <button class="btn-sidebar-action" id="btnShowSkills" title="技能管理">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          <span>技能</span>
-        </button>
-      </div>
-      <div class="sidebar-toggle-group">
-        <label class="toggle-item">
-          <span>思考模式</span>
-          <input type="checkbox" id="toggleThinking" />
-          <span class="toggle-switch"></span>
-        </label>
-        <label class="toggle-item">
-          <span>子Agent</span>
-          <input type="checkbox" id="toggleSubagent" />
-          <span class="toggle-switch"></span>
-        </label>
-      </div>
-    </div>
   </aside>
 
   <main class="chat-area">
@@ -110,6 +86,10 @@
       <div class="model-selector">
         <select id="modelSelect"></select>
       </div>
+      <button class="btn-agent-select" id="btnShowAgents" title="Agent设置">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span id="agentLabel">Agent</span>
+      </button>
       <div class="health-badge" id="healthBadge" title="服务状态">
         <span class="health-dot"></span>
       </div>
@@ -133,6 +113,29 @@
         </button>
         <button class="btn-upload-list" id="btnUploadList" title="已上传文件">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </button>
+        <span class="toolbar-divider"></span>
+        <label class="toolbar-toggle" title="思考模式">
+          <input type="checkbox" id="toggleThinking" />
+          <span class="toolbar-toggle-label">思考</span>
+          <span class="toggle-switch-sm"></span>
+        </label>
+        <label class="toolbar-toggle" title="子Agent">
+          <input type="checkbox" id="toggleSubagent" />
+          <span class="toolbar-toggle-label">子Agent</span>
+          <span class="toggle-switch-sm"></span>
+        </label>
+        <label class="toolbar-toggle" title="Plan模式">
+          <input type="checkbox" id="togglePlan" />
+          <span class="toolbar-toggle-label">Plan</span>
+          <span class="toggle-switch-sm"></span>
+        </label>
+        <span class="toolbar-divider"></span>
+        <button class="btn-toolbar-icon" id="btnShowSkills" title="技能">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </button>
+        <button class="btn-toolbar-icon" id="btnShowMemory" title="记忆">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 6v6l4 2"/></svg>
         </button>
         <input type="file" id="fileInput" multiple hidden />
       </div>
@@ -191,6 +194,38 @@
       <button class="btn-panel-close" id="btnCloseUploads">&times;</button>
     </div>
     <div class="panel-body" id="uploadsList"></div>
+  </div>
+
+  <div class="panel" id="agentsPanel">
+    <div class="panel-header">
+      <h3>Agent设置</h3>
+      <button class="btn-panel-close" id="btnCloseAgents">&times;</button>
+    </div>
+    <div class="panel-body">
+      <select id="agentSelect" class="agent-select">
+        <option value="">默认</option>
+      </select>
+      <div class="agent-detail" id="agentDetail">
+        <div class="agent-detail-section">
+          <div class="panel-section-title">描述</div>
+          <div id="agentDesc" class="agent-detail-content"></div>
+        </div>
+        <div class="agent-detail-section">
+          <div class="panel-section-title">SOUL.md</div>
+          <pre id="agentSoul" class="agent-detail-soul"></pre>
+        </div>
+      </div>
+      <button class="btn-agent-confirm" id="btnConfirmAgent">确认选择</button>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">创建新Agent</div>
+      <div class="agent-create-form">
+        <input type="text" id="newAgentName" placeholder="Agent名称" />
+        <input type="text" id="newAgentDesc" placeholder="描述" />
+        <textarea id="newAgentSoul" placeholder="SOUL.md 内容（定义Agent的个性和行为）" rows="4"></textarea>
+        <button class="btn-panel-add" id="btnCreateAgent">创建</button>
+      </div>
+    </div>
   </div>
 </div>
 

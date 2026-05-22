@@ -21,6 +21,7 @@
   const elWelcome = $("#welcomeScreen");
   const elToggleThinking = $("#toggleThinking");
   const elToggleSubagent = $("#toggleSubagent");
+  const elTogglePlan = $("#togglePlan");
   const elSearchThreads = $("#searchThreads");
 
   function generateId() {
@@ -243,6 +244,7 @@
     elMessages.querySelectorAll(".message").forEach((m) => m.remove());
     if (elWelcome) elWelcome.style.display = "flex";
     $$(".thread-item").forEach((item) => item.classList.remove("active"));
+    fetch(`${API_BASE}/reset-agent`, { method: "POST" }).catch(() => {});
   }
 
   async function sendMessage() {
@@ -296,6 +298,9 @@
     else payload.thinking_enabled = false;
     if (elToggleSubagent.checked) payload.subagent_enabled = true;
     else payload.subagent_enabled = false;
+    if (elTogglePlan.checked) payload.plan_mode = true;
+    else payload.plan_mode = false;
+    if (selectedAgentName) payload.agent_name = selectedAgentName;
 
     try {
       const res = await fetch(`${API_BASE}/chat/stream`, {
@@ -443,12 +448,17 @@
   const elMemoryPanel = $("#memoryPanel");
   const elSkillsPanel = $("#skillsPanel");
   const elUploadsPanel = $("#uploadsPanel");
+  const elAgentsPanel = $("#agentsPanel");
   const elPanelOverlay = $("#panelOverlay");
   const elMemoryList = $("#memoryList");
   const elSkillsList = $("#skillsList");
   const elUploadsList = $("#uploadsList");
+  const elAgentsList = $("#agentsList");
   const elHealthBadge = $("#healthBadge");
   const elMemoryConfigGrid = $("#memoryConfigGrid");
+  const elAgentLabel = $("#agentLabel");
+
+  let selectedAgentName = localStorage.getItem("optclaw_agent") || "";
 
   function openPanel(panel) {
     if (elPanelOverlay) elPanelOverlay.classList.add("visible");
@@ -460,7 +470,21 @@
     if (elMemoryPanel) elMemoryPanel.classList.remove("open");
     if (elSkillsPanel) elSkillsPanel.classList.remove("open");
     if (elUploadsPanel) elUploadsPanel.classList.remove("open");
+    if (elAgentsPanel) elAgentsPanel.classList.remove("open");
   }
+
+  function updateAgentLabel() {
+    if (elAgentLabel) {
+      if (selectedAgentName) {
+        elAgentLabel.textContent = selectedAgentName;
+        elAgentLabel.classList.add("active-agent");
+      } else {
+        elAgentLabel.textContent = "Agent";
+        elAgentLabel.classList.remove("active-agent");
+      }
+    }
+  }
+  updateAgentLabel();
 
   async function checkHealth() {
     if (!elHealthBadge) return;
@@ -475,17 +499,21 @@
     }
   }
 
+  function memAgentParam() {
+    return selectedAgentName ? `?agent_name=${encodeURIComponent(selectedAgentName)}` : "";
+  }
+
   async function loadMemoryConfig() {
     if (!elMemoryConfigGrid) return;
     try {
       const [statusRes, modelsRes] = await Promise.all([
-        fetch(`${API_BASE}/memory/status`),
+        fetch(`${API_BASE}/memory/config${memAgentParam()}`),
         fetch(`${API_BASE}/models`),
       ]);
       const data = await statusRes.json();
       const modelsData = await modelsRes.json();
       const availableModels = (modelsData.models || []).map((m) => m.name);
-      const cfg = data.config || {};
+      const cfg = data.config || data;
       elMemoryConfigGrid.innerHTML = "";
       const labels = {
         enabled: "启用", storage_path: "存储路径", debounce_seconds: "防抖(秒)",
@@ -532,12 +560,11 @@
       updates[key] = val;
     });
     try {
-      await fetch(`${API_BASE}/memory/config`, {
+      await fetch(`${API_BASE}/memory/update_config${memAgentParam()}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
-      loadMemoryConfig();
     } catch (e) {
       console.error("Save config failed", e);
     }
@@ -546,7 +573,7 @@
   async function reloadMemory() {
     if (!confirm("确定刷新记忆？将重新加载配置并重置Agent。")) return;
     try {
-      await fetch(`${API_BASE}/memory/reload`, { method: "POST" });
+      await fetch(`${API_BASE}/memory/reload${memAgentParam()}`, { method: "POST" });
       loadMemoryConfig();
       loadMemory();
     } catch (e) {
@@ -556,7 +583,7 @@
 
   async function loadMemory() {
     try {
-      const res = await fetch(`${API_BASE}/memory`);
+      const res = await fetch(`${API_BASE}/memory${memAgentParam()}`);
       const data = await res.json();
       const facts = data.facts || data.memory_facts || [];
       elMemoryList.innerHTML = "";
@@ -580,7 +607,7 @@
           if (!fid) return;
           if (!confirm("确定删除此记忆事实？")) return;
           try {
-            await fetch(`${API_BASE}/memory/facts/${fid}`, { method: "DELETE" });
+            await fetch(`${API_BASE}/memory/facts/${fid}${memAgentParam()}`, { method: "DELETE" });
           } catch (err) { console.error("Delete fact failed", err); }
           loadMemory();
         };
@@ -609,7 +636,7 @@
             const ncat = body.querySelector(".edit-category").value;
             const nconf = parseFloat(body.querySelector(".edit-confidence").value) || 0.5;
             try {
-              await fetch(`${API_BASE}/memory/facts/${fid}`, {
+              await fetch(`${API_BASE}/memory/facts/${fid}${memAgentParam()}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ content: nc, category: ncat, confidence: nconf }),
@@ -631,7 +658,7 @@
     const category = ($("#newFactCategory") || {}).value || "context";
     if (!content.trim()) return;
     try {
-      await fetch(`${API_BASE}/memory/facts`, {
+      await fetch(`${API_BASE}/memory/facts${memAgentParam()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content, category, confidence: 0.7 }),
@@ -693,7 +720,7 @@
     $("#btnClearMemory").addEventListener("click", async () => {
       if (!confirm("确定清空全部记忆？此操作不可恢复！")) return;
       try {
-        await fetch(`${API_BASE}/memory/clear`, { method: "POST" });
+        await fetch(`${API_BASE}/memory/clear${memAgentParam()}`, { method: "POST" });
         loadMemory();
       } catch (e) {
         console.error("Clear memory failed", e);
@@ -759,6 +786,103 @@
     $("#btnCloseUploads").addEventListener("click", closeAllPanels);
   }
 
+  // Agents panel
+  let agentsList = [];
+  let pendingAgentName = null;
+
+  async function loadAgents() {
+    try {
+      const res = await fetch(`${API_BASE}/agents`);
+      agentsList = await res.json();
+      const sel = $("#agentSelect");
+      if (!sel) return;
+      sel.innerHTML = '<option value="">默认</option>';
+      (agentsList || []).forEach((a) => {
+        const opt = document.createElement("option");
+        opt.value = a.agent_name;
+        opt.textContent = a.agent_name;
+        if (a.agent_name === selectedAgentName) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if (!selectedAgentName) sel.value = "";
+      showAgentDetail(sel.value);
+    } catch (e) {
+      console.error("Failed to load agents", e);
+    }
+  }
+
+  function showAgentDetail(agentName) {
+    const elDesc = $("#agentDesc");
+    const elSoul = $("#agentSoul");
+    if (!elDesc || !elSoul) return;
+    if (!agentName) {
+      elDesc.textContent = "使用系统默认Agent配置";
+      elSoul.textContent = "";
+      pendingAgentName = "";
+      return;
+    }
+    const agent = (agentsList || []).find((a) => a.agent_name === agentName);
+    elDesc.textContent = agent ? (agent.description || "无描述") : "无描述";
+    elSoul.textContent = "加载中...";
+    fetch(`${API_BASE}/agents/${encodeURIComponent(agentName)}/soul`)
+      .then((r) => r.json())
+      .then((data) => { elSoul.textContent = data.soul || ""; })
+      .catch(() => { elSoul.textContent = "加载失败"; });
+    pendingAgentName = agentName;
+  }
+
+  if ($("#agentSelect")) {
+    $("#agentSelect").addEventListener("change", (e) => {
+      showAgentDetail(e.target.value);
+    });
+  }
+
+  if ($("#btnShowAgents")) {
+    $("#btnShowAgents").addEventListener("click", () => {
+      openPanel(elAgentsPanel);
+      loadAgents();
+    });
+  }
+  if ($("#btnCloseAgents")) {
+    $("#btnCloseAgents").addEventListener("click", closeAllPanels);
+  }
+  if ($("#btnConfirmAgent")) {
+    $("#btnConfirmAgent").addEventListener("click", async () => {
+      const agentName = pendingAgentName !== null ? pendingAgentName : selectedAgentName;
+      const label = agentName || "默认";
+      if (!confirm(`确认选择Agent「${label}」？将重置Agent并生效。`)) return;
+      selectedAgentName = agentName || "";
+      localStorage.setItem("optclaw_agent", selectedAgentName);
+      updateAgentLabel();
+      try {
+        await fetch(`${API_BASE}/reset-agent`, { method: "POST" });
+      } catch (e) {
+        console.error("Reset agent failed", e);
+      }
+    });
+  }
+  if ($("#btnCreateAgent")) {
+    $("#btnCreateAgent").addEventListener("click", async () => {
+      const name = ($("#newAgentName") || {}).value || "";
+      const desc = ($("#newAgentDesc") || {}).value || "";
+      const soul = ($("#newAgentSoul") || {}).value || "";
+      if (!name.trim()) return;
+      try {
+        await fetch(`${API_BASE}/agents`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agent_name: name, description: desc, soul }),
+        });
+        $("#newAgentName").value = "";
+        $("#newAgentDesc").value = "";
+        $("#newAgentSoul").value = "";
+        loadAgents();
+      } catch (e) {
+        console.error("Create agent failed", e);
+      }
+    });
+  }
+
   // Init
   loadModels();
   loadThreads();
@@ -768,8 +892,11 @@
   // Persist user preferences
   const savedThinking = localStorage.getItem("optclaw_thinking");
   const savedSubagent = localStorage.getItem("optclaw_subagent");
+  const savedPlan = localStorage.getItem("optclaw_plan");
   if (savedThinking !== null) elToggleThinking.checked = savedThinking === "true";
   if (savedSubagent !== null) elToggleSubagent.checked = savedSubagent === "true";
+  if (savedPlan !== null) elTogglePlan.checked = savedPlan === "true";
+  else elTogglePlan.checked = true;
 
   elModelSelect.addEventListener("change", () => {
     localStorage.setItem("optclaw_model", elModelSelect.value);
@@ -779,6 +906,9 @@
   });
   elToggleSubagent.addEventListener("change", () => {
     localStorage.setItem("optclaw_subagent", elToggleSubagent.checked);
+  });
+  elTogglePlan.addEventListener("change", () => {
+    localStorage.setItem("optclaw_plan", elTogglePlan.checked);
   });
 
   // Intro page

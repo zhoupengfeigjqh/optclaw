@@ -67,6 +67,8 @@ class ChatRequest(BaseModel):
     model_name: str | None = None
     thinking_enabled: bool | None = None
     subagent_enabled: bool | None = None
+    plan_mode: bool | None = None
+    agent_name: str | None = None
 
 
 class MemoryFactRequest(BaseModel):
@@ -92,6 +94,12 @@ class MemoryConfigUpdateRequest(BaseModel):
     model_name: str | None = None
 
 
+class CreateAgentRequest(BaseModel):
+    agent_name: str
+    description: str = ""
+    soul: str = ""
+
+
 @app.get("/api/models")
 async def list_models():
     return _sanitize(client.list_models())
@@ -100,6 +108,26 @@ async def list_models():
 @app.get("/api/skills")
 async def list_skills(enabled_only: bool = False):
     return _sanitize(client.list_skills(enabled_only=enabled_only))
+
+
+@app.get("/api/agents")
+async def list_agents():
+    return _sanitize(client.list_custom_agents_desc())
+
+
+@app.get("/api/agents/{agent_name}/soul")
+async def get_agent_soul(agent_name: str):
+    soul = client.get_custom_agent_soul(agent_name)
+    if soul is None:
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_name}' not found")
+    return {"agent_name": agent_name, "soul": soul}
+
+
+@app.post("/api/agents")
+async def create_agent(req: CreateAgentRequest):
+    client.create_custom_agent(agent_name=req.agent_name, description=req.description, soul=req.soul)
+    client.reset_agent()
+    return {"success": True, "agent_name": req.agent_name}
 
 
 @app.get("/api/threads")
@@ -128,6 +156,12 @@ async def chat_stream(req: ChatRequest):
         kwargs["thinking_enabled"] = req.thinking_enabled
     if req.subagent_enabled is not None:
         kwargs["subagent_enabled"] = req.subagent_enabled
+    if req.plan_mode is not None:
+        kwargs["plan_mode"] = req.plan_mode
+    if req.agent_name is not None and req.agent_name != "":
+        kwargs["agent_name"] = req.agent_name
+    
+    print("kwargs:", kwargs)
 
     async def event_generator() -> AsyncGenerator[str, None]:
         async for delta in client.chat_stream(req.message, thread_id=req.thread_id, **kwargs):
@@ -174,16 +208,18 @@ async def delete_upload(thread_id: str, filename: str):
 
 
 @app.get("/api/memory")
-async def get_memory():
-    return _sanitize(client.get_memory())
+async def get_memory(agent_name: str | None = Query(default=None)):
+    # 记忆面板设置事实变化后，刷新获取记忆事实内容
+    return _sanitize(client.get_memory(agent_name=agent_name))
 
 
-@app.get("/api/memory/status")
-async def get_memory_status():
-    return _sanitize(client.get_memory_status())
+@app.get("/api/memory/config")
+async def get_memory_config(agent_name: str | None = Query(default=None)):
+    # 获取记忆配置信息
+    return _sanitize(client.get_memory_config())
 
 
-@app.patch("/api/memory/config")
+@app.patch("/api/memory/update_config")
 async def update_memory_config(req: MemoryConfigUpdateRequest):
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     if not updates:
@@ -192,33 +228,43 @@ async def update_memory_config(req: MemoryConfigUpdateRequest):
 
 
 @app.post("/api/memory/reload")
-async def reload_memory():
-    return _sanitize(client.reload_memory())
+async def reload_memory(agent_name: str | None = Query(default=None)):
+    # 重载记忆内容
+    return _sanitize(client.reload_memory(agent_name=agent_name))
 
 
 @app.post("/api/memory/facts")
-async def create_memory_fact(req: MemoryFactRequest):
-    return client.create_memory_fact(content=req.content, category=req.category, confidence=req.confidence)
+async def create_memory_fact(req: MemoryFactRequest, agent_name: str | None = Query(default=None)):
+    # 创建新的记忆事实
+    return client.create_memory_fact(content=req.content, category=req.category, confidence=req.confidence, agent_name=agent_name)
 
 
 @app.delete("/api/memory/facts/{fact_id}")
-async def delete_memory_fact(fact_id: str):
-    return client.delete_memory_fact(fact_id=fact_id)
+async def delete_memory_fact(fact_id: str, agent_name: str | None = Query(default=None)):
+    # 删除记忆事实
+    return client.delete_memory_fact(fact_id=fact_id, agent_name=agent_name)
 
 
 @app.patch("/api/memory/facts/{fact_id}")
-async def update_memory_fact(fact_id: str, req: MemoryFactUpdateRequest):
+async def update_memory_fact(fact_id: str, req: MemoryFactUpdateRequest, agent_name: str | None = Query(default=None)):
+    # 更细记忆事实
     return client.update_memory_fact(
-        fact_id=fact_id, content=req.content, category=req.category, confidence=req.confidence
-    )
+        fact_id=fact_id, content=req.content, category=req.category, confidence=req.confidence, agent_name=agent_name)
 
 
 @app.post("/api/memory/clear")
-async def clear_memory():
-    client.clear_memory()
-    return _sanitize(client.reload_memory())
+async def clear_memory(agent_name: str | None = Query(default=None)):
+    # 清空记忆
+    client.clear_memory(agent_name=agent_name)
+    return _sanitize(client.reload_memory(agent_name=agent_name))
 
 
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.post("/api/reset-agent")
+async def reset_agent():
+    client.reset_agent()
+    return {"success": True}

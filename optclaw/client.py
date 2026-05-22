@@ -50,6 +50,7 @@ from optclaw.uploads.manager import (
     upload_virtual_path,
 )
 from optclaw.agents.middlewares import build_leadagent_middlewares
+from optclaw.config.agents_config import list_custom_agents, load_agent_soul
 
 from optclaw.log import setup_logging
 logger = setup_logging(__name__)
@@ -118,7 +119,7 @@ class OptClawClient:
         model_name: str | None = None,
         thinking_enabled: bool = False,
         subagent_enabled: bool = False,
-        plan_mode: bool = True,
+        plan_mode: bool = False,
         agent_name: str | None = None,
         available_skills: set[str] | None = None,
         middlewares: Sequence[AgentMiddleware] | None = None,
@@ -163,15 +164,15 @@ class OptClawClient:
         # Async checkpointer lifecycle
         self._async_checkpointer_ctx = None
 
-    async def close(self) -> None:
-        """Close the async checkpointer context manager, releasing resources."""
-        if self._async_checkpointer_ctx is not None:
-            try:
-                await self._async_checkpointer_ctx.__aexit__(None, None, None)
-            except Exception:
-                logger.warning("Error during async checkpointer cleanup", exc_info=True)
-            self._async_checkpointer_ctx = None
-            self._checkpointer = None
+    # async def close(self) -> None:
+    #     """Close the async checkpointer context manager, releasing resources."""
+    #     if self._async_checkpointer_ctx is not None:
+    #         try:
+    #             await self._async_checkpointer_ctx.__aexit__(None, None, None)
+    #         except Exception:
+    #             logger.warning("Error during async checkpointer cleanup", exc_info=True)
+    #         self._async_checkpointer_ctx = None
+    #         self._checkpointer = None
 
     def reset_agent(self) -> None:
         """Force the internal agent to be recreated on the next call.
@@ -182,6 +183,66 @@ class OptClawClient:
         """
         self._agent = None
         self._agent_config_key = None
+
+    def list_custom_agents_desc(self)->list[dict]:
+        """Return a list of descriptions of installed custom agents."""
+        list_agents = []
+        for item in list_custom_agents():
+            list_agents.append({
+                "agent_name": item.name,
+                "description": item.description,
+            })
+        return list_agents
+    
+    def get_custom_agent_soul(self, agent_name:str)->str:
+        """Get the full SOUL.md content of a custom agent by its name.
+        
+        Args:
+        agent_name: The name of the custom agent.
+        
+        Returns:
+            The full SOUL.md content of the agent, or None if the agent doesn't exist."""
+        return load_agent_soul(agent_name)
+    
+    def create_custom_agent(self, agent_name: str, description: str,soul: str) -> None:
+        """Create new custom agent.
+
+        Args:
+            agent_name: Name of the agent.
+            soul: Full SOUL.md content defining the agent's personality and behavior.
+            description: One-line description of what the agent does.
+        """
+        import yaml
+
+        try:
+            paths = get_paths()
+            agent_dir = paths.agent_dir(agent_name) if agent_name else paths.base_dir
+            agent_dir.mkdir(parents=True, exist_ok=True)
+
+            if agent_name:
+                # If agent_name is provided, we are creating a custom agent in the agents/ directory
+                config_data: dict = {"name": agent_name}
+                if description:
+                    config_data["description"] = description
+
+                config_file = agent_dir / "config.yaml"
+                with open(config_file, "w", encoding="utf-8") as f:
+                    yaml.dump(config_data, f, default_flow_style=False, allow_unicode=True)
+
+            soul_file = agent_dir / "SOUL.md"
+            soul_file.write_text(soul, encoding="utf-8")
+
+            logger.info(f"[agent_creator] Created agent '{agent_name}' at {agent_dir}")
+            return True
+
+        except Exception as e:
+            import shutil
+
+            if agent_name and agent_dir.exists():
+                # Cleanup the custom agent directory only if it was created but an error occurred during setup
+                shutil.rmtree(agent_dir)
+            logger.error(f"[agent_creator] Failed to create agent '{agent_name}': {e}", exc_info=True)
+            return False
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -229,6 +290,7 @@ class OptClawClient:
             "thinking_enabled": overrides.get("thinking_enabled", self._thinking_enabled),
             "is_plan_mode": overrides.get("plan_mode", self._plan_mode),
             "subagent_enabled": overrides.get("subagent_enabled", self._subagent_enabled),
+            "agent_name": overrides.get("agent_name", self._agent_name),
         }
         return RunnableConfig(
             configurable=configurable,
@@ -243,27 +305,30 @@ class OptClawClient:
             cfg.get("thinking_enabled"),
             cfg.get("is_plan_mode"),
             cfg.get("subagent_enabled"),
-            self._agent_name,
+            cfg.get("agent_name"),
             frozenset(self._available_skills) if self._available_skills is not None else None,
         )
 
         if self._agent is not None and self._agent_config_key == key:
             return
 
-        thinking_enabled = cfg.get("thinking_enabled", True)
-        model_name = cfg.get("model_name")
-        subagent_enabled = cfg.get("subagent_enabled", False)
-        max_concurrent_subagents = cfg.get("max_concurrent_subagents", 1)
+        # Update the agent's config params
+        self._agent_name = cfg.get("agent_name", None)
+        self._plan_mode = cfg.get("is_plan_mode", False)
+        self._model_name = cfg.get("model_name")
+        self._thinking_enabled = cfg.get("thinking_enabled", False)
+        self._subagent_enabled = cfg.get("subagent_enabled", False)
+        max_concurrent_subagents = cfg.get("max_concurrent_subagents", 2)
 
         kwargs: dict[str, Any] = {
-            "model": create_chat_model(name=model_name, thinking_enabled=thinking_enabled),
-            "tools": self._get_tools(model_name=model_name, subagent_enabled=subagent_enabled),
+            "model": create_chat_model(name=self._model_name, thinking_enabled=self._thinking_enabled),
+            "tools": self._get_tools(model_name=self._model_name, subagent_enabled=self._subagent_enabled),
             # If an agent_name is provided, the path refers to agent-specific memory; otherwise, it refers to common shared memory.
-            "middleware": build_leadagent_middlewares(config=config, model_name=model_name, agent_name=self._agent_name, plan_mode=self._plan_mode),
+            "middleware": build_leadagent_middlewares(config=config, model_name=self._model_name, agent_name=self._agent_name, plan_mode=self._plan_mode),
             "system_prompt": apply_prompt_template(
                 agent_name=self._agent_name,
                 available_skills=self._available_skills,
-                subagent_enabled=subagent_enabled,
+                subagent_enabled=self._subagent_enabled,
                 max_concurrent_subagents=max_concurrent_subagents
             ),
             "state_schema": ThreadState,  # record state info during the chat
@@ -279,7 +344,7 @@ class OptClawClient:
 
         self._agent = create_agent(**kwargs)
         self._agent_config_key = key
-        logger.info("Agent created: agent_name=%s, model=%s, thinking=%s", self._agent_name, model_name, thinking_enabled)
+        logger.warning("Agent created: agent_name=%s, model=%s, thinking=%s", self._agent_name, self._model_name, self._thinking_enabled)
 
     @staticmethod
     def _get_tools(*, model_name: str | None, subagent_enabled: bool):
@@ -453,7 +518,7 @@ class OptClawClient:
 
         return {"thread_list": threads[:limit]}
 
-    async def get_thread(self, thread_id: str) -> dict:
+    async def get_thread_detail(self, thread_id: str) -> dict:
         """Get the complete thread record, including all node execution records.
 
         Args:
@@ -474,6 +539,52 @@ class OptClawClient:
             channel_values = dict(cp.checkpoint.get("channel_values", {}))
             if "messages" in channel_values:
                 channel_values["messages"] = [self._serialize_message(m) if hasattr(m, "content") else m for m in channel_values["messages"]]
+
+            cfg = cp.config.get("configurable", {})
+            parent_cfg = cp.parent_config.get("configurable", {}) if cp.parent_config else {}
+
+            checkpoints.append(
+                {
+                    "checkpoint_id": cfg.get("checkpoint_id"),
+                    "parent_checkpoint_id": parent_cfg.get("checkpoint_id"),
+                    "ts": cp.checkpoint.get("ts"),
+                    "metadata": cp.metadata,
+                    "values": channel_values,
+                    "pending_writes": [{"task_id": w[0], "channel": w[1], "value": w[2]} for w in getattr(cp, "pending_writes", [])],
+                }
+            )
+
+        # Sort globally by timestamp to prevent partial ordering issues caused by different namespaces (e.g., subgraphs)
+        checkpoints.sort(key=lambda x: x["ts"] if x["ts"] else "")
+
+        return {"thread_id": thread_id, "checkpoints": checkpoints}
+
+    async def get_thread(self, thread_id: str) -> dict:
+        """Get the complete thread record, including all node execution records.
+
+        Args:
+            thread_id: Thread ID.
+
+        Returns:
+            Dict containing the thread's full checkpoint history.
+        """
+        checkpointer = self._checkpointer
+        if checkpointer is None:
+            await self._ensure_checkpointer()
+            checkpointer = self._checkpointer
+
+        config = {"configurable": {"thread_id": thread_id}}
+        checkpoints = []
+
+        async for cp in checkpointer.alist(config):
+            channel_values = dict(cp.checkpoint.get("channel_values", {}))
+            if "messages" in channel_values:
+                channel_values["messages"] = [
+                    self._serialize_message(m) for m in channel_values["messages"]
+                    if hasattr(m, "content")
+                    and m.content
+                    and isinstance(m, (HumanMessage, AIMessage))
+                ]
 
             cfg = cp.config.get("configurable", {})
             parent_cfg = cp.parent_config.get("configurable", {}) if cp.parent_config else {}
@@ -569,21 +680,26 @@ class OptClawClient:
             ]
         }
 
-    def get_memory(self) -> dict:
+    def get_memory(self, agent_name: str | None = None) -> dict:
         """Get current memory data.
+
+        Args:
+            agent_name: Agent name for memory scope.
 
         Returns:
             Memory data dict (see src/agents/memory/updater.py for structure).
         """
         from optclaw.agents.memory.updater import get_memory_data
 
-        return get_memory_data()
+        print("get_memory called with agent_name: %s" % (agent_name))
+
+        return get_memory_data(agent_name=agent_name)
 
     def export_memory(self) -> dict:
         """Export current memory data for backup or transfer."""
         from optclaw.agents.memory.updater import get_memory_data
 
-        return get_memory_data()
+        return get_memory_data(agent_name=self._agent_name)
 
     def import_memory(self, memory_data: dict) -> dict:
         """Import and persist full memory data."""
@@ -708,33 +824,64 @@ class OptClawClient:
     # Public API — memory management
     # ------------------------------------------------------------------
 
-    def reload_memory(self) -> dict:
+    def reload_memory(self, agent_name: str | None = None) -> dict:
         """Reload memory data from file, forcing cache invalidation.
+
+        Args:
+            agent_name: Agent name for memory scope.
 
         Returns:
             The reloaded memory data dict.
         """
         from optclaw.agents.memory.updater import reload_memory_data
 
-        return reload_memory_data()
+        self.reset_agent()
 
-    def clear_memory(self) -> dict:
-        """Clear all persisted memory data."""
+        print("reload_memory called with agent_name: %s" % (agent_name))
+
+        return reload_memory_data(agent_name)
+
+    def clear_memory(self, agent_name: str | None = None) -> dict:
+        """Clear all persisted memory data.
+
+        Args:
+            agent_name: Agent name for memory scope. Defaults to self._agent_name.
+        """
         from optclaw.agents.memory.updater import clear_memory_data
 
-        return clear_memory_data()
+        self.reset_agent()
 
-    def create_memory_fact(self, content: str, category: str = "context", confidence: float = 0.5) -> dict:
-        """Create a single fact manually."""
+        print("clear_memory called with agent_name: %s" % (agent_name))
+
+        return clear_memory_data(agent_name)
+
+    def create_memory_fact(self, content: str, category: str = "context", confidence: float = 0.5, agent_name: str | None = None) -> dict:
+        """Create a single fact manually.
+
+        Args:
+            agent_name: Agent name for memory scope. Defaults to self._agent_name.
+        """
         from optclaw.agents.memory.updater import create_memory_fact
 
-        return create_memory_fact(content=content, category=category, confidence=confidence)
+        self.reset_agent()
 
-    def delete_memory_fact(self, fact_id: str) -> dict:
-        """Delete a single fact from memory by fact id."""
+        print("create_memory_fact called with agent_name: %s" % (agent_name))
+
+        return create_memory_fact(content=content, category=category, confidence=confidence, agent_name=agent_name)
+
+    def delete_memory_fact(self, fact_id: str, agent_name: str | None = None) -> dict:
+        """Delete a single fact from memory by fact id.
+
+        Args:
+            agent_name: Agent name for memory scope. Defaults to self._agent_name.
+        """
         from optclaw.agents.memory.updater import delete_memory_fact
 
-        return delete_memory_fact(fact_id)
+        self.reset_agent()
+
+        print("delete_memory_fact called with agent_name: %s" % (agent_name))
+
+        return delete_memory_fact(fact_id, agent_name=agent_name)
 
     def update_memory_fact(
         self,
@@ -742,15 +889,25 @@ class OptClawClient:
         content: str | None = None,
         category: str | None = None,
         confidence: float | None = None,
+        agent_name: str | None = None,
     ) -> dict:
-        """Update a single fact manually, preserving omitted fields."""
+        """Update a single fact manually, preserving omitted fields.
+
+        Args:
+            agent_name: Agent name for memory scope. Defaults to self._agent_name.
+        """
         from optclaw.agents.memory.updater import update_memory_fact
+
+        self.reset_agent()
+
+        print("update_memory_fact called with agent_name: %s" % (agent_name))
 
         return update_memory_fact(
             fact_id=fact_id,
             content=content,
             category=category,
             confidence=confidence,
+            agent_name=agent_name,
         )
 
     def get_memory_config(self) -> dict:
@@ -787,7 +944,7 @@ class OptClawClient:
         """
         import yaml
 
-        from optclaw.config.memory_config import get_memory_config, load_memory_config_from_dict
+        from optclaw.config.memory_config import load_memory_config_from_dict
         from optclaw.config.paths import resolve_path
 
         current = self.get_memory_config()
@@ -795,7 +952,9 @@ class OptClawClient:
 
         load_memory_config_from_dict(merged)
 
-        config_path = resolve_path("config.yaml")
+        # config_path = resolve_path("config.yaml")
+        config_path = get_paths().base_dir.parent / "config.yaml"
+
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 cfg = yaml.safe_load(f) or {}
@@ -821,9 +980,12 @@ class OptClawClient:
         with open(config_path, "w", encoding="utf-8") as f:
             yaml.dump(cfg, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
+        self.reset_agent()
+        print("update_memory_config called with: %s" % (config_path))
+
         return self.get_memory_config()
 
-    def reload_memory(self) -> dict:
+    def reload_memory_memory_config(self) -> dict:
         """Reload memory configuration from config.yaml and reset agent.
 
         Returns:
@@ -834,7 +996,8 @@ class OptClawClient:
         from optclaw.config.memory_config import load_memory_config_from_dict
         from optclaw.config.paths import resolve_path
 
-        config_path = resolve_path("config.yaml")
+        # config_path = resolve_path("config.yaml")
+        config_path = get_paths().base_dir.parent / "config.yaml"
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 cfg = yaml.safe_load(f) or {}
@@ -847,20 +1010,26 @@ class OptClawClient:
 
         self.reset_agent()
 
+        print("reload_memory_memory_config called with: %s" % (config_path))
+
         return {
             "config": self.get_memory_config(),
             "data": self.get_memory(),
         }
 
-    def get_memory_status(self) -> dict:
+    def get_memory_status(self, agent_name: str | None = None) -> dict:
         """Get memory status: config + current data.
+
+        Args:
+            agent_name: Agent name for memory scope. Defaults to self._agent_name.
 
         Returns:
             Dict with "config" and "data" keys.
         """
+        print("get_memory_status called with agent_name: %s" % (agent_name))
         return {
             "config": self.get_memory_config(),
-            "data": self.get_memory(),
+            "data": self.get_memory(agent_name=agent_name),
         }
 
     # ------------------------------------------------------------------
@@ -1114,7 +1283,7 @@ class OptClawClient:
             state,
             config=config,
             context=context,
-            stream_mode=["messages"],  # ["values", "messages", "custom"],
+            stream_mode=["messages", "custom"],  # ["values", "messages", "custom"],
         ):
             if isinstance(item, tuple) and len(item) == 2:
                 mode, chunk = item
@@ -1205,6 +1374,7 @@ class OptClawClient:
         last_msg_id = ""
         
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
+            print(event)
             if event.type == "messages-tuple" and event.data.get("type") == "ai":
                 msg_id = event.data.get("id", "")
                 delta_content = event.data.get("content", "")
