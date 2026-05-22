@@ -1283,7 +1283,7 @@ class OptClawClient:
             state,
             config=config,
             context=context,
-            stream_mode=["messages", "custom"],  # ["values", "messages", "custom"],
+            stream_mode=["messages"],  # ["values", "messages", "custom"],
         ):
             if isinstance(item, tuple) and len(item) == 2:
                 mode, chunk = item
@@ -1410,7 +1410,7 @@ class OptClawClient:
         chunks: dict[str, list[str]] = {}
         last_id: str = ""
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
-            # print(event.type)
+            print(event)
             if event.type == "messages-tuple" and event.data.get("type") == "ai":
                 msg_id = event.data.get("id") or ""
                 delta = event.data.get("content", "")

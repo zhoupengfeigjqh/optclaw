@@ -128,9 +128,13 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
                 model = create_chat_model(name=config.model_name, thinking_enabled=False)
             else:
                 model = create_chat_model(thinking_enabled=False)
-            response = await model.ainvoke(prompt)
+            
+            # no checkpointer here, the id can not find in the checkpointer
+            # set callbacks = [], so the messages can be found in the outer loop
+            response = await model.ainvoke(prompt, config={"callbacks": []})  
             title = self._parse_title(response.content)
             if title:
+                logger.info(f"Generated title: {title}")
                 return {"title": title}
         except Exception:
             logger.debug("Failed to generate async title; falling back to local title", exc_info=True)
