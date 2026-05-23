@@ -953,7 +953,7 @@ class OptClawClient:
         load_memory_config_from_dict(merged)
 
         # config_path = resolve_path("config.yaml")
-        config_path = get_paths().base_dir.parent / "config.yaml"
+        config_path = get_paths().base_dir.parent.parent / "config.yaml"
 
         try:
             with open(config_path, "r", encoding="utf-8") as f:
@@ -997,7 +997,7 @@ class OptClawClient:
         from optclaw.config.paths import resolve_path
 
         # config_path = resolve_path("config.yaml")
-        config_path = get_paths().base_dir.parent / "config.yaml"
+        config_path = get_paths().base_dir.parent.parent / "config.yaml"
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 cfg = yaml.safe_load(f) or {}
@@ -1302,8 +1302,11 @@ class OptClawClient:
                 else:
                     msg_chunk = chunk
 
+                print(chunk)
+
                 msg_id = getattr(msg_chunk, "id", None)
 
+                # reasoning content can also show... additional_kwargs['reasoning_content']
                 if isinstance(msg_chunk, AIMessage):
                     text = self._extract_text(msg_chunk.content)
                     counted_usage = _account_usage(msg_id, msg_chunk.usage_metadata)
@@ -1374,7 +1377,7 @@ class OptClawClient:
         last_msg_id = ""
         
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
-            print(event)
+            # print(event)
             if event.type == "messages-tuple" and event.data.get("type") == "ai":
                 msg_id = event.data.get("id", "")
                 delta_content = event.data.get("content", "")
@@ -1410,7 +1413,7 @@ class OptClawClient:
         chunks: dict[str, list[str]] = {}
         last_id: str = ""
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
-            print(event)
+            # print(event)
             if event.type == "messages-tuple" and event.data.get("type") == "ai":
                 msg_id = event.data.get("id") or ""
                 delta = event.data.get("content", "")

@@ -130,7 +130,7 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
                 model = create_chat_model(thinking_enabled=False)
             
             # no checkpointer here, the id can not find in the checkpointer
-            # set callbacks = [], so the messages can be found in the outer loop
+            # set callbacks = [], the messages will not be found in the outer loop
             response = await model.ainvoke(prompt, config={"callbacks": []})  
             title = self._parse_title(response.content)
             if title:

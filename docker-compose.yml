@@ -8,8 +8,8 @@ services:
       - "8000:8000"
     volumes:
       - ./.env:/app/.env:ro
-      - ./config.yaml:/app/config.yaml:ro
-      - ./skills:/app/skills:ro
+      - ./config.yaml:/app/config.yaml
+      - ./skills:/app/skills
       - optclaw-data:/app/optclaw/.opt-claw
     env_file:
       - .env

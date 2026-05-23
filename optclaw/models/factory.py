@@ -115,6 +115,7 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
             model_settings_from_config["reasoning_effort"] = "medium"
 
     model_instance = model_class(**{**model_settings_from_config, **kwargs})
+    logger.info("Creating model %s..." % name)
 
     callbacks = build_tracing_callbacks()
     if callbacks:
