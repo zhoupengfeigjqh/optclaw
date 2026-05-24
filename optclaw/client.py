@@ -359,9 +359,9 @@ class OptClawClient:
         return [{"name": tc["name"], "args": tc["args"], "id": tc.get("id")} for tc in tool_calls]
 
     @staticmethod
-    def _ai_reason_text_event(msg_id: str | None, text: str, usage: dict | None) -> "StreamEvent":
-        """Build a ``messages-tuple`` AI reason text event, attaching usage when present."""
-        data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id, "reason": True}
+    def _ai_reasoning_text_event(msg_id: str | None, text: str, usage: dict | None) -> "StreamEvent":
+        """Build a ``messages-tuple`` AI reasoning text event, attaching usage when present."""
+        data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id, "subtype": "reasoning_text"}
         if usage:
             data["usage_metadata"] = usage
         return StreamEvent(type="messages-tuple", data=data)
@@ -369,7 +369,7 @@ class OptClawClient:
     @staticmethod
     def _ai_text_event(msg_id: str | None, text: str, usage: dict | None) -> "StreamEvent":
         """Build a ``messages-tuple`` AI text event, attaching usage when present."""
-        data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id}
+        data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id, "subtype": "text"}
         if usage:
             data["usage_metadata"] = usage
         return StreamEvent(type="messages-tuple", data=data)
@@ -384,6 +384,7 @@ class OptClawClient:
                 "content": "",
                 "id": msg_id,
                 "tool_calls": OptClawClient._serialize_tool_calls(tool_calls),
+                "subtype": "tool_calls"
             },
         )
 
@@ -398,6 +399,7 @@ class OptClawClient:
                 "name": msg.name,
                 "tool_call_id": msg.tool_call_id,
                 "id": msg.id,
+                "subtype": "tool_message"
             },
         )
 
@@ -1315,7 +1317,6 @@ class OptClawClient:
                 # reasoning content can also show... additional_kwargs['reasoning_content']
                 if isinstance(msg_chunk, AIMessage):
 
-                    # thinking content can also show... additional_kwargs['reasoning_content']
                     reasoning_text = self._extract_text(msg_chunk.additional_kwargs.get("reasoning_content", ''))
                     text = self._extract_text(msg_chunk.content)
                     counted_usage = _account_usage(msg_id, msg_chunk.usage_metadata)
@@ -1323,7 +1324,7 @@ class OptClawClient:
                     if reasoning_text:
                         if msg_id:
                             streamed_ids.add(msg_id)
-                        yield self._ai_reason_text_event(msg_id, reasoning_text, counted_usage)
+                        yield self._ai_reasoning_text_event(msg_id, reasoning_text, counted_usage)
 
                     if text:
                         if msg_id:
@@ -1333,11 +1334,15 @@ class OptClawClient:
                     if msg_chunk.tool_calls:
                         if msg_id:
                             streamed_ids.add(msg_id)
+                        # print("********************tool_calls***************")
+                        # print(msg_chunk)
                         yield self._ai_tool_calls_event(msg_id, msg_chunk.tool_calls)
 
                 elif isinstance(msg_chunk, ToolMessage):
                     if msg_id:
                         streamed_ids.add(msg_id)
+                    # print("********************tool_message***************")
+                    # print(msg_chunk)
                     yield self._tool_message_event(msg_chunk)
                 continue
 
@@ -1387,45 +1392,37 @@ class OptClawClient:
         """Streaming version
            Send messages and yield AI response content word by word for real-time frontend streaming display.
         """
-        current_text_chunks: list[str] = []
-        last_msg_id = ""
         
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
-            # ai response without reason content
-            if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("reason", False) == False:
-                msg_id = event.data.get("id", "")
-                delta_content = event.data.get("content", "")
 
+            # ai response without reason content
+            if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "text":
+                delta_content = event.data.get("content", "")
+                # print("text: ", delta_content)
                 if delta_content:
-                    if msg_id != last_msg_id:
-                        last_msg_id = msg_id
-                        current_text_chunks.clear()
-                    
-                    yield delta_content, False
+                    yield delta_content, "text"
 
             # ai response with reason content
-            if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("reason", False) == True:
-                msg_id = event.data.get("id", "")
+            if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "reasoning_text":
                 delta_content = event.data.get("content", "")
-
+                # print("reasoning_text: ", delta_content)
                 if delta_content:
-                    if msg_id != last_msg_id:
-                        last_msg_id = msg_id
-                        current_text_chunks.clear()
-                    
-                    yield delta_content, True
-        
-            # # ai response with tool
-            # if event.type == "messages-tuple" and event.data.get("type") == "tool":
-            #     msg_id = event.data.get("id", "")
-            #     delta_content = event.data.get("content", "")
+                    yield delta_content, "reasoning_text"
 
+            # tool calls
+            if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "tool_calls":
+                print(event)
+                delta_content = event.data.get("tool_calls", "")
+                tool_names = [item.get("name") for item in delta_content if item != '']
+                if tool_names:
+                    yield "calling tools:" + "".join(tool_names), "tool_calls"
+
+            # # tool message
+            # if event.type == "messages-tuple" and event.data.get("type") == "tool" and event.data.get("subtype") == "tool_message":
+            #     delta_content = event.data.get("content", "")
+            #     print("tool_message: ", delta_content)
             #     if delta_content:
-            #         if msg_id != last_msg_id:
-            #             last_msg_id = msg_id
-            #             current_text_chunks.clear()
-                    
-            #         yield delta_content
+            #         yield delta_content, "tool_message"
 
     async def chat(self, message: str, *, thread_id: str | None = None, **kwargs) -> str:
         """Send a message and return the final text response.
@@ -1453,7 +1450,6 @@ class OptClawClient:
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
             # ai response without reason content
             if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("reason", False) == False:
-                print(1)
                 msg_id = event.data.get("id") or ""
                 delta = event.data.get("content", "")
                 if delta:
