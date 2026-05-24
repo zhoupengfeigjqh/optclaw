@@ -990,6 +990,12 @@ html, body {
   background: var(--accent-hover);
 }
 
+#agentsPanel .btn-config-save {
+  width: 100%;
+  padding: 8px;
+  margin-top: 6px;
+}
+
 .health-badge {
   display: flex;
   align-items: center;

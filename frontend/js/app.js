@@ -962,26 +962,51 @@
       }
     });
   }
+  function openAgentModal() {
+    const overlay = $("#agentModalOverlay");
+    if (overlay) overlay.style.display = "flex";
+    const nameEl = $("#modalAgentName");
+    if (nameEl) { nameEl.value = ""; nameEl.focus(); }
+    const descEl = $("#modalAgentDesc");
+    if (descEl) descEl.value = "";
+    const soulEl = $("#modalAgentSoul");
+    if (soulEl) soulEl.value = "";
+  }
+
+  function closeAgentModal() {
+    const overlay = $("#agentModalOverlay");
+    if (overlay) overlay.style.display = "none";
+  }
+
+  async function createAgent() {
+    const name = ($("#modalAgentName") || {}).value || "";
+    const desc = ($("#modalAgentDesc") || {}).value || "";
+    const soul = ($("#modalAgentSoul") || {}).value || "";
+    if (!name.trim()) return;
+    try {
+      await fetch(`${API_BASE}/agents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent_name: name, description: desc, soul }),
+      });
+      closeAgentModal();
+      loadAgents();
+    } catch (e) {
+      console.error("Create agent failed", e);
+    }
+  }
+
   if ($("#btnCreateAgent")) {
-    $("#btnCreateAgent").addEventListener("click", async () => {
-      const name = ($("#newAgentName") || {}).value || "";
-      const desc = ($("#newAgentDesc") || {}).value || "";
-      const soul = ($("#newAgentSoul") || {}).value || "";
-      if (!name.trim()) return;
-      try {
-        await fetch(`${API_BASE}/agents`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agent_name: name, description: desc, soul }),
-        });
-        $("#newAgentName").value = "";
-        $("#newAgentDesc").value = "";
-        $("#newAgentSoul").value = "";
-        loadAgents();
-      } catch (e) {
-        console.error("Create agent failed", e);
-      }
-    });
+    $("#btnCreateAgent").addEventListener("click", openAgentModal);
+  }
+  if ($("#btnCloseAgentModal")) {
+    $("#btnCloseAgentModal").addEventListener("click", closeAgentModal);
+  }
+  if ($("#btnCancelAgentModal")) {
+    $("#btnCancelAgentModal").addEventListener("click", closeAgentModal);
+  }
+  if ($("#btnConfirmAgentModal")) {
+    $("#btnConfirmAgentModal").addEventListener("click", createAgent);
   }
 
   // Init
