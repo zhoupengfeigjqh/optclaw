@@ -161,19 +161,47 @@
         <button class="btn-config-save" id="btnSaveConfig">保存配置</button>
       </div>
     </div>
-    <div class="panel-toolbar">
-      <input type="text" id="newFactContent" placeholder="输入新记忆内容..." />
-      <select id="newFactCategory">
-        <option value="preference">偏好 (preference)</option>
-        <option value="knowledge">知识 (knowledge)</option>
-        <option value="context">背景 (context)</option>
-        <option value="behavior">行为 (behavior)</option>
-        <option value="goal">目标 (goal)</option>
-        <option value="correction">纠正 (correction)</option>
+    <div class="panel-toolbar memory-filter-bar">
+      <span class="memory-filter-label">当前事实记忆信息</span>
+      <select id="memoryFilterCategory">
+        <option value="">全部类型</option>
+        <option value="preference">偏好</option>
+        <option value="knowledge">知识</option>
+        <option value="context">背景</option>
+        <option value="behavior">行为</option>
+        <option value="goal">目标</option>
+        <option value="correction">纠正</option>
       </select>
-      <button class="btn-panel-add" id="btnAddFact">添加</button>
+      <button class="btn-config-save" id="btnAddFact">新增事实</button>
     </div>
     <div class="panel-body" id="memoryList"></div>
+    <div class="modal-overlay" id="factModalOverlay" style="display:none;">
+      <div class="modal-dialog" id="factModal">
+        <div class="modal-header">
+          <h4>新增事实记忆</h4>
+          <button class="btn-modal-close" id="btnCloseFactModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>事实内容 <span class="required">*</span></label>
+          <textarea id="modalFactContent" rows="4" placeholder="请输入事实内容..."></textarea>
+          <label>事实类型 <span class="required">*</span></label>
+          <select id="modalFactCategory">
+            <option value="preference">偏好 (preference)</option>
+            <option value="knowledge">知识 (knowledge)</option>
+            <option value="context" selected>背景 (context)</option>
+            <option value="behavior">行为 (behavior)</option>
+            <option value="goal">目标 (goal)</option>
+            <option value="correction">纠正 (correction)</option>
+          </select>
+          <label>置信度 <span class="required">*</span></label>
+          <input type="number" id="modalFactConfidence" value="0.7" step="0.1" min="0" max="1" />
+        </div>
+        <div class="modal-footer">
+          <button class="btn-modal-cancel" id="btnCancelFactModal">取消</button>
+          <button class="btn-modal-confirm" id="btnConfirmFactModal">确认添加</button>
+        </div>
+      </div>
+    </div>
     <div class="panel-footer">
       <button class="btn-panel-danger" id="btnClearMemory">清空全部记忆</button>
       <button class="btn-panel-reload" id="btnReloadMemory">重载记忆</button>
@@ -186,6 +214,9 @@
       <button class="btn-panel-close" id="btnCloseSkills">&times;</button>
     </div>
     <div class="panel-body" id="skillsList"></div>
+    <div class="panel-footer">
+      <button class="btn-config-save" id="btnSaveSkillConfig">保存配置</button>
+    </div>
   </div>
 
   <div class="panel" id="uploadsPanel">
@@ -216,14 +247,26 @@
         </div>
       </div>
       <button class="btn-agent-confirm" id="btnConfirmAgent">确认选择</button>
+      <button class="btn-config-save" id="btnCreateAgent">创建Agent</button>
     </div>
-    <div class="panel-section">
-      <div class="panel-section-title">创建新Agent</div>
-      <div class="agent-create-form">
-        <input type="text" id="newAgentName" placeholder="Agent名称" />
-        <input type="text" id="newAgentDesc" placeholder="描述" />
-        <textarea id="newAgentSoul" placeholder="SOUL.md 内容（定义Agent的个性和行为）" rows="4"></textarea>
-        <button class="btn-panel-add" id="btnCreateAgent">创建</button>
+    <div class="modal-overlay" id="agentModalOverlay" style="display:none;">
+      <div class="modal-dialog" id="agentModal">
+        <div class="modal-header">
+          <h4>创建Agent</h4>
+          <button class="btn-modal-close" id="btnCloseAgentModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label>Agent名称 <span class="required">*</span></label>
+          <input type="text" id="modalAgentName" placeholder="请输入Agent名称..." />
+          <label>描述</label>
+          <input type="text" id="modalAgentDesc" placeholder="请输入描述..." />
+          <label>SOUL.md内容</label>
+          <textarea id="modalAgentSoul" rows="6" placeholder="定义Agent的个性和行为..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-modal-cancel" id="btnCancelAgentModal">取消</button>
+          <button class="btn-modal-confirm" id="btnConfirmAgentModal">确认创建</button>
+        </div>
       </div>
     </div>
   </div>

@@ -807,6 +807,7 @@ class OptClawClient:
         updated = next((s for s in load_skills(enabled_only=False) if s.name == name), None)
         if updated is None:
             raise RuntimeError(f"Skill '{name}' disappeared after update")
+
         return {
             "name": updated.name,
             "description": updated.description,

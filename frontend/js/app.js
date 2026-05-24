@@ -618,7 +618,11 @@
     try {
       const res = await fetch(`${API_BASE}/memory${memAgentParam()}`);
       const data = await res.json();
-      const facts = data.facts || data.memory_facts || [];
+      let facts = data.facts || data.memory_facts || [];
+      const filterCategory = ($("#memoryFilterCategory") || {}).value || "";
+      if (filterCategory) {
+        facts = facts.filter((f) => (f.category || "") === filterCategory);
+      }
       elMemoryList.innerHTML = "";
       if (facts.length === 0) {
         elMemoryList.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">暂无记忆数据</div>';
@@ -686,22 +690,39 @@
     }
   }
 
+  function openFactModal() {
+    const overlay = $("#factModalOverlay");
+    if (overlay) overlay.style.display = "flex";
+    const contentEl = $("#modalFactContent");
+    if (contentEl) { contentEl.value = ""; contentEl.focus(); }
+    const confEl = $("#modalFactConfidence");
+    if (confEl) confEl.value = "0.7";
+  }
+
+  function closeFactModal() {
+    const overlay = $("#factModalOverlay");
+    if (overlay) overlay.style.display = "none";
+  }
+
   async function addMemoryFact() {
-    const content = ($("#newFactContent") || {}).value || "";
-    const category = ($("#newFactCategory") || {}).value || "context";
+    const content = ($("#modalFactContent") || {}).value || "";
+    const category = ($("#modalFactCategory") || {}).value || "context";
+    const confidence = parseFloat(($("#modalFactConfidence") || {}).value) || 0.7;
     if (!content.trim()) return;
     try {
       await fetch(`${API_BASE}/memory/facts${memAgentParam()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, category, confidence: 0.7 }),
+        body: JSON.stringify({ content, category, confidence }),
       });
-      $("#newFactContent").value = "";
+      closeFactModal();
       loadMemory();
     } catch (e) {
       console.error("Add fact failed", e);
     }
   }
+
+  let skillChanges = {};
 
   async function loadSkills() {
     try {
@@ -709,6 +730,7 @@
       const data = await res.json();
       const skills = data.skills || [];
       elSkillsList.innerHTML = "";
+      skillChanges = {};
       if (skills.length === 0) {
         elSkillsList.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">暂无技能</div>';
         return;
@@ -716,17 +738,48 @@
       skills.forEach((s) => {
         const item = document.createElement("div");
         item.className = "skill-item";
-        const statusCls = s.enabled ? "skill-enabled" : "skill-disabled";
-        const statusTxt = s.enabled ? "已启用" : "已禁用";
+        const enabled = s.enabled;
+        const toggleCls = enabled ? "skill-toggle on" : "skill-toggle off";
+        const toggleTxt = enabled ? "ON" : "OFF";
+        const nameStyle = enabled ? "color:var(--text-primary)" : "color:var(--text-muted)";
         item.innerHTML = `
-          <div class="skill-name">${escapeHtml(s.name || "")}</div>
+          <div class="skill-name" style="${nameStyle}">${escapeHtml(s.name || "")}<span class="skill-category">${escapeHtml(s.category || "")}</span></div>
           <div class="skill-desc">${escapeHtml(s.description || "")}</div>
-          <div class="skill-meta">${escapeHtml(s.category || "")} · <span class="${statusCls}">${statusTxt}</span></div>
+          <button class="${toggleCls}" data-skill="${escapeHtml(s.name || "")}" data-enabled="${enabled}">${toggleTxt}</button>
         `;
+        item.querySelector(".skill-toggle").onclick = (e) => {
+          const btn = e.target;
+          const currentEnabled = btn.dataset.enabled === "true";
+          const newEnabled = !currentEnabled;
+          btn.dataset.enabled = String(newEnabled);
+          btn.textContent = newEnabled ? "ON" : "OFF";
+          btn.className = newEnabled ? "skill-toggle on" : "skill-toggle off";
+          const nameEl = item.querySelector(".skill-name");
+          if (nameEl) nameEl.style.color = newEnabled ? "var(--text-primary)" : "var(--text-muted)";
+          skillChanges[btn.dataset.skill] = newEnabled;
+        };
         elSkillsList.appendChild(item);
       });
     } catch (e) {
       console.error("Failed to load skills", e);
+    }
+  }
+
+  async function saveSkillConfig() {
+    if (Object.keys(skillChanges).length === 0) {
+      alert("没有修改任何技能配置");
+      return;
+    }
+    if (!confirm("确定保存技能配置？保存后将重置Agent使配置生效。")) return;
+    try {
+      for (const [name, enabled] of Object.entries(skillChanges)) {
+        await fetch(`${API_BASE}/skills/${encodeURIComponent(name)}?enabled=${enabled}`, { method: "PATCH" });
+      }
+      await fetch(`${API_BASE}/reset-agent`, { method: "POST" });
+      skillChanges = {};
+      loadSkills();
+    } catch (e) {
+      console.error("Save skill config failed", e);
     }
   }
 
@@ -741,7 +794,19 @@
     $("#btnCloseMemory").addEventListener("click", closeAllPanels);
   }
   if ($("#btnAddFact")) {
-    $("#btnAddFact").addEventListener("click", addMemoryFact);
+    $("#btnAddFact").addEventListener("click", openFactModal);
+  }
+  if ($("#btnCloseFactModal")) {
+    $("#btnCloseFactModal").addEventListener("click", closeFactModal);
+  }
+  if ($("#btnCancelFactModal")) {
+    $("#btnCancelFactModal").addEventListener("click", closeFactModal);
+  }
+  if ($("#btnConfirmFactModal")) {
+    $("#btnConfirmFactModal").addEventListener("click", addMemoryFact);
+  }
+  if ($("#memoryFilterCategory")) {
+    $("#memoryFilterCategory").addEventListener("change", loadMemory);
   }
   if ($("#btnSaveConfig")) {
     $("#btnSaveConfig").addEventListener("click", saveMemoryConfig);
@@ -751,7 +816,7 @@
   }
   if ($("#btnClearMemory")) {
     $("#btnClearMemory").addEventListener("click", async () => {
-      if (!confirm("确定清空全部记忆？此操作不可恢复！")) return;
+      if (!confirm("确定清空全部记忆（包括事实和历史总结信息）？此操作不可恢复！")) return;
       try {
         await fetch(`${API_BASE}/memory/clear${memAgentParam()}`, { method: "POST" });
         loadMemory();
@@ -768,6 +833,9 @@
   }
   if ($("#btnCloseSkills")) {
     $("#btnCloseSkills").addEventListener("click", closeAllPanels);
+  }
+  if ($("#btnSaveSkillConfig")) {
+    $("#btnSaveSkillConfig").addEventListener("click", saveSkillConfig);
   }
   if (elPanelOverlay) {
     elPanelOverlay.addEventListener("click", closeAllPanels);

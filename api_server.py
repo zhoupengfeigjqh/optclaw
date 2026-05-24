@@ -110,6 +110,17 @@ async def list_skills(enabled_only: bool = False):
     return _sanitize(client.list_skills(enabled_only=enabled_only))
 
 
+@app.patch("/api/skills/{name}")
+async def update_skill(name: str, enabled: bool = True):
+    try:
+        result = client.update_skill(name, enabled=enabled)
+        return _sanitize(result)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/agents")
 async def list_agents():
     return _sanitize(client.list_custom_agents_desc())
@@ -209,7 +220,7 @@ async def delete_upload(thread_id: str, filename: str):
 
 @app.get("/api/memory")
 async def get_memory(agent_name: str | None = Query(default=None)):
-    # 记忆面板设置事实变化后，刷新获取记忆事实内容
+    # 记忆内容变化后，刷新获取记忆内容
     return _sanitize(client.get_memory(agent_name=agent_name))
 
 
