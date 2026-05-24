@@ -359,6 +359,14 @@ class OptClawClient:
         return [{"name": tc["name"], "args": tc["args"], "id": tc.get("id")} for tc in tool_calls]
 
     @staticmethod
+    def _ai_reason_text_event(msg_id: str | None, text: str, usage: dict | None) -> "StreamEvent":
+        """Build a ``messages-tuple`` AI reason text event, attaching usage when present."""
+        data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id, "reason": True}
+        if usage:
+            data["usage_metadata"] = usage
+        return StreamEvent(type="messages-tuple", data=data)
+
+    @staticmethod
     def _ai_text_event(msg_id: str | None, text: str, usage: dict | None) -> "StreamEvent":
         """Build a ``messages-tuple`` AI text event, attaching usage when present."""
         data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id}
@@ -1302,14 +1310,20 @@ class OptClawClient:
                 else:
                     msg_chunk = chunk
 
-                print(chunk)
-
                 msg_id = getattr(msg_chunk, "id", None)
 
                 # reasoning content can also show... additional_kwargs['reasoning_content']
                 if isinstance(msg_chunk, AIMessage):
+
+                    # thinking content can also show... additional_kwargs['reasoning_content']
+                    reasoning_text = self._extract_text(msg_chunk.additional_kwargs.get("reasoning_content", ''))
                     text = self._extract_text(msg_chunk.content)
                     counted_usage = _account_usage(msg_id, msg_chunk.usage_metadata)
+
+                    if reasoning_text:
+                        if msg_id:
+                            streamed_ids.add(msg_id)
+                        yield self._ai_reason_text_event(msg_id, reasoning_text, counted_usage)
 
                     if text:
                         if msg_id:
@@ -1377,8 +1391,8 @@ class OptClawClient:
         last_msg_id = ""
         
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
-            # print(event)
-            if event.type == "messages-tuple" and event.data.get("type") == "ai":
+            # ai response without reason content
+            if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("reason", False) == False:
                 msg_id = event.data.get("id", "")
                 delta_content = event.data.get("content", "")
 
@@ -1387,7 +1401,31 @@ class OptClawClient:
                         last_msg_id = msg_id
                         current_text_chunks.clear()
                     
-                    yield delta_content
+                    yield delta_content, False
+
+            # ai response with reason content
+            if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("reason", False) == True:
+                msg_id = event.data.get("id", "")
+                delta_content = event.data.get("content", "")
+
+                if delta_content:
+                    if msg_id != last_msg_id:
+                        last_msg_id = msg_id
+                        current_text_chunks.clear()
+                    
+                    yield delta_content, True
+        
+            # # ai response with tool
+            # if event.type == "messages-tuple" and event.data.get("type") == "tool":
+            #     msg_id = event.data.get("id", "")
+            #     delta_content = event.data.get("content", "")
+
+            #     if delta_content:
+            #         if msg_id != last_msg_id:
+            #             last_msg_id = msg_id
+            #             current_text_chunks.clear()
+                    
+            #         yield delta_content
 
     async def chat(self, message: str, *, thread_id: str | None = None, **kwargs) -> str:
         """Send a message and return the final text response.
@@ -1413,8 +1451,9 @@ class OptClawClient:
         chunks: dict[str, list[str]] = {}
         last_id: str = ""
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
-            # print(event)
-            if event.type == "messages-tuple" and event.data.get("type") == "ai":
+            # ai response without reason content
+            if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("reason", False) == False:
+                print(1)
                 msg_id = event.data.get("id") or ""
                 delta = event.data.get("content", "")
                 if delta:
