@@ -104,7 +104,35 @@
     return body;
   }
 
-  function appendToMessage(body, delta) {
+  function appendToMessage(body, delta, deltaType) {
+    if (deltaType === "reasoning_text") {
+      let el = body.querySelector(".stream-reasoning");
+      if (!el) {
+        const indicator = body.querySelector(".typing-indicator");
+        if (indicator) indicator.remove();
+        el = document.createElement("div");
+        el.className = "stream-reasoning";
+        body.appendChild(el);
+      }
+      el.textContent += delta;
+      scrollToBottom();
+      return;
+    }
+
+    if (deltaType === "tool_calls") {
+      let el = body.querySelector(".stream-tool-calls");
+      if (!el) {
+        const indicator = body.querySelector(".typing-indicator");
+        if (indicator) indicator.remove();
+        el = document.createElement("div");
+        el.className = "stream-tool-calls";
+        body.appendChild(el);
+      }
+      el.textContent += delta;
+      scrollToBottom();
+      return;
+    }
+
     let textEl = body.querySelector(".message-text");
     if (!textEl) {
       const indicator = body.querySelector(".typing-indicator");
@@ -338,6 +366,10 @@
       console.error("Stream error", e);
       appendToMessage(aiBody, "\n\n[连接错误，请重试]");
     } finally {
+      const reasoningEl = aiBody.querySelector(".stream-reasoning");
+      if (reasoningEl) reasoningEl.remove();
+      const toolCallsEl = aiBody.querySelector(".stream-tool-calls");
+      if (toolCallsEl) toolCallsEl.remove();
       setLoading(false);
       loadThreads();
     }
@@ -348,7 +380,8 @@
 
     if (type === "delta") {
       if (data.content) {
-        appendToMessage(aiBody, data.content);
+        const deltaType = data.delta_type || "text";
+        appendToMessage(aiBody, data.content, deltaType);
       }
     }
   }

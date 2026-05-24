@@ -1413,8 +1413,8 @@ class OptClawClient:
             if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "tool_calls":
                 print(event)
                 delta_content = event.data.get("tool_calls", "")
-                tool_names = [item.get("name") for item in delta_content if item != '']
-                if tool_names:
+                tool_names = [item.get("name") for item in delta_content if item.get("name", "") != ""]
+                if len(tool_names) >= 1:
                     yield "calling tools:" + "".join(tool_names), "tool_calls"
 
             # # tool message

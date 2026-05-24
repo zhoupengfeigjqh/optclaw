@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="OptClaw API", lifespan=lifespan)
 
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:80").split(",")
+cors_origins = os.getenv("CORS_ORIGINS", "http://192.168.0.110:80,http://localhost:80,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in cors_origins if o.strip()],
@@ -164,8 +164,8 @@ async def chat_stream(req: ChatRequest):
     print("kwargs:", kwargs)
 
     async def event_generator() -> AsyncGenerator[str, None]:
-        async for delta in client.chat_stream(req.message, thread_id=req.thread_id, **kwargs):
-            payload = {"type": "delta", "data": {"content": delta}}
+        async for delta, delta_type in client.chat_stream(req.message, thread_id=req.thread_id, **kwargs):
+            payload = {"type": "delta", "data": {"content": delta, "delta_type": delta_type}}
             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
 
