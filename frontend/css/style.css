@@ -517,11 +517,9 @@ html, body {
   color: var(--text-muted);
 }
 
-.message-content .stream-reasoning {
-  color: rgba(160, 160, 180, 0.7);
+.message-content .stream-reasoning,
+.message-content .stream-tool-calls {
   font-size: 13px;
-  font-style: italic;
-  border-left: 2px solid rgba(100, 100, 120, 0.3);
   padding: 4px 8px;
   margin: 4px 0;
   border-radius: 0 4px 4px 0;
@@ -529,15 +527,15 @@ html, body {
   word-break: break-word;
 }
 
+.message-content .stream-reasoning {
+  color: rgba(160, 160, 180, 0.7);
+  font-style: italic;
+  border-left: 2px solid rgba(100, 100, 120, 0.3);
+}
+
 .message-content .stream-tool-calls {
   color: rgba(140, 180, 220, 0.7);
-  font-size: 13px;
   border-left: 2px solid rgba(80, 140, 200, 0.3);
-  padding: 4px 8px;
-  margin: 4px 0;
-  border-radius: 0 4px 4px 0;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
 .modal-overlay {
@@ -576,16 +574,25 @@ html, body {
   font-size: 15px;
 }
 
-.btn-modal-close {
+.btn-modal-close,
+.btn-panel-close {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 18px;
   cursor: pointer;
   padding: 0 4px;
 }
 
-.btn-modal-close:hover {
+.btn-modal-close {
+  font-size: 18px;
+}
+
+.btn-panel-close {
+  font-size: 22px;
+}
+
+.btn-modal-close:hover,
+.btn-panel-close:hover {
   color: var(--text-primary);
 }
 
@@ -768,19 +775,7 @@ html, body {
   color: var(--danger);
 }
 
-.btn-upload {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-}
-
-.btn-upload:hover {
-  color: var(--text-primary);
-}
-
+.btn-upload,
 .btn-upload-list {
   background: none;
   border: none;
@@ -790,6 +785,7 @@ html, body {
   border-radius: 4px;
 }
 
+.btn-upload:hover,
 .btn-upload-list:hover {
   color: var(--text-primary);
 }
@@ -984,7 +980,8 @@ html, body {
   line-height: 1.4;
 }
 
-.btn-agent-confirm {
+.btn-agent-confirm,
+.btn-agent-create {
   width: 100%;
   padding: 8px;
   background: var(--accent);
@@ -996,7 +993,8 @@ html, body {
   transition: background 0.15s;
 }
 
-.btn-agent-confirm:hover {
+.btn-agent-confirm:hover,
+.btn-agent-create:hover {
   background: var(--accent-hover);
 }
 
@@ -1016,25 +1014,7 @@ html, body {
 }
 
 .agent-actions .btn-agent-confirm {
-  width: 100%;
   margin-top: 0;
-  padding: 8px;
-}
-
-.btn-agent-create {
-  width: 100%;
-  padding: 8px;
-  background: var(--accent);
-  border: none;
-  border-radius: 6px;
-  color: #fff;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.btn-agent-create:hover {
-  background: var(--accent-hover);
 }
 
 .agent-nav-links {
@@ -1192,13 +1172,21 @@ html, body {
   color: #fff;
 }
 
-.fact-item .btn-fact-edit {
+.fact-item .btn-fact-edit,
+.fact-item .btn-fact-delete {
   background: none;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 13px;
   padding: 2px;
+}
+
+.fact-item .btn-fact-edit {
+  font-size: 13px;
+}
+
+.fact-item .btn-fact-delete {
+  font-size: 16px;
 }
 
 .fact-item .btn-fact-edit:hover {
@@ -1399,15 +1387,6 @@ html, body {
   color: var(--text-primary);
 }
 
-.btn-panel-close {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 22px;
-  cursor: pointer;
-  padding: 0 4px;
-}
-
 .btn-panel-close:hover {
   color: var(--text-primary);
 }
@@ -1487,15 +1466,6 @@ html, body {
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 4px;
-}
-
-.fact-item .btn-fact-delete {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 16px;
-  padding: 2px;
 }
 
 .fact-item .btn-fact-delete:hover {

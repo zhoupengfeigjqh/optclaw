@@ -105,11 +105,12 @@
   }
 
   function appendToMessage(body, delta, deltaType) {
+    const indicator = body.querySelector(".typing-indicator");
+    if (indicator) indicator.remove();
+
     if (deltaType === "reasoning_text") {
       let el = body.querySelector(".stream-reasoning");
       if (!el) {
-        const indicator = body.querySelector(".typing-indicator");
-        if (indicator) indicator.remove();
         el = document.createElement("div");
         el.className = "stream-reasoning";
         body.appendChild(el);
@@ -122,8 +123,6 @@
     if (deltaType === "tool_calls") {
       let el = body.querySelector(".stream-tool-calls");
       if (!el) {
-        const indicator = body.querySelector(".typing-indicator");
-        if (indicator) indicator.remove();
         el = document.createElement("div");
         el.className = "stream-tool-calls";
         body.appendChild(el);
@@ -135,8 +134,6 @@
 
     let textEl = body.querySelector(".message-text");
     if (!textEl) {
-      const indicator = body.querySelector(".typing-indicator");
-      if (indicator) indicator.remove();
       textEl = document.createElement("div");
       textEl.className = "message-text";
       body.appendChild(textEl);
@@ -189,6 +186,23 @@
     }
   }
 
+  function createThreadItem(threadId, titleText, opts = {}) {
+    const item = document.createElement("div");
+    item.className = "thread-item" + (opts.active ? " active" : "");
+    item.dataset.threadId = threadId;
+    const title = document.createElement("span");
+    title.className = "thread-title";
+    title.textContent = titleText || "新对话";
+    const del = document.createElement("button");
+    del.className = "thread-delete";
+    del.textContent = "×";
+    del.onclick = opts.onDelete || (() => {});
+    item.appendChild(title);
+    item.appendChild(del);
+    item.onclick = () => switchThread(threadId);
+    return item;
+  }
+
   function renderThreads(threads) {
     const keyword = elSearchThreads.value.trim().toLowerCase();
     const filtered = keyword
@@ -197,40 +211,32 @@
 
     elThreadList.innerHTML = "";
     filtered.forEach((t) => {
-      const item = document.createElement("div");
-      item.className = "thread-item" + (t.thread_id === currentThreadId ? " active" : "");
-      item.dataset.threadId = t.thread_id;
-
-      const title = document.createElement("span");
-      title.className = "thread-title";
-      title.textContent = t.title || t.thread_id || "新对话";
-
-      const del = document.createElement("button");
-      del.className = "thread-delete";
-      del.textContent = "×";
-      del.onclick = async (e) => {
-        e.stopPropagation();
-        if (!confirm("确定删除此对话？")) return;
-        try {
-          await fetch(`${API_BASE}/threads/${t.thread_id}`, { method: "DELETE" });
-        } catch (err) {
-          console.error("Delete thread failed", err);
-        }
-        if (currentThreadId === t.thread_id) newChat();
-        item.remove();
-      };
-
-      item.appendChild(title);
-      item.appendChild(del);
-      item.onclick = () => switchThread(t.thread_id);
+      const item = createThreadItem(t.thread_id, t.title || t.thread_id, {
+        active: t.thread_id === currentThreadId,
+        onDelete: async (e) => {
+          e.stopPropagation();
+          if (!confirm("确定删除此对话？")) return;
+          try {
+            await fetch(`${API_BASE}/threads/${t.thread_id}`, { method: "DELETE" });
+          } catch (err) {
+            console.error("Delete thread failed", err);
+          }
+          if (currentThreadId === t.thread_id) newChat();
+          item.remove();
+        },
+      });
       elThreadList.appendChild(item);
     });
   }
 
+  function clearMessages(showWelcome = false) {
+    elMessages.querySelectorAll(".message").forEach((m) => m.remove());
+    if (elWelcome) elWelcome.style.display = showWelcome ? "flex" : "none";
+  }
+
   function switchThread(threadId) {
     currentThreadId = threadId;
-    elMessages.querySelectorAll(".message").forEach((m) => m.remove());
-    if (elWelcome) elWelcome.style.display = "flex";
+    clearMessages(true);
 
     $$(".thread-item").forEach((item) => {
       item.classList.toggle("active", item.dataset.threadId === threadId);
@@ -249,8 +255,7 @@
       const latest = checkpoints[checkpoints.length - 1];
       const messages = (latest && latest.values && latest.values.messages) || [];
 
-      if (elWelcome) elWelcome.style.display = "none";
-      elMessages.querySelectorAll(".message").forEach((m) => m.remove());
+      clearMessages(false);
 
       messages.forEach((msg) => {
         if (msg.type === "human") {
@@ -269,8 +274,7 @@
 
   function newChat() {
     currentThreadId = null;
-    elMessages.querySelectorAll(".message").forEach((m) => m.remove());
-    if (elWelcome) elWelcome.style.display = "flex";
+    clearMessages(true);
     $$(".thread-item").forEach((item) => item.classList.remove("active"));
     fetch(`${API_BASE}/reset-agent`, { method: "POST" }).catch(() => {});
   }
@@ -280,29 +284,16 @@
     if (!text && pendingFiles.length === 0) return;
     if (isStreaming) return;
 
-    const messageText = text;
     elInput.value = "";
     elInput.style.height = "auto";
     updateSendButton();
 
     if (!currentThreadId) {
       currentThreadId = generateId();
-      const item = document.createElement("div");
-      item.className = "thread-item active";
-      item.dataset.threadId = currentThreadId;
-      const title = document.createElement("span");
-      title.className = "thread-title";
-      title.textContent = messageText.slice(0, 30) || "新对话";
-      const del = document.createElement("button");
-      del.className = "thread-delete";
-      del.textContent = "×";
-      del.onclick = (e) => {
-        e.stopPropagation();
-        item.remove();
-      };
-      item.appendChild(title);
-      item.appendChild(del);
-      item.onclick = () => switchThread(currentThreadId);
+      const item = createThreadItem(currentThreadId, text.slice(0, 30), {
+        active: true,
+        onDelete: (e) => { e.stopPropagation(); item.remove(); },
+      });
       elThreadList.insertBefore(item, elThreadList.firstChild);
     }
 
@@ -310,24 +301,21 @@
       await uploadPendingFiles();
     }
 
-    addMessage("user", messageText);
+    addMessage("user", text);
 
     const aiBody = addMessage("ai", "");
     setLoading(true);
 
     const payload = {
-      message: messageText,
+      message: text,
       thread_id: currentThreadId,
     };
 
     const selectedModel = elModelSelect.value;
     if (selectedModel) payload.model_name = selectedModel;
-    if (elToggleThinking.checked) payload.thinking_enabled = true;
-    else payload.thinking_enabled = false;
-    if (elToggleSubagent.checked) payload.subagent_enabled = true;
-    else payload.subagent_enabled = false;
-    if (elTogglePlan.checked) payload.plan_mode = true;
-    else payload.plan_mode = false;
+    payload.thinking_enabled = elToggleThinking.checked;
+    payload.subagent_enabled = elToggleSubagent.checked;
+    payload.plan_mode = elTogglePlan.checked;
     if (selectedAgentName) payload.agent_name = selectedAgentName;
 
     try {
@@ -486,7 +474,6 @@
   const elMemoryList = $("#memoryList");
   const elSkillsList = $("#skillsList");
   const elUploadsList = $("#uploadsList");
-  const elAgentsList = $("#agentsList");
   const elHealthBadge = $("#healthBadge");
   const elMemoryConfigGrid = $("#memoryConfigGrid");
   const elAgentLabel = $("#agentLabel");

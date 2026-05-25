@@ -142,7 +142,7 @@ async def create_agent(req: CreateAgentRequest):
     if req.agent_name in existing:
         raise HTTPException(status_code=409, detail=f"Agent '{req.agent_name}' already exists")
     client.create_custom_agent(agent_name=req.agent_name, description=req.description, soul=req.soul)
-    client.reset_agent()
+    # client.reset_agent()
     return {"success": True, "agent_name": req.agent_name}
 
 

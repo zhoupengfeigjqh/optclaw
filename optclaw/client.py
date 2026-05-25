@@ -701,7 +701,7 @@ class OptClawClient:
         """
         from optclaw.agents.memory.updater import get_memory_data
 
-        print("get_memory called with agent_name: %s" % (agent_name))
+        logger.info("get_memory called with agent_name: %s" % (agent_name))
 
         return get_memory_data(agent_name=agent_name)
 
@@ -846,11 +846,11 @@ class OptClawClient:
         """
         from optclaw.agents.memory.updater import reload_memory_data
 
+        logger.info("reload_memory called with agent_name: %s" % (agent_name))
+
+        result = reload_memory_data(agent_name)
         self.reset_agent()
-
-        print("reload_memory called with agent_name: %s" % (agent_name))
-
-        return reload_memory_data(agent_name)
+        return result
 
     def clear_memory(self, agent_name: str | None = None) -> dict:
         """Clear all persisted memory data.
@@ -860,11 +860,11 @@ class OptClawClient:
         """
         from optclaw.agents.memory.updater import clear_memory_data
 
+        logger.info("clear_memory called with agent_name: %s" % (agent_name))
+
+        result = clear_memory_data(agent_name)
         self.reset_agent()
-
-        print("clear_memory called with agent_name: %s" % (agent_name))
-
-        return clear_memory_data(agent_name)
+        return result
 
     def create_memory_fact(self, content: str, category: str = "context", confidence: float = 0.5, agent_name: str | None = None) -> dict:
         """Create a single fact manually.
@@ -874,11 +874,11 @@ class OptClawClient:
         """
         from optclaw.agents.memory.updater import create_memory_fact
 
+        logger.info("create_memory_fact called with agent_name: %s" % (agent_name))
+
+        result = create_memory_fact(content=content, category=category, confidence=confidence, agent_name=agent_name)
         self.reset_agent()
-
-        print("create_memory_fact called with agent_name: %s" % (agent_name))
-
-        return create_memory_fact(content=content, category=category, confidence=confidence, agent_name=agent_name)
+        return result
 
     def delete_memory_fact(self, fact_id: str, agent_name: str | None = None) -> dict:
         """Delete a single fact from memory by fact id.
@@ -888,11 +888,11 @@ class OptClawClient:
         """
         from optclaw.agents.memory.updater import delete_memory_fact
 
+        logger.info("delete_memory_fact called with agent_name: %s" % (agent_name))
+
+        result = delete_memory_fact(fact_id, agent_name=agent_name)
         self.reset_agent()
-
-        print("delete_memory_fact called with agent_name: %s" % (agent_name))
-
-        return delete_memory_fact(fact_id, agent_name=agent_name)
+        return result
 
     def update_memory_fact(
         self,
@@ -909,17 +909,17 @@ class OptClawClient:
         """
         from optclaw.agents.memory.updater import update_memory_fact
 
-        self.reset_agent()
+        logger.info("update_memory_fact called with agent_name: %s" % (agent_name))
 
-        print("update_memory_fact called with agent_name: %s" % (agent_name))
-
-        return update_memory_fact(
+        result = update_memory_fact(
             fact_id=fact_id,
             content=content,
             category=category,
             confidence=confidence,
             agent_name=agent_name,
         )
+        self.reset_agent()
+        return result
 
     def get_memory_config(self) -> dict:
         """Get memory system configuration.
@@ -992,11 +992,11 @@ class OptClawClient:
             yaml.dump(cfg, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
         self.reset_agent()
-        print("update_memory_config called with: %s" % (config_path))
+        logger.info("update_memory_config called with: %s" % (config_path))
 
         return self.get_memory_config()
 
-    def reload_memory_memory_config(self) -> dict:
+    def reload_memory_config(self) -> dict:
         """Reload memory configuration from config.yaml and reset agent.
 
         Returns:
@@ -1019,14 +1019,15 @@ class OptClawClient:
         if mem_section:
             load_memory_config_from_dict(mem_section)
 
-        self.reset_agent()
+        logger.info("reload_memory_config called with: %s" % (config_path))
 
-        print("reload_memory_memory_config called with: %s" % (config_path))
-
-        return {
+        result= {
             "config": self.get_memory_config(),
-            "data": self.get_memory(),
+            "data": self.get_memory(self._agent_name),
         }
+
+        self.reset_agent()
+        return result
 
     def get_memory_status(self, agent_name: str | None = None) -> dict:
         """Get memory status: config + current data.
@@ -1037,7 +1038,7 @@ class OptClawClient:
         Returns:
             Dict with "config" and "data" keys.
         """
-        print("get_memory_status called with agent_name: %s" % (agent_name))
+        logger.info("get_memory_status called with agent_name: %s" % (agent_name))
         return {
             "config": self.get_memory_config(),
             "data": self.get_memory(agent_name=agent_name),
@@ -1412,7 +1413,7 @@ class OptClawClient:
 
             # tool calls
             if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "tool_calls":
-                print(event)
+                # print(event)
                 delta_content = event.data.get("tool_calls", "")
                 tool_names = [item.get("name") for item in delta_content if item.get("name", "") != ""]
                 if len(tool_names) >= 1:
