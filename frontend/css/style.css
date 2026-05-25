@@ -609,9 +609,23 @@ html, body {
   color: #ff5555;
 }
 
+.modal-body input[type="text"].input-error {
+  border-color: #ff5555;
+  box-shadow: 0 0 0 2px rgba(255, 85, 85, 0.15);
+}
+
+.modal-body .input-hint {
+  display: none;
+  color: #ff5555;
+  font-size: 12px;
+  margin-top: -4px;
+  margin-bottom: 6px;
+}
+
 .modal-body textarea,
 .modal-body select,
-.modal-body input[type="number"] {
+.modal-body input[type="number"],
+.modal-body input[type="text"] {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--border);
@@ -624,7 +638,8 @@ html, body {
 
 .modal-body textarea:focus,
 .modal-body select:focus,
-.modal-body input[type="number"]:focus {
+.modal-body input[type="number"]:focus,
+.modal-body input[type="text"]:focus {
   outline: none;
   border-color: var(--accent);
 }
@@ -859,21 +874,16 @@ html, body {
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: 6px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
-  padding: 5px 10px;
-  font-size: 12px;
+  padding: 6px 12px;
+  font-size: 13px;
+  white-space: nowrap;
   transition: all 0.15s;
 }
 
 .btn-agent-select:hover {
   border-color: var(--accent);
-  color: var(--text-primary);
-}
-
-.btn-agent-select .active-agent {
-  color: var(--accent);
-  font-weight: 600;
 }
 
 .agent-item {
@@ -994,6 +1004,71 @@ html, body {
   width: 100%;
   padding: 8px;
   margin-top: 6px;
+}
+
+.agent-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.agent-actions .btn-agent-confirm {
+  width: 100%;
+  margin-top: 0;
+  padding: 8px;
+}
+
+.btn-agent-create {
+  width: 100%;
+  padding: 8px;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-agent-create:hover {
+  background: var(--accent-hover);
+}
+
+.agent-nav-links {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agent-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.agent-nav-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+}
+
+.agent-nav-btn svg {
+  flex-shrink: 0;
 }
 
 .health-badge {

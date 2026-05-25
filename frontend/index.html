@@ -87,8 +87,13 @@
         <select id="modelSelect"></select>
       </div>
       <button class="btn-agent-select" id="btnShowAgents" title="Agent设置">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span id="agentLabel">Agent</span>
+        <span id="agentLabel">Agent设置：默认</span>
+      </button>
+      <button class="btn-agent-select" id="btnShowMemory" title="记忆管理">
+        <span>记忆管理</span>
+      </button>
+      <button class="btn-agent-select" id="btnShowSkills" title="技能管理">
+        <span>技能管理</span>
       </button>
       <div class="health-badge" id="healthBadge" title="服务状态">
         <span class="health-dot"></span>
@@ -131,12 +136,6 @@
           <span class="toggle-switch-sm"></span>
         </label>
         <span class="toolbar-divider"></span>
-        <button class="btn-toolbar-icon" id="btnShowSkills" title="技能">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        </button>
-        <button class="btn-toolbar-icon" id="btnShowMemory" title="记忆">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 6v6l4 2"/></svg>
-        </button>
         <input type="file" id="fileInput" multiple hidden />
       </div>
       <div class="input-row">
@@ -233,6 +232,7 @@
       <button class="btn-panel-close" id="btnCloseAgents">&times;</button>
     </div>
     <div class="panel-body">
+      <div class="panel-section-title">当前Agent</div>
       <select id="agentSelect" class="agent-select">
         <option value="">默认</option>
       </select>
@@ -246,8 +246,10 @@
           <pre id="agentSoul" class="agent-detail-soul"></pre>
         </div>
       </div>
-      <button class="btn-agent-confirm" id="btnConfirmAgent">确认选择</button>
-      <button class="btn-config-save" id="btnCreateAgent">创建Agent</button>
+      <div class="agent-actions">
+        <button class="btn-agent-confirm" id="btnConfirmAgent">确认选择</button>
+        <button class="btn-agent-create" id="btnCreateAgent">创建Agent</button>
+      </div>
     </div>
     <div class="modal-overlay" id="agentModalOverlay" style="display:none;">
       <div class="modal-dialog" id="agentModal">
@@ -258,6 +260,7 @@
         <div class="modal-body">
           <label>Agent名称 <span class="required">*</span></label>
           <input type="text" id="modalAgentName" placeholder="请输入Agent名称..." />
+          <span class="input-hint" id="agentNameHint" style="display:none;"></span>
           <label>描述</label>
           <input type="text" id="modalAgentDesc" placeholder="请输入描述..." />
           <label>SOUL.md内容</label>

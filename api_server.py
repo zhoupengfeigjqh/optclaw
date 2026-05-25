@@ -13,7 +13,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from optclaw.client import OptClawClient
 
@@ -99,6 +99,14 @@ class CreateAgentRequest(BaseModel):
     description: str = ""
     soul: str = ""
 
+    @field_validator("agent_name")
+    @classmethod
+    def validate_agent_name(cls, v: str) -> str:
+        import re
+        if not re.match(r"^[A-Za-z0-9-]+$", v):
+            raise ValueError("agent_name must match pattern ^[A-Za-z0-9-]+$ (letters, digits, hyphens only)")
+        return v
+
 
 @app.get("/api/models")
 async def list_models():
@@ -112,13 +120,7 @@ async def list_skills(enabled_only: bool = False):
 
 @app.patch("/api/skills/{name}")
 async def update_skill(name: str, enabled: bool = True):
-    try:
-        result = client.update_skill(name, enabled=enabled)
-        return _sanitize(result)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return _sanitize(client.update_skill(name, enabled=enabled))
 
 
 @app.get("/api/agents")
@@ -136,13 +138,16 @@ async def get_agent_soul(agent_name: str):
 
 @app.post("/api/agents")
 async def create_agent(req: CreateAgentRequest):
+    existing = {a["agent_name"] for a in client.list_custom_agents_desc()}
+    if req.agent_name in existing:
+        raise HTTPException(status_code=409, detail=f"Agent '{req.agent_name}' already exists")
     client.create_custom_agent(agent_name=req.agent_name, description=req.description, soul=req.soul)
     client.reset_agent()
     return {"success": True, "agent_name": req.agent_name}
 
 
 @app.get("/api/threads")
-async def list_threads(limit: int = Query(default=20, ge=1, le=100)):
+async def list_threads(limit: int = Query(default=10, ge=1, le=20)):
     data = await client.list_threads(limit=limit)
     return _sanitize(data)
 

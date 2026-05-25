@@ -486,7 +486,7 @@ class OptClawClient:
 
         cnt = 0
 
-        async for cp in checkpointer.alist(config=None, limit=10000):
+        async for cp in checkpointer.alist(config=None, limit=1000):
             cfg = cp.config.get("configurable", {})
             thread_id = cfg.get("thread_id")
             

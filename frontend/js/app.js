@@ -180,7 +180,7 @@
 
   async function loadThreads() {
     try {
-      const res = await fetch(`${API_BASE}/threads?limit=50`);
+      const res = await fetch(`${API_BASE}/threads?limit=10`);
       const data = await res.json();
       threadCache = data.thread_list || [];
       renderThreads(threadCache);
@@ -509,11 +509,9 @@
   function updateAgentLabel() {
     if (elAgentLabel) {
       if (selectedAgentName) {
-        elAgentLabel.textContent = selectedAgentName;
-        elAgentLabel.classList.add("active-agent");
+        elAgentLabel.textContent = "Agent设置：" + selectedAgentName;
       } else {
-        elAgentLabel.textContent = "Agent";
-        elAgentLabel.classList.remove("active-agent");
+        elAgentLabel.textContent = "Agent设置：默认";
       }
     }
   }
@@ -966,7 +964,9 @@
     const overlay = $("#agentModalOverlay");
     if (overlay) overlay.style.display = "flex";
     const nameEl = $("#modalAgentName");
-    if (nameEl) { nameEl.value = ""; nameEl.focus(); }
+    if (nameEl) { nameEl.value = ""; nameEl.classList.remove("input-error"); nameEl.focus(); }
+    const hintEl = $("#agentNameHint");
+    if (hintEl) { hintEl.textContent = ""; hintEl.style.display = "none"; }
     const descEl = $("#modalAgentDesc");
     if (descEl) descEl.value = "";
     const soulEl = $("#modalAgentSoul");
@@ -978,17 +978,52 @@
     if (overlay) overlay.style.display = "none";
   }
 
+  const AGENT_NAME_REGEX = /^[A-Za-z0-9-]+$/;
+
+  function validateAgentName() {
+    const nameEl = $("#modalAgentName");
+    const hintEl = $("#agentNameHint");
+    if (!nameEl) return false;
+    const val = nameEl.value;
+    if (!val.trim()) {
+      nameEl.classList.add("input-error");
+      if (hintEl) { hintEl.textContent = "Agent名称不能为空"; hintEl.style.display = "block"; }
+      return false;
+    }
+    if (!AGENT_NAME_REGEX.test(val)) {
+      nameEl.classList.add("input-error");
+      if (hintEl) { hintEl.textContent = "仅允许字母、数字和连字符(-)"; hintEl.style.display = "block"; }
+      return false;
+    }
+    if ((agentsList || []).some(a => a.agent_name === val)) {
+      nameEl.classList.add("input-error");
+      if (hintEl) { hintEl.textContent = "该Agent名称已存在"; hintEl.style.display = "block"; }
+      return false;
+    }
+    nameEl.classList.remove("input-error");
+    if (hintEl) { hintEl.textContent = ""; hintEl.style.display = "none"; }
+    return true;
+  }
+
   async function createAgent() {
+    if (!validateAgentName()) return;
     const name = ($("#modalAgentName") || {}).value || "";
     const desc = ($("#modalAgentDesc") || {}).value || "";
     const soul = ($("#modalAgentSoul") || {}).value || "";
-    if (!name.trim()) return;
     try {
-      await fetch(`${API_BASE}/agents`, {
+      const res = await fetch(`${API_BASE}/agents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ agent_name: name, description: desc, soul }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const hintEl = $("#agentNameHint");
+        const nameEl = $("#modalAgentName");
+        if (nameEl) nameEl.classList.add("input-error");
+        if (hintEl) { hintEl.textContent = err.detail || "创建失败"; hintEl.style.display = "block"; }
+        return;
+      }
       closeAgentModal();
       loadAgents();
     } catch (e) {
@@ -1007,6 +1042,9 @@
   }
   if ($("#btnConfirmAgentModal")) {
     $("#btnConfirmAgentModal").addEventListener("click", createAgent);
+  }
+  if ($("#modalAgentName")) {
+    $("#modalAgentName").addEventListener("input", validateAgentName);
   }
 
   // Init
