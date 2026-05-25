@@ -123,6 +123,32 @@ async def update_skill(name: str, enabled: bool = True):
     return _sanitize(client.update_skill(name, enabled=enabled))
 
 
+@app.post("/api/skills/install")
+async def install_skill(file: UploadFile = File(...)):
+    if not file.filename or not file.filename.endswith(".skill"):
+        raise HTTPException(status_code=400, detail="仅支持 .skill 后缀的文件")
+    tmpdir = tempfile.mkdtemp()
+    dest = Path(tmpdir) / file.filename
+    try:
+        with open(dest, "wb") as out:
+            content = await file.read()
+            out.write(content)
+        result = client.install_skill(str(dest))
+        if not result.get("success", False):
+            raise HTTPException(status_code=422, detail=result.get("message", "安装失败"))
+        return result
+    except HTTPException:
+        raise
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"安装技能失败: {e}")
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
 @app.get("/api/agents")
 async def list_agents():
     return _sanitize(client.list_custom_agents_desc())

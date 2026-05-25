@@ -1550,6 +1550,30 @@ html, body {
   padding: 8px;
 }
 
+#skillsPanel .panel-footer {
+  display: flex;
+  gap: 8px;
+}
+
+.install-result {
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 4px;
+  margin: 8px 20px;
+}
+
+.install-result.success {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.install-result.error {
+  background: rgba(255, 85, 85, 0.15);
+  color: #ff5555;
+  border: 1px solid rgba(255, 85, 85, 0.3);
+}
+
 .btn-panel-danger {
   width: 100%;
   padding: 8px;

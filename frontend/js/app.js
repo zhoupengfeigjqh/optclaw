@@ -768,6 +768,51 @@
     }
   }
 
+  function showInstallResult(success, message) {
+    const el = $("#installResult");
+    if (!el) return;
+    el.className = "install-result " + (success ? "success" : "error");
+    el.textContent = message;
+    el.style.display = "block";
+    setTimeout(() => { el.style.display = "none"; }, 5000);
+  }
+
+  async function installSkill() {
+    const fileInput = $("#skillFileInput");
+    if (!fileInput) return;
+    fileInput.value = "";
+    fileInput.click();
+  }
+
+  async function handleSkillFileUpload() {
+    const fileInput = $("#skillFileInput");
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) return;
+    const file = fileInput.files[0];
+    if (!file.name.endsWith(".skill")) {
+      showInstallResult(false, "仅支持 .skill 后缀的文件");
+      return;
+    }
+    const btn = $("#btnInstallSkill");
+    if (btn) { btn.disabled = true; btn.textContent = "安装中..."; }
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`${API_BASE}/skills/install`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showInstallResult(false, err.detail || "安装失败");
+        return;
+      }
+      const data = await res.json();
+      showInstallResult(true, `技能「${data.skill_name || file.name}」安装成功`);
+      loadSkills();
+    } catch (e) {
+      showInstallResult(false, "安装失败: " + (e.message || e));
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = "安装技能"; }
+    }
+  }
+
   if ($("#btnShowMemory")) {
     $("#btnShowMemory").addEventListener("click", () => {
       openPanel(elMemoryPanel);
@@ -821,6 +866,12 @@
   }
   if ($("#btnSaveSkillConfig")) {
     $("#btnSaveSkillConfig").addEventListener("click", saveSkillConfig);
+  }
+  if ($("#btnInstallSkill")) {
+    $("#btnInstallSkill").addEventListener("click", installSkill);
+  }
+  if ($("#skillFileInput")) {
+    $("#skillFileInput").addEventListener("change", handleSkillFileUpload);
   }
   if (elPanelOverlay) {
     elPanelOverlay.addEventListener("click", closeAllPanels);
