@@ -75,8 +75,13 @@ class TodoMiddleware(TodoListMiddleware):
     ) -> dict[str, Any] | None:
         """Inject a todo-list reminder when write_todos has left the context window."""
         todos: list[Todo] = state.get("todos") or []  # type: ignore[assignment]
+        # print("ttttttttttttttodo")
+        # print(todos)
+        # print("ttttttttttttttodo")
         if not todos:
             return None
+        
+        print("todos...", todos)
 
         messages = state.get("messages") or []
         if _todos_in_messages(messages):
@@ -135,6 +140,11 @@ class TodoMiddleware(TodoListMiddleware):
         A retry cap of ``_MAX_COMPLETION_REMINDERS`` (default 2) prevents
         infinite loops when the agent cannot make further progress.
         """
+
+        # print("aaaaatodo")
+        logger.info(state.get("todos"))
+        # print("aaaaatodo")
+
         # 1. Preserve base class logic (parallel write_todos detection).
         base_result = super().after_model(state, runtime)
         if base_result is not None:

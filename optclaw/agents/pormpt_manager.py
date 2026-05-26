@@ -383,12 +383,14 @@ You: "Deploying to staging..." [proceed]
 <code_generation_rules>
 Only generate pure Python scripts when writing code, and strictly comply with all rules below:
 1. Must place the complete 2-line standard header at the very top of every .py file, no omission, deletion or modification allowed:
+```python
 import os
 os.chdir(os.path.dirname(__file__))
+```
 
 2. Mandatory path specification:
-- Only relative paths are permitted, such as ./file.txt, ./data.csv
-- Never use any absolute paths in all Python codes
+- Only relative paths are permitted in the c, such as ./file.txt, ./data.csv
+- Never use any absolute paths in all python scripts
 </code_generation_rules>
 """
 
@@ -460,6 +462,9 @@ You have access to skills that provide optimized workflows for specific tasks. E
 def get_skills_prompt_section(available_skills: set[str] | None = None) -> str:
     """Generate the skills prompt section with available skills list."""
     skills = _get_enabled_skills()
+    # print(111)
+    # print(skills)
+    # print(111)
 
     try:
         from optclaw.config import get_app_config
@@ -496,6 +501,9 @@ def get_agent_soul(agent_name: str | None) -> str:
 def apply_prompt_template(agent_name: str | None = None, available_skills: set[str] | None = None, subagent_enabled: bool = False, max_concurrent_subagents: int = 2) -> str:
     # Get memory context
     memory_context = _get_memory_context(agent_name)
+    # print("***********memory************")
+    # print(memory_context)
+    # print("***********memory************")
 
     # Include subagent section only if enabled (from runtime parameter)
     n = max_concurrent_subagents
@@ -521,6 +529,9 @@ def apply_prompt_template(agent_name: str | None = None, available_skills: set[s
 
     # Get skills section
     skills_section = get_skills_prompt_section(available_skills)
+    # print("***********skills_section************")
+    # print(skills_section)
+    # print("***********skills_section************")
 
     # Format the prompt with dynamic skills and memory
     prompt = SYSTEM_PROMPT_TEMPLATE.format(

@@ -11,6 +11,9 @@ from optclaw.config import get_app_config
 from optclaw.models import create_chat_model
 from optclaw.agents.memory.summarization_hook import memory_flush_hook
 
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
+
 
 # ---------------------------------------------------------------------------
 # TodoMiddleware prompts (minimal SDK version)
@@ -145,6 +148,7 @@ def build_leadagent_middlewares(
     summarization_middleware = _create_summarization_middleware()
     if summarization_middleware is not None:
         middlewares.append(summarization_middleware)
+        logger.info(f"create summarization_middleware, agent: {agent_name}")
     else:
         raise ValueError("summarization=True requires a custom AgentMiddleware instance (SummarizationMiddleware needs a model argument)")
 
@@ -152,6 +156,7 @@ def build_leadagent_middlewares(
     if plan_mode:
         from optclaw.agents.middlewares.todo_middleware import TodoMiddleware
         middlewares.append(TodoMiddleware(system_prompt=_TODO_SYSTEM_PROMPT, tool_description=_TODO_TOOL_DESCRIPTION))
+        logger.info(f"create todo_middleware, agent: {agent_name}")
 
     # --- [7] Auto Title ---
     from optclaw.agents.middlewares.title_middleware import TitleMiddleware
@@ -160,6 +165,7 @@ def build_leadagent_middlewares(
     # --- [8] Memory ---
     from optclaw.agents.middlewares.memory_middleware import MemoryMiddleware
     middlewares.append(MemoryMiddleware(agent_name=agent_name))
+    # logger.info(f"create memory middleware, agent: {agent_name}")
 
     # --- [9] Vision ---
     app_config = get_app_config()
@@ -175,6 +181,7 @@ def build_leadagent_middlewares(
         from optclaw.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
         max_concurrent_subagents = config.get("configurable", {}).get("max_concurrent_subagents", 3)
         middlewares.append(SubagentLimitMiddleware(max_concurrent=max_concurrent_subagents))
+        logger.info(f"create subagent_limit_middleware, agent: {agent_name}")
 
     # --- [11] LoopDetection (always) ---
     from optclaw.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware

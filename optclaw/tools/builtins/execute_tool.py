@@ -6,12 +6,12 @@ from optclaw.log import setup_logging
 
 logger = setup_logging(__name__)
 
-_DEFAULT_TIMEOUT = 30  # 默认脚本执行超时时间（秒）
-_MAX_OUTPUT_BYTES = 50 * 1024  # 限制返回给大语言模型的最大输出大小（约 50KB），防止 context 撑爆
+_DEFAULT_TIMEOUT = 300  # 默认脚本执行超时时间（秒）
+_MAX_OUTPUT_BYTES = 100 * 1024  # 限制返回给大语言模型的最大输出大小（约 100KB），防止 context 撑爆
 
 
-@tool("execute_python", parse_docstring=True)
-def execute_python_file_tool(path: str, command_args: list = None, timeout: int = _DEFAULT_TIMEOUT) -> str:
+# @tool("execute_python", parse_docstring=True)
+def execute_python_file_tool(path: str, command_args: list[str] = None) -> str:
     """Execute a specific Python file with optional arguments and return its standard output and error.
 
     When to use the execute_python_file tool:
@@ -19,25 +19,21 @@ def execute_python_file_tool(path: str, command_args: list = None, timeout: int 
     - Pass command-line arguments to the Python script via the command_args parameter.
 
     Forbiddens:
-    - Use this tool to install or uninstall packages, such as `pip`
-    - Use this tool to modify the documents
+    - Use this tool to install or uninstall packages, such as `pip`, `npm`, `apt`, `brew`, etc.
+    - Use this tool to modify the documents, such as `touch`, `rm`, `mv`, `cp`, etc.
 
     Args:
         path: The absolute path of the Python file to execute.
         command_args: Optional list of command-line arguments to pass to the Python script. Defaults to None.
-        timeout: The maximum execution time in seconds. Defaults to 30.
     """
     # 1. 解析虚拟路径（保持安全逻辑一致）
     actual_path = resolve_virtual_path(path)
 
     if not actual_path:
-        raise ValueError(f"Path: {path} resolve to None, access denied for security reasons! Please use absolute path.") from None
-
+        # raise ValueError(f"Path: {path} resolve to None, access denied for security reasons! Please use absolute path.") from None
+        return f"Path:{path} resolve to None, access denied for security reasons! If it is relative path, please use absolute path."
+    
     actual_path = str(actual_path)
-
-    # 2. 参数校验与限制
-    if timeout <= 0:
-        return "Error: Timeout must be greater than 0 seconds."
 
     try:
         # 3. 检查文件合法性
@@ -56,7 +52,8 @@ def execute_python_file_tool(path: str, command_args: list = None, timeout: int 
         
         # 构建执行命令：解释器 + 文件路径 + 可选参数
         command = [python_executable, actual_path]
-        if command_args and isinstance(command_args, list):
+        # if command_args and isinstance(command_args, list[str]):
+        if command_args and isinstance(command_args, list) and all(isinstance(x, str) for x in command_args):
             command.extend(command_args)
 
         result = subprocess.run(
@@ -66,7 +63,7 @@ def execute_python_file_tool(path: str, command_args: list = None, timeout: int 
             text=True,
             encoding='utf-8',
             errors='replace',
-            timeout=timeout
+            timeout=_DEFAULT_TIMEOUT
         )
 
         # 5. 组装输出结果
@@ -94,4 +91,6 @@ def execute_python_file_tool(path: str, command_args: list = None, timeout: int 
         logger.error(f"Execution of {path} timed out after {timeout} seconds.")
         return "Error: Execution timed out after {timeout} seconds. The process was terminated."
     except OSError as e:
-        raise type(e)(e.errno, e.strerror, path) from None
+        # raise type(e)(e.errno, e.strerror, path_pattern) from None
+        logger.error(f"Error: {str(e)}")
+        return f"Error: {str(e)}, execute python code failed!"

@@ -22,8 +22,9 @@ def grep_file_tool(path: str, pattern: str) -> str:
     actual_path = resolve_virtual_path(path)
 
     if not actual_path:
-        raise ValueError(f"Path:{path} resolve to None, access denied for security reasons! If it is relative path, please use absolute path.") from None
-
+        # raise ValueError(f"Path:{path} resolve to None, access denied for security reasons! If it is relative path, please use absolute path.") from None
+        return f"Path:{path} resolve to None, access denied for security reasons! If it is relative path, please use absolute path."
+    
     try:
         matches = []
         with open(actual_path, encoding="utf-8") as f:
@@ -42,4 +43,6 @@ def grep_file_tool(path: str, pattern: str) -> str:
         return f"Found {len(matches)} matches for '{pattern}' in {path}:\n" + "\n".join(matches)
 
     except OSError as e:
-        raise type(e)(e.errno, e.strerror, path) from None
+        # raise type(e)(e.errno, e.strerror, path) from None
+        logger.error(f"Error: {str(e)}")
+        return f"Error: {str(e)}, grep file failed!"

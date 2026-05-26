@@ -4,6 +4,7 @@
   const API_BASE = "/api";
 
   let currentThreadId = null;
+  let hasThreadMessages = false;
   let isStreaming = false;
   let pendingFiles = [];
   let threadCache = [];
@@ -236,7 +237,9 @@
 
   function switchThread(threadId) {
     currentThreadId = threadId;
+    hasThreadMessages = true;
     clearMessages(true);
+    updateAgentButtonState();
 
     $$(".thread-item").forEach((item) => {
       item.classList.toggle("active", item.dataset.threadId === threadId);
@@ -274,8 +277,10 @@
 
   function newChat() {
     currentThreadId = null;
+    hasThreadMessages = false;
     clearMessages(true);
     $$(".thread-item").forEach((item) => item.classList.remove("active"));
+    updateAgentButtonState();
     fetch(`${API_BASE}/reset-agent`, { method: "POST" }).catch(() => {});
   }
 
@@ -283,6 +288,9 @@
     const text = elInput.value.trim();
     if (!text && pendingFiles.length === 0) return;
     if (isStreaming) return;
+
+    hasThreadMessages = true;
+    updateAgentButtonState();
 
     elInput.value = "";
     elInput.style.height = "auto";
@@ -316,7 +324,7 @@
     payload.thinking_enabled = elToggleThinking.checked;
     payload.subagent_enabled = elToggleSubagent.checked;
     payload.plan_mode = elTogglePlan.checked;
-    if (selectedAgentName) payload.agent_name = selectedAgentName;
+    payload.agent_name = selectedAgentName || "";
 
     try {
       const res = await fetch(`${API_BASE}/chat/stream`, {
@@ -371,6 +379,8 @@
         const deltaType = data.delta_type || "text";
         appendToMessage(aiBody, data.content, deltaType);
       }
+    } else if (type === "error") {
+      appendToMessage(aiBody, "\n\n[服务错误: " + (data.message || "未知错误") + "]");
     }
   }
 
@@ -502,7 +512,20 @@
       }
     }
   }
+
+  function updateAgentButtonState() {
+    const btnAgent = $("#btnShowAgents");
+    const btnSkills = $("#btnShowSkills");
+    const disabled = hasThreadMessages;
+    [btnAgent, btnSkills].forEach((btn) => {
+      if (!btn) return;
+      btn.disabled = disabled;
+      btn.classList.toggle("btn-disabled", disabled);
+    });
+  }
+
   updateAgentLabel();
+  updateAgentButtonState();
 
   async function checkHealth() {
     if (!elHealthBadge) return;
@@ -617,10 +640,13 @@
         const item = document.createElement("div");
         item.className = "fact-item";
         const fid = f.id || f.fact_id || "";
+        const createdTime = f.createdAt ? new Date(f.createdAt).toLocaleString() : "";
+        const metaParts = [escapeHtml(f.category || ""), `置信度 ${(f.confidence || 0).toFixed(2)}`];
+        if (createdTime) metaParts.push(createdTime);
         item.innerHTML = `
           <div class="fact-body">
             <div class="fact-content">${escapeHtml(f.content || f.text || "")}</div>
-            <div class="fact-meta">${escapeHtml(f.category || "")} · 置信度 ${(f.confidence || 0).toFixed(2)}</div>
+            <div class="fact-meta">${metaParts.join(" · ")}</div>
           </div>
           <button class="btn-fact-edit" title="编辑">✎</button>
           <button class="btn-fact-delete" title="删除">×</button>
@@ -637,7 +663,9 @@
           const body = item.querySelector(".fact-body");
           body.innerHTML = `
             <div class="fact-edit-form">
+              <label class="edit-label">内容</label>
               <input type="text" class="edit-content" value="${escapeHtml(f.content || f.text || "")}" />
+              <label class="edit-label">类别</label>
               <select class="edit-category">
                 <option value="preference" ${f.category==="preference"?"selected":""}>偏好 (preference)</option>
                 <option value="knowledge" ${f.category==="knowledge"?"selected":""}>知识 (knowledge)</option>
@@ -646,7 +674,9 @@
                 <option value="goal" ${f.category==="goal"?"selected":""}>目标 (goal)</option>
                 <option value="correction" ${f.category==="correction"?"selected":""}>纠正 (correction)</option>
               </select>
+              <label class="edit-label">置信度</label>
               <input type="number" class="edit-confidence" value="${f.confidence||0.5}" step="0.1" min="0" max="1" />
+              ${createdTime ? `<label class="edit-label">创建时间</label><div class="edit-readonly">${createdTime}</div>` : ""}
               <div class="fact-edit-actions">
                 <button class="fact-edit-save">保存</button>
                 <button class="fact-edit-cancel">取消</button>

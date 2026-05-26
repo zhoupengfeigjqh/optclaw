@@ -25,8 +25,9 @@ def glob_file_tool(path_pattern: str) -> str:
     actual_pattern = str(resolve_virtual_path(path_pattern))
 
     if not actual_pattern:
-        raise ValueError(f"Path pattern:{path_pattern} resolve to None, access denied for security reasons! Please use absolute path pattern.") from None
-
+        # raise ValueError(f"Path pattern:{path_pattern} resolve to None, access denied for security reasons! Please use absolute path pattern.") from None
+        return f"Path pattern:{path_pattern} resolve to None, access denied for security reasons! Please use absolute path pattern."
+    
     try:
         # 执行 glob 匹配文件
         matched_paths = glob.glob(actual_pattern, recursive=False)
@@ -47,4 +48,6 @@ def glob_file_tool(path_pattern: str) -> str:
         return f"Found {len(result_lines)} items matching pattern '{path_pattern}':\n" + "\n".join(result_lines)
 
     except OSError as e:
-        raise type(e)(e.errno, e.strerror, path_pattern) from None
+        # raise type(e)(e.errno, e.strerror, path_pattern) from None
+        logger.error(f"Error: {str(e)}")
+        return f"Error: {str(e)}, glob file failed!"

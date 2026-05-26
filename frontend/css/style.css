@@ -882,6 +882,12 @@ html, body {
   border-color: var(--accent);
 }
 
+.btn-agent-select.btn-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .agent-item {
   padding: 10px 12px;
   background: var(--bg-primary);
@@ -1198,6 +1204,21 @@ html, body {
   flex-direction: column;
   gap: 6px;
   width: 100%;
+}
+
+.fact-edit-form .edit-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.fact-edit-form .edit-readonly {
+  padding: 4px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .fact-edit-form input,

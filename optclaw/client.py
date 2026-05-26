@@ -1397,7 +1397,7 @@ class OptClawClient:
         
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
 
-            # ai response without reason content
+            # ai response without reason content 有些是tool答复内容
             if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "text":
                 delta_content = event.data.get("content", "")
                 # print("text: ", delta_content)
@@ -1417,7 +1417,7 @@ class OptClawClient:
                 delta_content = event.data.get("tool_calls", "")
                 tool_names = [item.get("name") for item in delta_content if item.get("name", "") != ""]
                 if len(tool_names) >= 1:
-                    yield "calling tools:" + "".join(tool_names), "tool_calls"
+                    yield "calling tools:" + "|".join(tool_names), "tool_calls"
 
             # # tool message
             # if event.type == "messages-tuple" and event.data.get("type") == "tool" and event.data.get("subtype") == "tool_message":

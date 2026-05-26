@@ -28,7 +28,8 @@ def list_directory_tool(path: str, max_items: int = _DEFAULT_MAX_FILES) -> str:
     actual_path = resolve_virtual_path(path)
 
     if not actual_path:
-        raise ValueError(f"Path: {path} resolve to None, access denied for security reasons! Please use absolute path.") from None
+        # raise ValueError(f"Path: {path} resolve to None, access denied for security reasons! Please use absolute path.") from None
+        return f"Path:{path} resolve to None, access denied for security reasons! If it is relative path, please use absolute path."
 
     actual_path = str(actual_path)
 
@@ -102,4 +103,6 @@ def list_directory_tool(path: str, max_items: int = _DEFAULT_MAX_FILES) -> str:
         return result_header + result_body
 
     except OSError as e:
-        raise type(e)(e.errno, e.strerror, path) from None
+        # raise type(e)(e.errno, e.strerror, path) from None
+        logger.error(f"Error: {str(e)}")
+        return f"Error: {str(e)}, list dir failed!"

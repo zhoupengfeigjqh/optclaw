@@ -85,7 +85,7 @@ summarization:
 memory:
   enabled: true
   storage_path: memory.json
-  debounce_seconds: 300
+  debounce_seconds: 60
   model_name: deepseek-v4-flash
   max_facts: 30
   fact_confidence_threshold: 0.7

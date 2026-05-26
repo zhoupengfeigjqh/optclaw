@@ -95,5 +95,8 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
             correction_detected=correction_detected,
             reinforcement_detected=reinforcement_detected,
         )
+        # print("****************************")
+        # print(queue)
+        # print("****************************")
 
         return None
