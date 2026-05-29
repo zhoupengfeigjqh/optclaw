@@ -294,7 +294,7 @@ class OptClawClient:
         }
         return RunnableConfig(
             configurable=configurable,
-            recursion_limit=overrides.get("recursion_limit", 100),
+            recursion_limit=overrides.get("recursion_limit", 500),
         )
 
     async def _ensure_agent(self, config: RunnableConfig):
@@ -318,7 +318,7 @@ class OptClawClient:
         self._model_name = cfg.get("model_name")
         self._thinking_enabled = cfg.get("thinking_enabled", False)
         self._subagent_enabled = cfg.get("subagent_enabled", False)
-        max_concurrent_subagents = cfg.get("max_concurrent_subagents", 2)
+        max_concurrent_subagents = cfg.get("max_concurrent_subagents", 3)
 
         kwargs: dict[str, Any] = {
             "model": create_chat_model(name=self._model_name, thinking_enabled=self._thinking_enabled),
@@ -591,9 +591,9 @@ class OptClawClient:
             if "messages" in channel_values:
                 channel_values["messages"] = [
                     self._serialize_message(m) for m in channel_values["messages"]
-                    if hasattr(m, "content")
-                    and m.content
-                    and isinstance(m, (HumanMessage, AIMessage))
+                    if hasattr(m, "content") and m.content
+                    and (isinstance(m, HumanMessage)
+                    or (isinstance(m, AIMessage) and hasattr(m, "tool_calls") and len(m.tool_calls) == 0))
                 ]
 
             cfg = cp.config.get("configurable", {})

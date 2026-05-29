@@ -389,7 +389,7 @@ os.chdir(os.path.dirname(__file__))
 ```
 
 2. Mandatory path specification:
-- Only relative paths are permitted in the c, such as ./file.txt, ./data.csv
+- Only relative paths are permitted in the scripts, such as ./file.txt, ./data.csv
 - Never use any absolute paths in all python scripts
 </code_generation_rules>
 """

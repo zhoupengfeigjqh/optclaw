@@ -15,7 +15,8 @@ from optclaw.agents.thread_state import ThreadState
 from optclaw.subagents import SubagentExecutor, get_available_subagent_names, get_subagent_config
 from optclaw.subagents.executor import SubagentStatus, cleanup_background_task, get_background_task_result, request_cancel_background_task
 
-logger = logging.getLogger(__name__)
+from optclaw.log import setup_logging
+logger = setup_logging(__name__)
 
 
 @tool("task", parse_docstring=True)
@@ -31,7 +32,7 @@ async def task_tool(
 
     Two subagent type for task division:
     - **general-purpose**: Undertakes subtasks from the parent agent, including file operations, code runnding, data analysis, scenario research and logic organization.
-    - **coder**: Responsible for coding and running Python scripts.
+    - **coder**: Responsible for coding and running code scripts.
     
     Core benefits:
     - Clearly split coding and non-coding work
@@ -49,7 +50,7 @@ async def task_tool(
     - Tasks needing real-time user communication
 
     Args:
-        description: Short 3-5 word task label (first param)
+        description: Short 3-6 word task label (first param)
         prompt: Clear specific task requirements (second param)
         subagent_type: Designate subagent type (third param)
         max_turns: Optional max execution rounds, use default if omitted

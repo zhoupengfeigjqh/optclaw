@@ -35,7 +35,7 @@ SUBAGENT_TOOLS = [
 
 def get_available_tools(
     groups: list[str] | None = None,
-    include_mcp: bool = False,
+    include_mcp: bool = True,
     model_name: str | None = None,
     subagent_enabled: bool = False,
 ) -> list[BaseTool]:
@@ -83,5 +83,23 @@ def get_available_tools(
         builtin_tools.append(view_image_tool)
         logger.info(f"Including view_image_tool for model '{model_name}' (supports_vision=True)")
 
-    logger.info(f"Total tools loaded: {len(loaded_tools)}, built-in tools: {len(builtin_tools)}")
-    return loaded_tools + builtin_tools
+    # Get cached MCP tools if enabled
+    mcp_tools = []
+    if include_mcp:
+        try:
+            from optclaw.config.extensions_config import ExtensionsConfig
+            from optclaw.mcp.cache import get_cached_mcp_tools
+
+            extensions_config = ExtensionsConfig.from_file()
+            if extensions_config.get_enabled_mcp_servers():
+                mcp_tools = get_cached_mcp_tools()
+                if mcp_tools:
+                    logger.info(f"Using {len(mcp_tools)} cached MCP tool(s)")
+
+        except ImportError:
+            logger.warning("MCP module not available. Install 'langchain-mcp-adapters' package to enable MCP tools.")
+        except Exception as e:
+            logger.error(f"Failed to get cached MCP tools: {e}")
+
+    logger.info(f"Total tools loaded: {len(loaded_tools)}, mcp tools: {len(mcp_tools)}, built-in tools: {len(builtin_tools)}")
+    return loaded_tools + builtin_tools + mcp_tools
