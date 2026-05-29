@@ -62,6 +62,39 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
     </button>
   </div>
+  <div class="intro-config-overlay" id="introConfigOverlay" style="display:none;">
+    <div class="intro-config-panel">
+      <div class="intro-config-header">
+        <h3>开始配置Agent相关信息</h3>
+      </div>
+      <div class="intro-config-body">
+        <button class="intro-config-btn" id="introBtnAgents">
+          <span class="intro-config-icon">🤖</span>
+          <span class="intro-config-label">Agent设置</span>
+          <span class="intro-config-hint" id="introAgentHint">默认</span>
+        </button>
+        <button class="intro-config-btn" id="introBtnSkills">
+          <span class="intro-config-icon">⚡</span>
+          <span class="intro-config-label">技能管理</span>
+          <span class="intro-config-hint" id="introSkillsHint">--</span>
+        </button>
+        <button class="intro-config-btn" id="introBtnMemory">
+          <span class="intro-config-icon">🧠</span>
+          <span class="intro-config-label">记忆管理</span>
+          <span class="intro-config-hint" id="introMemoryHint">--</span>
+        </button>
+        <button class="intro-config-btn" id="introBtnMcp">
+          <span class="intro-config-icon">🔌</span>
+          <span class="intro-config-label">MCP管理</span>
+          <span class="intro-config-hint" id="introMcpHint">--</span>
+        </button>
+      </div>
+      <div class="intro-config-footer">
+        <button class="btn-config-cancel" id="introBtnCancel">取消</button>
+        <button class="btn-config-confirm" id="introBtnConfirm">确认进入</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="app" id="appMain" style="display:none;">
@@ -86,15 +119,31 @@
       <div class="model-selector">
         <select id="modelSelect"></select>
       </div>
-      <button class="btn-agent-select" id="btnShowAgents" title="Agent设置">
-        <span id="agentLabel">Agent设置：默认</span>
-      </button>
-      <button class="btn-agent-select" id="btnShowMemory" title="记忆管理">
-        <span>记忆管理</span>
-      </button>
-      <button class="btn-agent-select" id="btnShowSkills" title="技能管理">
-        <span>技能管理</span>
-      </button>
+      <span class="agent-label" id="agentBadgeLabel">当前Agent为：默认</span>
+      <span class="header-badge mcp-badge" id="mcpBadge" title="MCP服务">
+        <span id="mcpBadgeLabel">MCP:--</span>
+      </span>
+      <span class="header-badge skills-badge" id="skillsBadge" title="点击查看技能">
+        <span id="skillsBadgeLabel">技能:--</span>
+      </span>
+      <div class="skills-modal-overlay" id="skillsModal" style="display:none;">
+        <div class="skills-modal-dialog">
+          <div class="skills-modal-header">
+            <h4>已启用技能</h4>
+            <button class="btn-modal-close" id="btnCloseSkillsModal">&times;</button>
+          </div>
+          <div class="skills-modal-body" id="skillsPopupList"></div>
+        </div>
+      </div>
+      <div class="skills-modal-overlay" id="mcpPopupOverlay" style="display:none;">
+        <div class="skills-modal-dialog">
+          <div class="skills-modal-header">
+            <h4>已启用MCP服务</h4>
+            <button class="btn-modal-close" id="btnCloseMcpPopup">&times;</button>
+          </div>
+          <div class="skills-modal-body" id="mcpPopupList"></div>
+        </div>
+      </div>
       <div class="health-badge" id="healthBadge" title="服务状态">
         <span class="health-dot"></span>
       </div>
@@ -146,134 +195,184 @@
       </div>
     </div>
   </main>
+</div>
 
-  <div class="panel-overlay" id="panelOverlay"></div>
-  <div class="panel" id="memoryPanel">
-    <div class="panel-header">
-      <h3>记忆管理</h3>
-      <button class="btn-panel-close" id="btnCloseMemory">&times;</button>
+<div class="panel-overlay" id="panelOverlay"></div>
+<div class="panel" id="memoryPanel">
+  <div class="panel-header">
+    <h3>记忆管理</h3>
+    <button class="btn-panel-close" id="btnCloseMemory">&times;</button>
+  </div>
+  <div class="panel-section" id="memoryConfigSection">
+    <div class="panel-section-title">配置参数</div>
+    <div class="config-edit-grid" id="memoryConfigGrid"></div>
+    <div class="config-edit-actions">
+      <button class="btn-config-save" id="btnSaveConfig">保存配置</button>
     </div>
-    <div class="panel-section" id="memoryConfigSection">
-      <div class="panel-section-title">配置参数</div>
-      <div class="config-edit-grid" id="memoryConfigGrid"></div>
-      <div class="config-edit-actions">
-        <button class="btn-config-save" id="btnSaveConfig">保存配置</button>
+  </div>
+  <div class="panel-toolbar memory-filter-bar">
+    <span class="memory-filter-label">当前事实记忆信息</span>
+    <select id="memoryFilterCategory">
+      <option value="">全部类型</option>
+      <option value="preference">偏好</option>
+      <option value="knowledge">知识</option>
+      <option value="context">背景</option>
+      <option value="behavior">行为</option>
+      <option value="goal">目标</option>
+      <option value="correction">纠正</option>
+    </select>
+    <button class="btn-config-save" id="btnAddFact">新增事实</button>
+  </div>
+  <div class="panel-body" id="memoryList"></div>
+  <div class="modal-overlay" id="factModalOverlay" style="display:none;">
+    <div class="modal-dialog" id="factModal">
+      <div class="modal-header">
+        <h4>新增事实记忆</h4>
+        <button class="btn-modal-close" id="btnCloseFactModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>事实内容 <span class="required">*</span></label>
+        <textarea id="modalFactContent" rows="4" placeholder="请输入事实内容..."></textarea>
+        <label>事实类型 <span class="required">*</span></label>
+        <select id="modalFactCategory">
+          <option value="preference">偏好 (preference)</option>
+          <option value="knowledge">知识 (knowledge)</option>
+          <option value="context" selected>背景 (context)</option>
+          <option value="behavior">行为 (behavior)</option>
+          <option value="goal">目标 (goal)</option>
+          <option value="correction">纠正 (correction)</option>
+        </select>
+        <label>置信度 <span class="required">*</span></label>
+        <input type="number" id="modalFactConfidence" value="0.7" step="0.1" min="0" max="1" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" id="btnCancelFactModal">取消</button>
+        <button class="btn-modal-confirm" id="btnConfirmFactModal">确认添加</button>
       </div>
     </div>
-    <div class="panel-toolbar memory-filter-bar">
-      <span class="memory-filter-label">当前事实记忆信息</span>
-      <select id="memoryFilterCategory">
-        <option value="">全部类型</option>
-        <option value="preference">偏好</option>
-        <option value="knowledge">知识</option>
-        <option value="context">背景</option>
-        <option value="behavior">行为</option>
-        <option value="goal">目标</option>
-        <option value="correction">纠正</option>
+  </div>
+  <div class="panel-footer">
+    <button class="btn-panel-danger" id="btnClearMemory">清空全部记忆</button>
+    <button class="btn-panel-reload" id="btnReloadMemory">重载记忆</button>
+  </div>
+</div>
+
+<div class="panel" id="skillsPanel">
+  <div class="panel-header">
+    <h3>技能列表</h3>
+    <button class="btn-panel-close" id="btnCloseSkills">&times;</button>
+  </div>
+  <div class="panel-body" id="skillsList"></div>
+  <div class="panel-footer">
+    <button class="btn-config-save" id="btnInstallSkill">安装技能</button>
+    <button class="btn-config-save" id="btnSaveSkillConfig">保存配置</button>
+  </div>
+  <input type="file" id="skillFileInput" accept=".skill" style="display:none;" />
+  <div class="install-result" id="installResult" style="display:none;"></div>
+</div>
+
+<div class="panel" id="uploadsPanel">
+  <div class="panel-header">
+    <h3>已上传文件</h3>
+    <button class="btn-panel-close" id="btnCloseUploads">&times;</button>
+  </div>
+  <div class="panel-body" id="uploadsList"></div>
+</div>
+
+<div class="panel" id="agentsPanel">
+  <div class="panel-header">
+    <h3>Agent设置</h3>
+    <button class="btn-panel-close" id="btnCloseAgents">&times;</button>
+  </div>
+  <div class="panel-body">
+    <div class="panel-section-title">当前Agent</div>
+    <select id="agentSelect" class="agent-select">
+      <option value="">默认</option>
+    </select>
+    <div class="agent-detail" id="agentDetail">
+      <div class="agent-detail-section">
+        <div class="panel-section-title">描述</div>
+        <div id="agentDesc" class="agent-detail-content"></div>
+      </div>
+      <div class="agent-detail-section">
+        <div class="panel-section-title">SOUL.md</div>
+        <pre id="agentSoul" class="agent-detail-soul"></pre>
+      </div>
+    </div>
+    <div class="agent-actions">
+      <button class="btn-agent-confirm" id="btnConfirmAgent">确认选择</button>
+      <button class="btn-agent-create" id="btnCreateAgent">创建Agent</button>
+    </div>
+  </div>
+  <div class="modal-overlay" id="agentModalOverlay" style="display:none;">
+    <div class="modal-dialog" id="agentModal">
+      <div class="modal-header">
+        <h4>创建Agent</h4>
+        <button class="btn-modal-close" id="btnCloseAgentModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Agent名称 <span class="required">*</span></label>
+        <input type="text" id="modalAgentName" placeholder="请输入Agent名称..." />
+        <span class="input-hint" id="agentNameHint" style="display:none;"></span>
+        <label>描述</label>
+        <input type="text" id="modalAgentDesc" placeholder="请输入描述..." />
+        <label>SOUL.md内容</label>
+        <textarea id="modalAgentSoul" rows="6" placeholder="定义Agent的个性和行为..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" id="btnCancelAgentModal">取消</button>
+        <button class="btn-modal-confirm" id="btnConfirmAgentModal">确认创建</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="mcpPanel">
+  <div class="panel-header">
+    <h3>MCP管理</h3>
+    <button class="btn-panel-close" id="btnCloseMcp">&times;</button>
+  </div>
+  <div class="panel-body" id="mcpList"></div>
+  <div class="panel-footer">
+    <button class="btn-config-save" id="btnAddMcpServer">添加MCP服务器</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="mcpModalOverlay" style="display:none;">
+  <div class="modal-dialog" id="mcpModal">
+    <div class="modal-header">
+      <h4 id="mcpModalTitle">编辑MCP服务器</h4>
+      <button class="btn-modal-close" id="btnCloseMcpModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <label>服务器名称 <span class="required">*</span></label>
+      <input type="text" id="modalMcpName" placeholder="请输入服务器名称..." />
+      <label>类型</label>
+      <select id="modalMcpType">
+        <option value="stdio">stdio</option>
+        <option value="sse">sse</option>
+        <option value="streamableHttp">streamableHttp</option>
       </select>
-      <button class="btn-config-save" id="btnAddFact">新增事实</button>
+      <label>命令</label>
+      <input type="text" id="modalMcpCommand" placeholder="例如: npx" />
+      <label>参数 (每行一个)</label>
+      <textarea id="modalMcpArgs" rows="3" placeholder="-y&#10;@modelcontextprotocol/server-filesystem&#10;./mcp_data"></textarea>
+      <label>URL</label>
+      <input type="text" id="modalMcpUrl" placeholder="例如: http://localhost:8080" />
+      <label>环境变量 (每行一个, KEY=VALUE)</label>
+      <textarea id="modalMcpEnv" rows="2" placeholder="GITHUB_TOKEN=ghp_xxx&#10;API_KEY=xxx"></textarea>
+      <label>Headers (每行一个, KEY: VALUE)</label>
+      <textarea id="modalMcpHeaders" rows="2" placeholder="Authorization: Bearer xxx"></textarea>
+      <label>描述</label>
+      <input type="text" id="modalMcpDesc" placeholder="请输入描述..." />
+      <label class="modal-checkbox-label">
+        <input type="checkbox" id="modalMcpEnabled" checked />
+        <span>启用</span>
+      </label>
     </div>
-    <div class="panel-body" id="memoryList"></div>
-    <div class="modal-overlay" id="factModalOverlay" style="display:none;">
-      <div class="modal-dialog" id="factModal">
-        <div class="modal-header">
-          <h4>新增事实记忆</h4>
-          <button class="btn-modal-close" id="btnCloseFactModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <label>事实内容 <span class="required">*</span></label>
-          <textarea id="modalFactContent" rows="4" placeholder="请输入事实内容..."></textarea>
-          <label>事实类型 <span class="required">*</span></label>
-          <select id="modalFactCategory">
-            <option value="preference">偏好 (preference)</option>
-            <option value="knowledge">知识 (knowledge)</option>
-            <option value="context" selected>背景 (context)</option>
-            <option value="behavior">行为 (behavior)</option>
-            <option value="goal">目标 (goal)</option>
-            <option value="correction">纠正 (correction)</option>
-          </select>
-          <label>置信度 <span class="required">*</span></label>
-          <input type="number" id="modalFactConfidence" value="0.7" step="0.1" min="0" max="1" />
-        </div>
-        <div class="modal-footer">
-          <button class="btn-modal-cancel" id="btnCancelFactModal">取消</button>
-          <button class="btn-modal-confirm" id="btnConfirmFactModal">确认添加</button>
-        </div>
-      </div>
-    </div>
-    <div class="panel-footer">
-      <button class="btn-panel-danger" id="btnClearMemory">清空全部记忆</button>
-      <button class="btn-panel-reload" id="btnReloadMemory">重载记忆</button>
-    </div>
-  </div>
-
-  <div class="panel" id="skillsPanel">
-    <div class="panel-header">
-      <h3>技能列表</h3>
-      <button class="btn-panel-close" id="btnCloseSkills">&times;</button>
-    </div>
-    <div class="panel-body" id="skillsList"></div>
-    <div class="panel-footer">
-      <button class="btn-config-save" id="btnInstallSkill">安装技能</button>
-      <button class="btn-config-save" id="btnSaveSkillConfig">保存配置</button>
-    </div>
-    <input type="file" id="skillFileInput" accept=".skill" style="display:none;" />
-    <div class="install-result" id="installResult" style="display:none;"></div>
-  </div>
-
-  <div class="panel" id="uploadsPanel">
-    <div class="panel-header">
-      <h3>已上传文件</h3>
-      <button class="btn-panel-close" id="btnCloseUploads">&times;</button>
-    </div>
-    <div class="panel-body" id="uploadsList"></div>
-  </div>
-
-  <div class="panel" id="agentsPanel">
-    <div class="panel-header">
-      <h3>Agent设置</h3>
-      <button class="btn-panel-close" id="btnCloseAgents">&times;</button>
-    </div>
-    <div class="panel-body">
-      <div class="panel-section-title">当前Agent</div>
-      <select id="agentSelect" class="agent-select">
-        <option value="">默认</option>
-      </select>
-      <div class="agent-detail" id="agentDetail">
-        <div class="agent-detail-section">
-          <div class="panel-section-title">描述</div>
-          <div id="agentDesc" class="agent-detail-content"></div>
-        </div>
-        <div class="agent-detail-section">
-          <div class="panel-section-title">SOUL.md</div>
-          <pre id="agentSoul" class="agent-detail-soul"></pre>
-        </div>
-      </div>
-      <div class="agent-actions">
-        <button class="btn-agent-confirm" id="btnConfirmAgent">确认选择</button>
-        <button class="btn-agent-create" id="btnCreateAgent">创建Agent</button>
-      </div>
-    </div>
-    <div class="modal-overlay" id="agentModalOverlay" style="display:none;">
-      <div class="modal-dialog" id="agentModal">
-        <div class="modal-header">
-          <h4>创建Agent</h4>
-          <button class="btn-modal-close" id="btnCloseAgentModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <label>Agent名称 <span class="required">*</span></label>
-          <input type="text" id="modalAgentName" placeholder="请输入Agent名称..." />
-          <span class="input-hint" id="agentNameHint" style="display:none;"></span>
-          <label>描述</label>
-          <input type="text" id="modalAgentDesc" placeholder="请输入描述..." />
-          <label>SOUL.md内容</label>
-          <textarea id="modalAgentSoul" rows="6" placeholder="定义Agent的个性和行为..."></textarea>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-modal-cancel" id="btnCancelAgentModal">取消</button>
-          <button class="btn-modal-confirm" id="btnConfirmAgentModal">确认创建</button>
-        </div>
-      </div>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" id="btnCancelMcpModal">取消</button>
+      <button class="btn-modal-confirm" id="btnConfirmMcpModal">确认保存</button>
     </div>
   </div>
 </div>

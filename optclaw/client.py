@@ -832,6 +832,171 @@ class OptClawClient:
         return install_skill_from_archive(skill_path)
 
     # ------------------------------------------------------------------
+    # Public API — MCP server management
+    # ------------------------------------------------------------------
+
+    def get_mcp_config(self) -> dict:
+        """Get current MCP server configurations.
+
+        Returns:
+            Dict with "mcpServers" key containing all MCP server configs.
+        """
+        from optclaw.config.extensions_config import ExtensionsConfig
+
+        config = ExtensionsConfig.from_file()
+        servers = {}
+        for name, srv in config.mcp_servers.items():
+            servers[name] = {
+                "enabled": srv.enabled,
+                "type": srv.type,
+                "command": srv.command,
+                "args": srv.args,
+                "env": srv.env,
+                "url": srv.url,
+                "headers": srv.headers,
+                "description": srv.description,
+            }
+        return {"mcpServers": servers}
+
+    def update_mcp_server(self, server_name: str, updates: dict) -> dict:
+        """Update a single MCP server's configuration.
+
+        Args:
+            server_name: Name of the MCP server to update.
+            updates: Dict of fields to update.
+
+        Returns:
+            Updated MCP server config.
+
+        Raises:
+            ValueError: If the server is not found.
+        """
+        import json
+
+        from optclaw.config.extensions_config import ExtensionsConfig, reload_extensions_config
+        from optclaw.mcp.cache import reset_mcp_tools_cache
+
+        config_path = ExtensionsConfig.resolve_config_path()
+        if config_path is None:
+            raise FileNotFoundError("extensions_config.json not found")
+
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        servers = data.get("mcpServers", {})
+        if server_name not in servers:
+            raise ValueError(f"MCP server '{server_name}' not found")
+
+        for key, value in updates.items():
+            if value is not None:
+                servers[server_name][key] = value
+
+        data["mcpServers"] = servers
+        self._atomic_write_json(config_path, data)
+
+        reload_extensions_config()
+        reset_mcp_tools_cache()
+
+        return {"success": True, "server_name": server_name, "config": servers[server_name]}
+
+    def toggle_mcp_server(self, server_name: str, enabled: bool) -> dict:
+        """Enable or disable an MCP server.
+
+        Args:
+            server_name: Name of the MCP server.
+            enabled: New enabled status.
+
+        Returns:
+            Updated MCP server config.
+        """
+        return self.update_mcp_server(server_name, {"enabled": enabled})
+
+    def create_mcp_server(self, server_name: str, config: dict) -> dict:
+        """Create a new MCP server entry.
+
+        Args:
+            server_name: Unique name for the MCP server.
+            config: Server configuration dict.
+
+        Returns:
+            Created MCP server config.
+
+        Raises:
+            ValueError: If the server name already exists.
+        """
+        import json
+
+        from optclaw.config.extensions_config import ExtensionsConfig, reload_extensions_config
+        from optclaw.mcp.cache import reset_mcp_tools_cache
+
+        config_path = ExtensionsConfig.resolve_config_path()
+        if config_path is None:
+            raise FileNotFoundError("extensions_config.json not found")
+
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        servers = data.get("mcpServers", {})
+        if server_name in servers:
+            raise ValueError(f"MCP server '{server_name}' already exists")
+
+        servers[server_name] = {
+            "enabled": config.get("enabled", False),
+            "type": config.get("type", "stdio"),
+            "command": config.get("command"),
+            "args": config.get("args", []),
+            "env": config.get("env", {}),
+            "url": config.get("url"),
+            "headers": config.get("headers", {}),
+            "oauth": config.get("oauth"),
+            "description": config.get("description", ""),
+        }
+        data["mcpServers"] = servers
+        self._atomic_write_json(config_path, data)
+
+        reload_extensions_config()
+        reset_mcp_tools_cache()
+
+        return {"success": True, "server_name": server_name, "config": servers[server_name]}
+
+    def delete_mcp_server(self, server_name: str) -> dict:
+        """Delete an MCP server entry.
+
+        Args:
+            server_name: Name of the MCP server to delete.
+
+        Returns:
+            Success status.
+
+        Raises:
+            ValueError: If the server is not found.
+        """
+        import json
+
+        from optclaw.config.extensions_config import ExtensionsConfig, reload_extensions_config
+        from optclaw.mcp.cache import reset_mcp_tools_cache
+
+        config_path = ExtensionsConfig.resolve_config_path()
+        if config_path is None:
+            raise FileNotFoundError("extensions_config.json not found")
+
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        servers = data.get("mcpServers", {})
+        if server_name not in servers:
+            raise ValueError(f"MCP server '{server_name}' not found")
+
+        del servers[server_name]
+        data["mcpServers"] = servers
+        self._atomic_write_json(config_path, data)
+
+        reload_extensions_config()
+        reset_mcp_tools_cache()
+
+        return {"success": True, "server_name": server_name}
+
+    # ------------------------------------------------------------------
     # Public API — memory management
     # ------------------------------------------------------------------
 
@@ -849,7 +1014,7 @@ class OptClawClient:
         logger.info("reload_memory called with agent_name: %s" % (agent_name))
 
         result = reload_memory_data(agent_name)
-        self.reset_agent()
+        # self.reset_agent()
         return result
 
     def clear_memory(self, agent_name: str | None = None) -> dict:
@@ -863,7 +1028,7 @@ class OptClawClient:
         logger.info("clear_memory called with agent_name: %s" % (agent_name))
 
         result = clear_memory_data(agent_name)
-        self.reset_agent()
+        # self.reset_agent()
         return result
 
     def create_memory_fact(self, content: str, category: str = "context", confidence: float = 0.5, agent_name: str | None = None) -> dict:
@@ -877,7 +1042,7 @@ class OptClawClient:
         logger.info("create_memory_fact called with agent_name: %s" % (agent_name))
 
         result = create_memory_fact(content=content, category=category, confidence=confidence, agent_name=agent_name)
-        self.reset_agent()
+        # self.reset_agent()
         return result
 
     def delete_memory_fact(self, fact_id: str, agent_name: str | None = None) -> dict:
@@ -891,7 +1056,7 @@ class OptClawClient:
         logger.info("delete_memory_fact called with agent_name: %s" % (agent_name))
 
         result = delete_memory_fact(fact_id, agent_name=agent_name)
-        self.reset_agent()
+        # self.reset_agent()
         return result
 
     def update_memory_fact(
@@ -918,7 +1083,7 @@ class OptClawClient:
             confidence=confidence,
             agent_name=agent_name,
         )
-        self.reset_agent()
+        # self.reset_agent()
         return result
 
     def get_memory_config(self) -> dict:
@@ -991,7 +1156,7 @@ class OptClawClient:
         with open(config_path, "w", encoding="utf-8") as f:
             yaml.dump(cfg, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
-        self.reset_agent()
+        # self.reset_agent()
         logger.info("update_memory_config called with: %s" % (config_path))
 
         return self.get_memory_config()
@@ -1026,7 +1191,7 @@ class OptClawClient:
             "data": self.get_memory(self._agent_name),
         }
 
-        self.reset_agent()
+        # self.reset_agent()
         return result
 
     def get_memory_status(self, agent_name: str | None = None) -> dict:

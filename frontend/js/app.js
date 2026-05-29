@@ -239,7 +239,7 @@
     currentThreadId = threadId;
     hasThreadMessages = true;
     clearMessages(true);
-    updateAgentButtonState();
+
 
     $$(".thread-item").forEach((item) => {
       item.classList.toggle("active", item.dataset.threadId === threadId);
@@ -280,8 +280,7 @@
     hasThreadMessages = false;
     clearMessages(true);
     $$(".thread-item").forEach((item) => item.classList.remove("active"));
-    updateAgentButtonState();
-    fetch(`${API_BASE}/reset-agent`, { method: "POST" }).catch(() => {});
+
   }
 
   async function sendMessage() {
@@ -290,7 +289,7 @@
     if (isStreaming) return;
 
     hasThreadMessages = true;
-    updateAgentButtonState();
+
 
     elInput.value = "";
     elInput.style.height = "auto";
@@ -407,7 +406,7 @@
 
   function renderUploadFiles() {
     elUploadFiles.innerHTML = "";
-    pendingFiles.forEach((f, idx) => {
+    pendingFiles.forEach((f) => {
       const item = document.createElement("div");
       item.className = "upload-file-item";
       const name = document.createElement("span");
@@ -416,7 +415,7 @@
       remove.className = "file-remove";
       remove.textContent = "×";
       remove.onclick = () => {
-        pendingFiles.splice(idx, 1);
+        pendingFiles = pendingFiles.filter((pf) => pf !== f);
         renderUploadFiles();
         updateSendButton();
       };
@@ -486,7 +485,19 @@
   const elUploadsList = $("#uploadsList");
   const elHealthBadge = $("#healthBadge");
   const elMemoryConfigGrid = $("#memoryConfigGrid");
-  const elAgentLabel = $("#agentLabel");
+  const elAgentBadgeLabel = $("#agentBadgeLabel");
+  const elSkillsModal = $("#skillsModal");
+  const elSkillsPopupList = $("#skillsPopupList");
+  const elMcpBadge = $("#mcpBadge");
+  const elMcpBadgeLabel = $("#mcpBadgeLabel");
+  const elSkillsBadge = $("#skillsBadge");
+  const elSkillsBadgeLabel = $("#skillsBadgeLabel");
+  const elMcpPopupOverlay = $("#mcpPopupOverlay");
+  const elMcpPopupList = $("#mcpPopupList");
+
+  const elMcpPanel = $("#mcpPanel");
+  const elMcpList = $("#mcpList");
+  const elMcpModalOverlay = $("#mcpModalOverlay");
 
   let selectedAgentName = localStorage.getItem("optclaw_agent") || "";
 
@@ -501,31 +512,97 @@
     if (elSkillsPanel) elSkillsPanel.classList.remove("open");
     if (elUploadsPanel) elUploadsPanel.classList.remove("open");
     if (elAgentsPanel) elAgentsPanel.classList.remove("open");
+    if (elMcpPanel) elMcpPanel.classList.remove("open");
+  }
+
+  function closeSkillsModal() {
+    if (elSkillsModal) elSkillsModal.style.display = "none";
   }
 
   function updateAgentLabel() {
-    if (elAgentLabel) {
-      if (selectedAgentName) {
-        elAgentLabel.textContent = "Agent设置：" + selectedAgentName;
-      } else {
-        elAgentLabel.textContent = "Agent设置：默认";
-      }
+    if (elAgentBadgeLabel) {
+      elAgentBadgeLabel.textContent = selectedAgentName ? "当前Agent为：" + selectedAgentName : "当前Agent为：默认";
     }
   }
 
-  function updateAgentButtonState() {
-    const btnAgent = $("#btnShowAgents");
-    const btnSkills = $("#btnShowSkills");
-    const disabled = hasThreadMessages;
-    [btnAgent, btnSkills].forEach((btn) => {
-      if (!btn) return;
-      btn.disabled = disabled;
-      btn.classList.toggle("btn-disabled", disabled);
-    });
+  async function updateHeaderBadges() {
+    try {
+      const res = await fetch(`${API_BASE}/mcp`);
+      const data = await res.json();
+      const servers = data.mcpServers || {};
+      const enabled = Object.entries(servers).filter(([, s]) => s.enabled);
+      if (elMcpBadgeLabel) {
+        elMcpBadgeLabel.textContent = "当前MCP个数：" + enabled.length + "个";
+      }
+    } catch (e) {
+      if (elMcpBadgeLabel) elMcpBadgeLabel.textContent = "当前MCP个数：0个";
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/skills`);
+      const data = await res.json();
+      const skills = data.skills || [];
+      const enabled = skills.filter((s) => s.enabled);
+      if (elSkillsBadgeLabel) {
+        elSkillsBadgeLabel.textContent = "当前技能数：" + enabled.length + "个";
+      }
+    } catch (e) {
+      if (elSkillsBadgeLabel) elSkillsBadgeLabel.textContent = "当前技能数：0个";
+    }
+  }
+
+
+  async function refreshIntroHints() {
+    const hintAgent = document.getElementById("introAgentHint");
+    const hintSkills = document.getElementById("introSkillsHint");
+    const hintMemory = document.getElementById("introMemoryHint");
+    const hintMcp = document.getElementById("introMcpHint");
+    if (!hintAgent && !hintSkills && !hintMemory && !hintMcp) return;
+
+    if (hintAgent) {
+      hintAgent.textContent = selectedAgentName || "默认";
+    }
+
+    if (hintSkills) {
+      try {
+        const res = await fetch(`${API_BASE}/skills`);
+        const data = await res.json();
+        const skills = data.skills || [];
+        const enabled = skills.filter((s) => s.enabled).length;
+        hintSkills.textContent = enabled + " 个已开启";
+      } catch (e) {
+        hintSkills.textContent = "--";
+      }
+    }
+
+    if (hintMemory) {
+      try {
+        const res = await fetch(`${API_BASE}/memory${memAgentParam()}`);
+        const data = await res.json();
+        const facts = data.facts || data.memory_facts || [];
+        hintMemory.textContent = facts.length + " 条事实";
+      } catch (e) {
+        hintMemory.textContent = "--";
+      }
+    }
+
+    if (hintMcp) {
+      try {
+        const res = await fetch(`${API_BASE}/mcp`);
+        const data = await res.json();
+        const servers = data.mcpServers || {};
+        const enabled = Object.values(servers).filter((s) => s.enabled).length;
+        hintMcp.textContent = enabled + " 个已开启";
+      } catch (e) {
+        hintMcp.textContent = "--";
+      }
+    }
+
+    updateHeaderBadges();
   }
 
   updateAgentLabel();
-  updateAgentButtonState();
+  updateHeaderBadges();
 
   async function checkHealth() {
     if (!elHealthBadge) return;
@@ -612,7 +689,7 @@
   }
 
   async function reloadMemory() {
-    if (!confirm("确定刷新记忆？将重新加载配置并重置Agent。")) return;
+    if (!confirm("确定刷新记忆？将重新加载配置。")) return;
     try {
       await fetch(`${API_BASE}/memory/reload${memAgentParam()}`, { method: "POST" });
       loadMemoryConfig();
@@ -634,6 +711,7 @@
       elMemoryList.innerHTML = "";
       if (facts.length === 0) {
         elMemoryList.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">暂无记忆数据</div>';
+        refreshIntroHints();
         return;
       }
       facts.forEach((f) => {
@@ -703,6 +781,7 @@
     } catch (e) {
       console.error("Failed to load memory", e);
     }
+    refreshIntroHints();
   }
 
   function openFactModal() {
@@ -780,19 +859,45 @@
     }
   }
 
+  async function loadSkillsPopup() {
+    if (!elSkillsPopupList) return;
+    try {
+      const res = await fetch(`${API_BASE}/skills`);
+      const data = await res.json();
+      const skills = (data.skills || []).filter((s) => s.enabled);
+      elSkillsPopupList.innerHTML = "";
+      if (skills.length === 0) {
+        elSkillsPopupList.innerHTML = '<div class="skills-popup-empty">暂无已启用的技能</div>';
+        return;
+      }
+      skills.forEach((s) => {
+        const item = document.createElement("div");
+        item.className = "skills-popup-item";
+        item.innerHTML = `
+          <span class="skills-popup-name">${escapeHtml(s.name || "")}</span>
+          <span class="skills-popup-category">${escapeHtml(s.category || "")}</span>
+          <span class="skills-popup-status on">启用</span>
+        `;
+        elSkillsPopupList.appendChild(item);
+      });
+    } catch (e) {
+      console.error("Failed to load skills for popup", e);
+    }
+  }
+
   async function saveSkillConfig() {
     if (Object.keys(skillChanges).length === 0) {
       alert("没有修改任何技能配置");
       return;
     }
-    if (!confirm("确定保存技能配置？保存后将重置Agent使配置生效。")) return;
+    if (!confirm("确定保存技能配置？")) return;
     try {
       for (const [name, enabled] of Object.entries(skillChanges)) {
         await fetch(`${API_BASE}/skills/${encodeURIComponent(name)}?enabled=${enabled}`, { method: "PATCH" });
       }
-      await fetch(`${API_BASE}/reset-agent`, { method: "POST" });
       skillChanges = {};
       loadSkills();
+      refreshIntroHints();
     } catch (e) {
       console.error("Save skill config failed", e);
     }
@@ -843,13 +948,6 @@
     }
   }
 
-  if ($("#btnShowMemory")) {
-    $("#btnShowMemory").addEventListener("click", () => {
-      openPanel(elMemoryPanel);
-      loadMemoryConfig();
-      loadMemory();
-    });
-  }
   if ($("#btnCloseMemory")) {
     $("#btnCloseMemory").addEventListener("click", closeAllPanels);
   }
@@ -883,12 +981,6 @@
       } catch (e) {
         console.error("Clear memory failed", e);
       }
-    });
-  }
-  if ($("#btnShowSkills")) {
-    $("#btnShowSkills").addEventListener("click", () => {
-      openPanel(elSkillsPanel);
-      loadSkills();
     });
   }
   if ($("#btnCloseSkills")) {
@@ -1004,12 +1096,76 @@
     });
   }
 
-  if ($("#btnShowAgents")) {
-    $("#btnShowAgents").addEventListener("click", () => {
-      openPanel(elAgentsPanel);
-      loadAgents();
+  function closeMcpPopup() {
+    if (elMcpPopupOverlay) elMcpPopupOverlay.style.display = "none";
+  }
+
+  async function loadMcpPopup() {
+    if (!elMcpPopupList) return;
+    try {
+      const res = await fetch(`${API_BASE}/mcp`);
+      const data = await res.json();
+      const servers = data.mcpServers || {};
+      const enabled = Object.entries(servers).filter(([, s]) => s.enabled);
+      elMcpPopupList.innerHTML = "";
+      if (enabled.length === 0) {
+        elMcpPopupList.innerHTML = '<div class="skills-popup-empty">暂无已启用的MCP服务</div>';
+        return;
+      }
+      enabled.forEach(([name, srv]) => {
+        const item = document.createElement("div");
+        item.className = "skills-popup-item";
+        item.innerHTML = `
+          <span class="skills-popup-name">${escapeHtml(name)}</span>
+          <span class="skills-popup-category">${escapeHtml(srv.type || "stdio")}</span>
+          <span class="skills-popup-status on">启用</span>
+        `;
+        elMcpPopupList.appendChild(item);
+      });
+    } catch (e) {
+      console.error("Failed to load MCP popup", e);
+    }
+  }
+
+  if (elSkillsBadge) {
+    elSkillsBadge.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (elSkillsModal && elSkillsModal.style.display === "flex") {
+        closeSkillsModal();
+        return;
+      }
+      await loadSkillsPopup();
+      if (elSkillsModal) elSkillsModal.style.display = "flex";
     });
   }
+  if (elMcpBadge) {
+    elMcpBadge.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (elMcpPopupOverlay && elMcpPopupOverlay.style.display === "flex") {
+        closeMcpPopup();
+        return;
+      }
+      await loadMcpPopup();
+      if (elMcpPopupOverlay) elMcpPopupOverlay.style.display = "flex";
+    });
+  }
+  if ($("#btnCloseSkillsModal")) {
+    $("#btnCloseSkillsModal").addEventListener("click", closeSkillsModal);
+  }
+  if ($("#btnCloseMcpPopup")) {
+    $("#btnCloseMcpPopup").addEventListener("click", closeMcpPopup);
+  }
+  if (elSkillsModal) {
+    elSkillsModal.addEventListener("click", (e) => {
+      if (e.target === elSkillsModal) closeSkillsModal();
+    });
+  }
+  if (elMcpPopupOverlay) {
+    elMcpPopupOverlay.addEventListener("click", (e) => {
+      if (e.target === elMcpPopupOverlay) closeMcpPopup();
+    });
+  }
+
   if ($("#btnCloseAgents")) {
     $("#btnCloseAgents").addEventListener("click", closeAllPanels);
   }
@@ -1017,15 +1173,12 @@
     $("#btnConfirmAgent").addEventListener("click", async () => {
       const agentName = pendingAgentName !== null ? pendingAgentName : selectedAgentName;
       const label = agentName || "默认";
-      if (!confirm(`确认选择Agent「${label}」？将重置Agent并生效。`)) return;
+      if (!confirm(`确认选择Agent「${label}」？`)) return;
       selectedAgentName = agentName || "";
       localStorage.setItem("optclaw_agent", selectedAgentName);
       updateAgentLabel();
-      try {
-        await fetch(`${API_BASE}/reset-agent`, { method: "POST" });
-      } catch (e) {
-        console.error("Reset agent failed", e);
-      }
+      refreshIntroHints();
+      closeAllPanels();
     });
   }
   function openAgentModal() {
@@ -1115,6 +1268,224 @@
     $("#modalAgentName").addEventListener("input", validateAgentName);
   }
 
+  // MCP management
+  let mcpServerData = {};
+  let mcpEditingServerName = null;
+
+  async function loadMcpServers() {
+    if (!elMcpList) return;
+    try {
+      const res = await fetch(`${API_BASE}/mcp`);
+      const data = await res.json();
+      mcpServerData = data.mcpServers || {};
+      renderMcpServers();
+    } catch (e) {
+      console.error("Failed to load MCP config", e);
+    }
+  }
+
+  function renderMcpServers() {
+    if (!elMcpList) return;
+    const names = Object.keys(mcpServerData);
+    elMcpList.innerHTML = "";
+    if (names.length === 0) {
+      elMcpList.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">暂无MCP服务器</div>';
+      return;
+    }
+    names.forEach((name) => {
+      const srv = mcpServerData[name];
+      const item = document.createElement("div");
+      item.className = "mcp-item";
+      const enabled = srv.enabled;
+      item.innerHTML = `
+        <div class="mcp-item-main">
+          <div class="mcp-item-name-row">
+            <span class="mcp-item-name">${escapeHtml(name)}</span>
+            <button class="mcp-item-edit" title="编辑">✎</button>
+          </div>
+          <div class="mcp-item-desc">${escapeHtml(srv.description || "")}</div>
+          <div class="mcp-item-type">${escapeHtml(srv.type || "stdio")}${srv.command ? " · " + escapeHtml(srv.command) : ""}</div>
+        </div>
+        <label class="mcp-toggle-switch">
+          <input type="checkbox" class="mcp-toggle-checkbox" data-server="${escapeHtml(name)}" ${enabled ? "checked" : ""} />
+          <span class="mcp-toggle-slider"></span>
+        </label>
+      `;
+
+      item.querySelector(".mcp-item-edit").addEventListener("click", (e) => {
+        e.stopPropagation();
+        openMcpModal(name);
+      });
+
+      const checkbox = item.querySelector(".mcp-toggle-checkbox");
+      checkbox.addEventListener("change", async (e) => {
+        e.stopPropagation();
+        const newEnabled = checkbox.checked;
+        try {
+          await fetch(`${API_BASE}/mcp/${encodeURIComponent(name)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ enabled: newEnabled }),
+          });
+          mcpServerData[name].enabled = newEnabled;
+          refreshIntroHints();
+        } catch (err) {
+          console.error("Toggle MCP server failed", err);
+          checkbox.checked = !newEnabled;
+        }
+      });
+
+      elMcpList.appendChild(item);
+    });
+  }
+
+  function openMcpModal(serverName) {
+    mcpEditingServerName = serverName || null;
+    const title = $("#mcpModalTitle");
+    if (title) title.textContent = serverName ? "编辑MCP服务器" : "添加MCP服务器";
+
+    const nameEl = $("#modalMcpName");
+    if (nameEl) {
+      nameEl.value = serverName || "";
+      nameEl.disabled = !!serverName;
+    }
+
+    const srv = serverName ? (mcpServerData[serverName] || {}) : {};
+    const typeEl = $("#modalMcpType");
+    if (typeEl) typeEl.value = srv.type || "stdio";
+    const cmdEl = $("#modalMcpCommand");
+    if (cmdEl) cmdEl.value = srv.command || "";
+    const argsEl = $("#modalMcpArgs");
+    if (argsEl) argsEl.value = (srv.args || []).join("\n");
+    const urlEl = $("#modalMcpUrl");
+    if (urlEl) urlEl.value = srv.url || "";
+    const envEl = $("#modalMcpEnv");
+    if (envEl && srv.env) {
+      envEl.value = Object.entries(srv.env).map(([k, v]) => `${k}=${v}`).join("\n");
+    } else if (envEl) {
+      envEl.value = "";
+    }
+    const headersEl = $("#modalMcpHeaders");
+    if (headersEl && srv.headers) {
+      headersEl.value = Object.entries(srv.headers).map(([k, v]) => `${k}: ${v}`).join("\n");
+    } else if (headersEl) {
+      headersEl.value = "";
+    }
+    const descEl = $("#modalMcpDesc");
+    if (descEl) descEl.value = srv.description || "";
+    const enabledEl = $("#modalMcpEnabled");
+    if (enabledEl) enabledEl.checked = serverName ? (srv.enabled !== false) : true;
+
+    if (elMcpModalOverlay) elMcpModalOverlay.style.display = "flex";
+  }
+
+  function closeMcpModal() {
+    if (elMcpModalOverlay) elMcpModalOverlay.style.display = "none";
+    mcpEditingServerName = null;
+  }
+
+  function parseMultiline(text) {
+    if (!text || !text.trim()) return [];
+    return text.split("\n").map((l) => l.trim()).filter((l) => l);
+  }
+
+  function parseEnvLines(text) {
+    const entries = parseMultiline(text);
+    const env = {};
+    entries.forEach((line) => {
+      const idx = line.indexOf("=");
+      if (idx > 0) {
+        env[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+      }
+    });
+    return env;
+  }
+
+  function parseHeaderLines(text) {
+    const entries = parseMultiline(text);
+    const headers = {};
+    entries.forEach((line) => {
+      const idx = line.indexOf(":");
+      if (idx > 0) {
+        headers[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+      }
+    });
+    return headers;
+  }
+
+  async function saveMcpServer() {
+    const name = ($("#modalMcpName") || {}).value || "";
+    if (!name.trim()) {
+      alert("请输入服务器名称");
+      return;
+    }
+    const config = {
+      type: ($("#modalMcpType") || {}).value || "stdio",
+      command: ($("#modalMcpCommand") || {}).value || null,
+      args: parseMultiline(($("#modalMcpArgs") || {}).value),
+      url: ($("#modalMcpUrl") || {}).value || null,
+      env: parseEnvLines(($("#modalMcpEnv") || {}).value),
+      headers: parseHeaderLines(($("#modalMcpHeaders") || {}).value),
+      description: ($("#modalMcpDesc") || {}).value || "",
+      enabled: ($("#modalMcpEnabled") || {}).checked,
+    };
+
+    try {
+      if (mcpEditingServerName) {
+        const res = await fetch(`${API_BASE}/mcp/${encodeURIComponent(mcpEditingServerName)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(config),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.detail || "更新失败");
+          return;
+        }
+      } else {
+        const res = await fetch(`${API_BASE}/mcp?server_name=${encodeURIComponent(name)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(config),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.detail || "创建失败");
+          return;
+        }
+      }
+      closeMcpModal();
+      loadMcpServers();
+      refreshIntroHints();
+    } catch (e) {
+      console.error("Save MCP server failed", e);
+    }
+  }
+
+  if ($("#btnCloseMcp")) {
+    $("#btnCloseMcp").addEventListener("click", () => {
+      closeAllPanels();
+      loadMcpServers();
+    });
+  }
+  if ($("#btnAddMcpServer")) {
+    $("#btnAddMcpServer").addEventListener("click", () => openMcpModal(null));
+  }
+  if ($("#btnCloseMcpModal")) {
+    $("#btnCloseMcpModal").addEventListener("click", closeMcpModal);
+  }
+  if ($("#btnCancelMcpModal")) {
+    $("#btnCancelMcpModal").addEventListener("click", closeMcpModal);
+  }
+  if ($("#btnConfirmMcpModal")) {
+    $("#btnConfirmMcpModal").addEventListener("click", saveMcpServer);
+  }
+  if (elMcpModalOverlay) {
+    elMcpModalOverlay.addEventListener("click", (e) => {
+      if (e.target === elMcpModalOverlay) closeMcpModal();
+    });
+  }
+
   // Init
   loadModels();
   loadThreads();
@@ -1149,6 +1520,7 @@
     const btnStart = document.getElementById("btnStart");
     const appMain = document.getElementById("appMain");
     const canvas = document.getElementById("introCanvas");
+    const configOverlay = document.getElementById("introConfigOverlay");
     if (!introPage || !btnStart) return;
 
     const visited = sessionStorage.getItem("optclaw_visited");
@@ -1159,13 +1531,69 @@
     }
 
     btnStart.addEventListener("click", () => {
-      sessionStorage.setItem("optclaw_visited", "1");
-      introPage.classList.add("fade-out");
-      setTimeout(() => {
-        introPage.style.display = "none";
-        if (appMain) appMain.style.display = "flex";
-      }, 600);
+      if (configOverlay) {
+        configOverlay.style.display = "flex";
+        refreshIntroHints();
+      }
     });
+
+    const introBtnCancel = document.getElementById("introBtnCancel");
+    if (introBtnCancel) {
+      introBtnCancel.addEventListener("click", () => {
+        if (configOverlay) configOverlay.style.display = "none";
+      });
+    }
+
+    const introBtnConfirm = document.getElementById("introBtnConfirm");
+    if (introBtnConfirm) {
+      introBtnConfirm.addEventListener("click", async () => {
+        sessionStorage.setItem("optclaw_visited", "1");
+        try {
+          await fetch(`${API_BASE}/reset-agent`, { method: "POST" });
+        } catch (e) {
+          console.error("Reset agent failed", e);
+        }
+        introPage.classList.add("fade-out");
+        setTimeout(() => {
+          introPage.style.display = "none";
+          if (appMain) appMain.style.display = "flex";
+        }, 600);
+      });
+    }
+
+    const introBtnAgents = document.getElementById("introBtnAgents");
+    const introBtnSkills = document.getElementById("introBtnSkills");
+    const introBtnMemory = document.getElementById("introBtnMemory");
+    if (introBtnAgents) {
+      introBtnAgents.addEventListener("click", () => {
+        if (elPanelOverlay) elPanelOverlay.classList.add("visible");
+        if (elAgentsPanel) elAgentsPanel.classList.add("open");
+        loadAgents();
+      });
+    }
+    if (introBtnSkills) {
+      introBtnSkills.addEventListener("click", () => {
+        if (elPanelOverlay) elPanelOverlay.classList.add("visible");
+        if (elSkillsPanel) elSkillsPanel.classList.add("open");
+        loadSkills();
+      });
+    }
+    if (introBtnMemory) {
+      introBtnMemory.addEventListener("click", () => {
+        if (elPanelOverlay) elPanelOverlay.classList.add("visible");
+        if (elMemoryPanel) elMemoryPanel.classList.add("open");
+        loadMemoryConfig();
+        loadMemory();
+      });
+    }
+    const introBtnMcp = document.getElementById("introBtnMcp");
+    if (introBtnMcp) {
+      introBtnMcp.addEventListener("click", () => {
+        if (elPanelOverlay) elPanelOverlay.classList.add("visible");
+        if (elMcpPanel) elMcpPanel.classList.add("open");
+        loadMcpServers();
+      });
+    }
 
     if (!canvas) return;
     const ctx = canvas.getContext("2d");

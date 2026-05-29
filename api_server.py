@@ -389,3 +389,67 @@ async def reset_agent():
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"重置Agent失败: {e}")
+
+
+class McpServerUpdateRequest(BaseModel):
+    enabled: bool | None = None
+    type: str | None = None
+    command: str | None = None
+    args: list[str] | None = None
+    env: dict[str, str] | None = None
+    url: str | None = None
+    headers: dict[str, str] | None = None
+    description: str | None = None
+
+
+class McpServerCreateRequest(BaseModel):
+    type: str = "stdio"
+    command: str | None = None
+    args: list[str] | None = None
+    env: dict[str, str] | None = None
+    url: str | None = None
+    headers: dict[str, str] | None = None
+    description: str = ""
+    enabled: bool = True
+
+
+@app.get("/api/mcp")
+async def get_mcp_config():
+    try:
+        return _sanitize(client.get_mcp_config())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取MCP配置失败: {e}")
+
+
+@app.patch("/api/mcp/{server_name}")
+async def update_mcp_server(server_name: str, req: McpServerUpdateRequest):
+    try:
+        updates = {k: v for k, v in req.model_dump().items() if v is not None}
+        if not updates:
+            return _sanitize(client.get_mcp_config())
+        return _sanitize(client.update_mcp_server(server_name, updates))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新MCP服务器失败: {e}")
+
+
+@app.post("/api/mcp")
+async def create_mcp_server(req: McpServerCreateRequest, server_name: str = Query(...)):
+    try:
+        config = {k: v for k, v in req.model_dump().items() if v is not None}
+        return _sanitize(client.create_mcp_server(server_name, config))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"创建MCP服务器失败: {e}")
+
+
+@app.delete("/api/mcp/{server_name}")
+async def delete_mcp_server(server_name: str):
+    try:
+        return _sanitize(client.delete_mcp_server(server_name))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除MCP服务器失败: {e}")
