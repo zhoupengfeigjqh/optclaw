@@ -22,6 +22,16 @@ models:
     extra_body:
       thinking:
         type: disabled
+- name: gemma4-e2b-local
+  display_name: Gemma 4 E2B (Ollama Fast)
+  use: langchain_ollama:ChatOllama
+  model: gemma4:e2b
+  base_url: http://host.docker.internal:11434
+  num_predict: 8192              # 2B级别模型输出长度设为 4096 效率最高，128K上下文同样适用
+  temperature: 1.0               # Google 官方针对 Gemma 4 全系列推荐的标准化采样温度
+  reasoning: true                # E2B 同样原生支持可配置的思考/推理模式（Thinking Mode）
+  supports_thinking: true
+  supports_vision: true          # 支持视觉图像（Image）多模态输入，暂不支持音频
 - name: deepseek-v4-flash
   display_name: Deepseek-V4-Flash (Thinking)
   use: optclaw.models.patched_deepseek:PatchedChatDeepSeek

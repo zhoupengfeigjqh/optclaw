@@ -93,7 +93,8 @@
 
     if (role === "ai" && !content && !(extra && extra.toolCalls)) {
       const indicator = document.createElement("span");
-      indicator.className = "typing-indicator";
+      indicator.className = "syncing-indicator";
+      indicator.textContent = "Syncing messages...";
       body.appendChild(indicator);
     }
 
@@ -106,7 +107,7 @@
   }
 
   function appendToMessage(body, delta, deltaType) {
-    const indicator = body.querySelector(".typing-indicator");
+    const indicator = body.querySelector(".typing-indicator, .syncing-indicator");
     if (indicator) indicator.remove();
 
     if (deltaType === "reasoning_text") {
