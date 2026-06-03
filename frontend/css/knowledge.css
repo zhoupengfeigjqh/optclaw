@@ -79,24 +79,11 @@
 .kb-section-hint { font-size: 12px; color: var(--text-muted); }
 
 /* Upload */
-.kb-upload-area { padding: 10px 18px; }
-.kb-upload-dropzone {
-  border: 2px dashed var(--border-light);
-  border-radius: var(--kb-radius);
-  padding: 14px 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-}
-.kb-upload-dropzone:hover, .kb-upload-dropzone.dragover {
-  border-color: var(--accent);
-  background: rgba(83,52,131,0.1);
-}
-.kb-upload-dropzone p { color: var(--text-secondary); font-size: 13px; margin: 6px 0; }
+.kb-upload-area { padding: 14px 18px; text-align: center; }
 .btn-kb-upload {
-  margin-top: 6px; padding: 6px 16px;
+  padding: 8px 20px;
   background: var(--accent); color: #fff; border: none;
-  border-radius: 6px; font-size: 13px; cursor: pointer;
+  border-radius: 6px; font-size: 14px; cursor: pointer;
 }
 .btn-kb-upload:hover { background: var(--accent-hover); }
 
@@ -169,7 +156,7 @@
 }
 
 /* Form */
-.kb-settings-form, .kb-recall-form { padding: 16px 18px; }
+.kb-settings-form, .kb-recall-form { padding: 12px 18px; }
 .kb-form-group { margin-bottom: 14px; }
 .kb-form-group label {
   display: block; font-size: 13px; color: var(--text-secondary);
@@ -186,6 +173,9 @@
 }
 .kb-form-group input:focus, .kb-form-group select:focus, .kb-form-group textarea:focus {
   border-color: var(--accent);
+}
+.kb-form-group.disabled {
+  opacity: 0.45; pointer-events: none;
 }
 .kb-model-status {
   font-size: 10px;
@@ -247,6 +237,141 @@
 .kb-empty-state {
   text-align: center; color: var(--text-muted);
   font-size: 13px; padding: 24px 18px;
+}
+
+/* Smart Parse Toggle */
+.kb-smart-parse-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.kb-toggle-label {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; font-weight: 500;
+  cursor: pointer; user-select: none;
+}
+.kb-toggle-switch {
+  position: relative; display: inline-block;
+  width: 40px; height: 22px;
+}
+.kb-toggle-switch input { opacity: 0; width: 0; height: 0; }
+.kb-toggle-slider {
+  position: absolute; cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg-tertiary);
+  border-radius: 22px; transition: 0.3s;
+  border: 1px solid var(--border);
+}
+.kb-toggle-slider::before {
+  content: ""; position: absolute;
+  height: 16px; width: 16px; left: 2px; bottom: 2px;
+  background: var(--text-muted); border-radius: 50%; transition: 0.3s;
+}
+.kb-toggle-switch input:checked + .kb-toggle-slider {
+  background: var(--accent); border-color: var(--accent);
+}
+.kb-toggle-switch input:checked + .kb-toggle-slider::before {
+  transform: translateX(18px); background: #fff;
+}
+.kb-smart-parse-settings {
+  display: flex; align-items: center; gap: 8px; flex: 1;
+}
+.kb-smart-parse-settings .kb-form-inline {
+  flex: 1; min-width: 150px;
+}
+.btn-kb-parse-settings {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; height: 34px; align-self: center;
+  background: var(--bg-tertiary); color: var(--text-secondary);
+  border: 1px solid var(--border); border-radius: 6px;
+  cursor: pointer; font-size: 13px; white-space: nowrap;
+  transition: all 0.2s; flex-shrink: 0;
+}
+.btn-kb-parse-settings:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Modals */
+.kb-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.kb-modal {
+  background: var(--bg-secondary); border-radius: var(--kb-radius);
+  border: 1px solid var(--border); max-height: 85vh;
+  display: flex; flex-direction: column;
+  width: 520px; max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.kb-modal-wide { width: 680px; }
+.kb-modal-xl { width: 820px; }
+.kb-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+}
+.kb-modal-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.kb-modal-close {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 20px; cursor: pointer; padding: 0 4px;
+}
+.kb-modal-close:hover { color: var(--text-primary); }
+.kb-modal-body {
+  padding: 16px 18px; overflow-y: auto; flex: 1;
+}
+.kb-modal-footer {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 12px 18px; border-top: 1px solid var(--border);
+}
+.btn-kb-cancel {
+  padding: 8px 18px; background: var(--bg-tertiary); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 6px; font-size: 13px; cursor: pointer;
+}
+.btn-kb-cancel:hover { background: var(--bg-hover); }
+.btn-kb-confirm {
+  padding: 8px 18px; background: var(--accent); color: #fff;
+  border: none; border-radius: 6px; font-size: 13px; cursor: pointer;
+}
+.btn-kb-confirm:hover { background: var(--accent-hover); }
+
+/* Smart Result Editor */
+.smart-result-item {
+  background: var(--bg-tertiary); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px; margin-bottom: 10px;
+}
+.smart-result-item .sr-row {
+  margin-bottom: 8px;
+}
+.smart-result-item .sr-row:last-child { margin-bottom: 0; }
+.smart-result-item label {
+  display: block; font-size: 12px; color: var(--text-muted);
+  margin-bottom: 3px; font-weight: 500;
+}
+.smart-result-item input,
+.smart-result-item textarea {
+  width: 100%; padding: 6px 10px;
+  background: var(--bg-primary); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 4px;
+  font-size: 13px; outline: none; box-sizing: border-box;
+  resize: vertical;
+}
+.smart-result-item textarea { min-height: 60px; }
+.smart-result-item .sr-keywords-tags {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+}
+.smart-result-item .sr-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; background: rgba(0,212,255,0.1); color: #00d4ff;
+  border-radius: 10px; font-size: 12px;
+}
+.smart-result-item .sr-tag-remove {
+  cursor: pointer; font-weight: bold; font-size: 14px;
+}
+.smart-result-item .sr-keywords-input {
+  flex: 1; min-width: 80px;
 }
 
 /* Responsive */

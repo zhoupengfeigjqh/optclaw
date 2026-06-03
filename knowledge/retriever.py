@@ -126,8 +126,7 @@ async def hybrid_search(query: str, top_k: int = 5, threshold: float = 0.5,
                     results[idx]["score"] = score
                     results[idx]["source_type"] = "reranked"
                     reranked.append(results[idx])
-            if reranked:
-                return reranked[:top_k]
+            return reranked[:top_k]
 
     return [r for r in results[:top_k] if r["score"] >= threshold]
 

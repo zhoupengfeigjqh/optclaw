@@ -84,6 +84,57 @@ def _parse_txt(file_path: str) -> tuple[str, dict]:
     raise ValueError("Unable to decode TXT file with common encodings")
 
 
+import json
+import re
+
+
+async def smart_parse_via_ollama(text: str, model: str, prompt_template: str | None = None,
+                                  base_url: str | None = None) -> list[dict]:
+    """Use Ollama chat to parse raw text into structured LIST[DICT]."""
+    import httpx
+    from .config import get_ollama_base_url, get_parse_prompt
+
+    if not base_url:
+        base_url = get_ollama_base_url()
+    if not prompt_template:
+        prompt_template = get_parse_prompt()
+
+    prompt = prompt_template.format(text=text) if "{text}" in prompt_template else prompt_template + "\n\n" + text
+
+    url = f"{base_url}/api/chat"
+    async with httpx.AsyncClient(timeout=300.0) as client:
+        resp = await client.post(url, json={
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": False,
+        })
+        resp.raise_for_status()
+        data = resp.json()
+
+    content = data.get("message", {}).get("content", "")
+    return _extract_json_array(content)
+
+
+def _extract_json_array(text: str) -> list[dict]:
+    """Extract JSON array from LLM response, handling markdown code blocks."""
+    # Try to extract from ```json ... ``` or ``` ... ``` blocks
+    m = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', text, re.DOTALL)
+    if m:
+        text = m.group(1).strip()
+
+    # Try to find JSON array directly
+    m = re.search(r'\[[\s\S]*\]', text)
+    if m:
+        text = m.group(0)
+
+    parsed = json.loads(text)
+    if isinstance(parsed, list):
+        return parsed
+    if isinstance(parsed, dict):
+        return [parsed]
+    raise ValueError(f"Expected JSON array, got: {type(parsed)}")
+
+
 def detect_file_type(filename: str) -> str:
     """Detect file type from extension."""
     ext = Path(filename).suffix.lower().lstrip(".")

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class ChunkSettings(BaseModel):
     chunk_size: int = Field(default=500, ge=100, le=500, description="切片大小")
     overlap_size: int = Field(default=50, ge=10, le=100, description="切片重叠大小")
+    parse_prompt: str | None = None
 
 
 class KnowledgeConfig(BaseModel):
@@ -15,6 +16,8 @@ class KnowledgeConfig(BaseModel):
     rerank_model: str = "BAAI/bge-reranker-v2-m3"
     vector_top_k: int = 5
     score_threshold: float = 0.5
+    parse_model: str = "qwen3:8b"
+    parse_prompt: str = ""
 
 
 class RecallRequest(BaseModel):

@@ -1,5 +1,6 @@
 """Pipeline orchestration: upload -> parse -> chunk -> store -> embed."""
 
+import json
 import uuid
 from datetime import datetime
 
@@ -136,6 +137,61 @@ async def get_chunks(file_name: str, agent_name: str = "default") -> list[dict]:
         }
         for c in chunks
     ]
+
+
+async def smart_save_results(results: list[dict], file_name: str, file_type: str,
+                            agent_name: str = "default") -> dict:
+    """Save LLM-parsed structured results to MongoDB and FAISS."""
+    if not results:
+        raise ValueError("No results to save")
+
+    db = await get_db()
+    coll = db[COLLECTION_CHUNKS]
+    store = KBFaissManager.get_store()
+
+    now = datetime.utcnow().isoformat()
+    chunk_docs = []
+    for idx, item in enumerate(results):
+        cid = str(uuid.uuid4())
+        content = item.get("content", "") or item.get("text", "") or json.dumps(item, ensure_ascii=False)
+        title = item.get("title", "") or item.get("name", "")
+        keywords = item.get("keywords", [])
+        chunk_docs.append({
+            "chunk_id": cid,
+            "file_name": file_name,
+            "file_type": file_type,
+            "chunk_index": idx,
+            "content": content,
+            "title": title,
+            "keywords": keywords,
+            "metadata": {"parser": "ollama_smart", "title": title, "keywords": keywords},
+            "agent_name": agent_name,
+            "created_at": now,
+        })
+    await coll.insert_many(chunk_docs)
+
+    texts_for_embed = [c["content"] for c in chunk_docs]
+    try:
+        embeddings = await ollama_embed(texts_for_embed)
+    except Exception:
+        chunk_ids = [c["chunk_id"] for c in chunk_docs]
+        await coll.delete_many({"chunk_id": {"$in": chunk_ids}})
+        raise
+
+    norms = l2_normalize(embeddings)
+    chunk_ids = [c["chunk_id"] for c in chunk_docs]
+    metadatas = [{"chunk_id": c["chunk_id"], "file_name": c["file_name"], "agent_name": agent_name,
+                  "title": c["title"], "keywords": c["keywords"]} for c in chunk_docs]
+    store.add(norms, metadatas, chunk_ids)
+    KBFaissManager.save()
+
+    return {
+        "success": True,
+        "file_name": file_name,
+        "file_type": file_type,
+        "chunks_count": len(chunk_docs),
+        "message": f"Successfully saved {len(chunk_docs)} chunks",
+    }
 
 
 async def get_stats(agent_name: str = "default") -> dict:

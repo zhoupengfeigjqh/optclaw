@@ -9,7 +9,6 @@
   const AGENT_QS = `?agent_name=${encodeURIComponent(AGENT_NAME)}`;
 
   // DOM refs
-  const elDropzone = $("#kbDropzone");
   const elFileInput = $("#kbFileInput");
   const elBtnUpload = $("#btnKbUpload");
   const elUploadProgress = $("#kbUploadProgress");
@@ -38,16 +37,6 @@
     if (elFileInput.files.length) uploadFile(elFileInput.files[0]);
   });
 
-  elDropzone.addEventListener("dragover", (e) => { e.preventDefault(); elDropzone.classList.add("dragover"); });
-  elDropzone.addEventListener("dragleave", () => elDropzone.classList.remove("dragover"));
-  elDropzone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    elDropzone.classList.remove("dragover");
-    const file = e.dataTransfer.files[0];
-    if (file) uploadFile(file);
-  });
-  elDropzone.addEventListener("click", () => elFileInput.click());
-
   async function uploadFile(file) {
     const ext = file.name.split(".").pop().toLowerCase();
     if (!["pdf", "csv", "md", "docx", "txt"].includes(ext)) {
@@ -60,6 +49,12 @@
       alert(`文件大小超过限制（最大 1MB），当前文件: ${sizeMB}MB`);
       return;
     }
+
+    const smartParse = ($("#kbSmartParse") || {}).checked;
+    if (smartParse) {
+      return uploadWithSmartParse(file);
+    }
+
     const fd = new FormData();
     fd.append("file", file);
 
@@ -82,6 +77,131 @@
       loadStats();
     } catch (e) {
       elUploadStatus.textContent = "上传失败: " + e.message;
+    }
+  }
+
+  let pendingSmartFile = null;
+  let pendingSmartFileType = "";
+
+  async function uploadWithSmartParse(file) {
+    const model = ($("#kbParseModel") || {}).value || "";
+    const prompt = ($("#kbParsePrompt") || {}).value || "";
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("model", model);
+    fd.append("prompt", prompt);
+
+    elUploadProgress.style.display = "block";
+    elUploadStatus.textContent = "智能解析中，请稍候...";
+    elProgressFill.style.width = "40%";
+
+    try {
+      const res = await fetch(`${API_BASE}/smart-parse`, { method: "POST", body: fd });
+      elProgressFill.style.width = "80%";
+      const data = await res.json();
+      if (!res.ok) { alert(data.detail || "智能解析失败"); elUploadProgress.style.display = "none"; return; }
+      elProgressFill.style.width = "100%";
+      elUploadStatus.textContent = `解析完成 — ${data.results.length} 条记录`;
+      pendingSmartFile = file;
+      pendingSmartFileType = data.file_type || ext;
+      elFileInput.value = "";
+      setTimeout(() => { elUploadProgress.style.display = "none"; }, 2000);
+      showSmartResultDialog(data.file_name, data.results);
+    } catch (e) {
+      elUploadStatus.textContent = "智能解析失败: " + e.message;
+    }
+  }
+
+  function showSmartResultDialog(fileName, results) {
+    const body = $("#smartResultBody");
+    $("#smartResultFileName").textContent = fileName;
+    body.innerHTML = "";
+
+    results.forEach((item, idx) => {
+      const keywords = Array.isArray(item.keywords) ? item.keywords : [];
+      const div = document.createElement("div");
+      div.className = "smart-result-item";
+      div.innerHTML = `
+        <div class="sr-row">
+          <label>#${idx+1} 标题</label>
+          <input type="text" class="sr-title" value="${escapeHtml(item.title || "")}" />
+        </div>
+        <div class="sr-row">
+          <label>内容</label>
+          <textarea class="sr-content" rows="3">${escapeHtml(item.content || item.text || "")}</textarea>
+        </div>
+        <div class="sr-row">
+          <label>关键词</label>
+          <div class="sr-keywords-tags" data-idx="${idx}">
+            ${keywords.map((kw, ki) => `<span class="sr-tag">${escapeHtml(kw)}<span class="sr-tag-remove" data-idx="${idx}" data-ki="${ki}">&times;</span></span>`).join("")}
+            <input class="sr-keywords-input" placeholder="输入后回车添加" />
+          </div>
+        </div>
+      `;
+      // Wire keyword input
+      const kwInput = div.querySelector(".sr-keywords-input");
+      kwInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const val = kwInput.value.trim();
+          if (!val) return;
+          const tagsDiv = kwInput.parentElement;
+          const tag = document.createElement("span");
+          tag.className = "sr-tag";
+          tag.innerHTML = escapeHtml(val) + '<span class="sr-tag-remove">&times;</span>';
+          tag.querySelector(".sr-tag-remove").addEventListener("click", () => tag.remove());
+          tagsDiv.insertBefore(tag, kwInput);
+          kwInput.value = "";
+        }
+      });
+      // Wire tag remove
+      div.querySelectorAll(".sr-tag-remove").forEach(btn => {
+        btn.addEventListener("click", () => btn.parentElement.remove());
+      });
+      body.appendChild(div);
+    });
+
+    $("#smartResultOverlay").style.display = "flex";
+    if ($("#btnCloseSmartResult")) $("#btnCloseSmartResult").onclick = () => { $("#smartResultOverlay").style.display = "none"; };
+    if ($("#btnCancelSmartResult")) $("#btnCancelSmartResult").onclick = () => { $("#smartResultOverlay").style.display = "none"; };
+    if ($("#btnConfirmSmartResult")) $("#btnConfirmSmartResult").onclick = confirmSmartSave;
+  }
+
+  async function confirmSmartSave() {
+    const items = document.querySelectorAll(".smart-result-item");
+    const results = [];
+    items.forEach(item => {
+      const title = (item.querySelector(".sr-title") || {}).value || "";
+      const content = (item.querySelector(".sr-content") || {}).value || "";
+      const tags = item.querySelectorAll(".sr-tag");
+      const keywords = [];
+      tags.forEach(t => {
+        const txt = t.textContent.replace(/×/g, "").trim();
+        if (txt) keywords.push(txt);
+      });
+      if (content.trim()) {
+        results.push({ title, content, keywords });
+      }
+    });
+
+    if (results.length === 0) { alert("无有效数据"); return; }
+
+    const fileName = $("#smartResultFileName").textContent;
+    try {
+      const res = await fetch(`${API_BASE}/smart-save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file_name: fileName, file_type: pendingSmartFileType, agent_name: AGENT_NAME, results }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.detail || "保存失败"); return; }
+      $("#smartResultOverlay").style.display = "none";
+      pendingSmartFile = null;
+      alert(`保存成功 — ${data.chunks_count} 个切片`);
+      loadDocuments();
+      loadStats();
+    } catch (e) {
+      alert("保存失败: " + e.message);
     }
   }
 
@@ -387,11 +507,128 @@
     window.location.href = "/";
   });
 
+  // ---- Smart Parse ----
+  const elSmartToggle = $("#kbSmartParse");
+  const elSmartSettings = $("#kbSmartParseSettings");
+  const elParseModel = $("#kbParseModel");
+  const elParseStatus = $("#parseStatus");
+  const elParseHint = $("#parseHint");
+
+  async function loadParseModelOptions() {
+    try {
+      const res = await fetch(`${API_BASE}/config`);
+      const data = await res.json();
+      if (elParseModel) {
+        const val = data.parse_model || "qwen3:8b";
+        elParseModel.innerHTML = `<option value="${escapeHtml(val)}" selected>${escapeHtml(val)}</option>`;
+      }
+      if ($("#kbParsePrompt")) {
+        const res2 = await fetch(`/api/knowledge/config`);
+        // prompt is loaded from config via a dedicated call
+      }
+    } catch (e) { console.error("Failed to load parse model", e); }
+  }
+
+  async function loadParsePrompt() {
+    try {
+      const res = await fetch(`${API_BASE}/config`);
+      const data = await res.json();
+      if ($("#kbParsePrompt") && data.parse_prompt) {
+        $("#kbParsePrompt").value = data.parse_prompt;
+      }
+    } catch (e) { console.error("Failed to load parse prompt", e); }
+  }
+
+  async function testParse(model) {
+    if (!model) return;
+    setStatus(elParseStatus, elParseHint, "checking", "检测中...");
+    try {
+      const res = await fetch(`${API_BASE}/test-parse?model=${encodeURIComponent(model)}`);
+      if (res.ok) {
+        setStatus(elParseStatus, elParseHint, "online", "解析模型连接正常");
+      } else {
+        const data = await res.json();
+        setStatus(elParseStatus, elParseHint, "offline", data.detail || "解析模型不可用");
+      }
+    } catch (e) {
+      setStatus(elParseStatus, elParseHint, "offline", "解析模型连接失败: " + e.message);
+    }
+  }
+
+  function setSmartParseDisabled(on) {
+    const ids = ["kbChunkSize", "kbOverlapSize", "kbEmbedModel"];
+    ids.forEach(id => {
+      const el = $("#" + id);
+      if (!el) return;
+      const group = el.closest(".kb-form-group");
+      if (group) group.classList.toggle("disabled", on);
+    });
+  }
+
+  if (elSmartToggle) {
+    elSmartToggle.addEventListener("change", () => {
+      const on = elSmartToggle.checked;
+      elSmartSettings.style.display = on ? "flex" : "none";
+      setSmartParseDisabled(on);
+      if (on) {
+        const m = (elParseModel || {}).value;
+        if (m) testParse(m);
+      }
+    });
+  }
+
+  if (elParseModel) {
+    elParseModel.addEventListener("change", () => testParse(elParseModel.value));
+  }
+
+  // Parse Prompt Dialog
+  if ($("#btnParseSettings")) {
+    $("#btnParseSettings").addEventListener("click", () => {
+      $("#parsePromptOverlay").style.display = "flex";
+    });
+  }
+  if ($("#btnCloseParsePrompt")) {
+    $("#btnCloseParsePrompt").addEventListener("click", () => {
+      $("#parsePromptOverlay").style.display = "none";
+    });
+  }
+  if ($("#btnCancelParsePrompt")) {
+    $("#btnCancelParsePrompt").addEventListener("click", () => {
+      $("#parsePromptOverlay").style.display = "none";
+    });
+  }
+  if ($("#btnSaveParsePrompt")) {
+    $("#btnSaveParsePrompt").addEventListener("click", async () => {
+      const prompt = ($("#kbParsePrompt") || {}).value || "";
+      const embed_model = ($("#kbEmbedModel") || {}).value || "nomic-embed-text";
+      const rerank_model = ($("#kbRecallRerankModel") || {}).value || "";
+      const csEl = $("#kbChunkSize");
+      const osEl = $("#kbOverlapSize");
+      const chunk_size = parseInt(csEl?.value) || 500;
+      const overlap_size = parseInt(osEl?.value) || 50;
+      try {
+        await fetch(`${API_BASE}/config?embed_model=${encodeURIComponent(embed_model)}&rerank_model=${encodeURIComponent(rerank_model)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chunk_size, overlap_size, parse_prompt: prompt }),
+        });
+        $("#parsePromptOverlay").style.display = "none";
+      } catch (e) { console.error("Save prompt failed", e); }
+    });
+  }
+
   // Init
   updateThresholdState();
   loadSettings();
   loadDocuments();
   loadStats();
+  loadParseModelOptions();
+  loadParsePrompt();
   testEmbed(($("#kbEmbedModel") || {}).value || "nomic-embed-text");
   testRerank(($("#kbRecallRerankModel") || {}).value || "");
+  // Test parse model on load if smart parse is enabled
+  if (elSmartToggle && elSmartToggle.checked) {
+    const m = (elParseModel || {}).value;
+    if (m) testParse(m);
+  }
 })();

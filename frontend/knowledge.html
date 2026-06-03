@@ -30,15 +30,17 @@
     <div class="kb-column kb-column-left">
       <!-- Settings Section -->
       <section class="kb-section">
-        <div class="kb-section-header"><h3>切片设置</h3></div>
+        <div class="kb-section-header"><h3>解析设置</h3></div>
         <div class="kb-settings-form">
-          <div class="kb-form-group">
-            <label>切片大小 (chunk_size)</label>
-            <input type="number" id="kbChunkSize" value="500" min="100" max="500" step="10" />
-          </div>
-          <div class="kb-form-group">
-            <label>重叠大小 (overlap_size)</label>
-            <input type="number" id="kbOverlapSize" value="50" min="10" max="100" step="10" />
+          <div class="kb-form-row">
+            <div class="kb-form-group kb-form-inline">
+              <label>切片大小 (chunk_size)</label>
+              <input type="number" id="kbChunkSize" value="500" min="100" max="500" step="10" />
+            </div>
+            <div class="kb-form-group kb-form-inline">
+              <label>重叠大小 (overlap_size)</label>
+              <input type="number" id="kbOverlapSize" value="50" min="10" max="100" step="10" />
+            </div>
           </div>
           <div class="kb-form-group">
             <label>嵌入模型 <span class="kb-model-status" id="embedStatus" title="检测中...">●</span></label>
@@ -46,6 +48,42 @@
               <option value="nomic-embed-text" selected>nomic-embed-text</option>
             </select>
             <span class="kb-model-hint" id="embedHint"></span>
+          </div>
+          <div class="kb-smart-parse-row" style="padding:0;border-bottom:none;border-top:1px solid var(--border);padding-top:14px;margin-top:0;">
+            <label class="kb-toggle-label">
+              <span>智能解析</span>
+              <label class="kb-toggle-switch">
+                <input type="checkbox" id="kbSmartParse" />
+                <span class="kb-toggle-slider"></span>
+              </label>
+            </label>
+            <div class="kb-smart-parse-settings" id="kbSmartParseSettings" style="display:none;">
+              <div class="kb-form-group kb-form-inline" style="margin:0;min-width:200px;max-width:260px;">
+                <label>解析模型 <span class="kb-model-status" id="parseStatus" title="检测中...">●</span></label>
+                <select id="kbParseModel"></select>
+                <span class="kb-model-hint" id="parseHint"></span>
+              </div>
+              <button class="btn-kb-parse-settings" id="btnParseSettings" title="解析提示词设计">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                提示词
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Upload Section -->
+      <section class="kb-section">
+        <div class="kb-section-header">
+          <h3>文档上传</h3>
+          <span class="kb-section-hint">PDF / CSV / MD / DOCX / TXT</span>
+        </div>
+        <div class="kb-upload-area" id="kbUploadArea">
+          <input type="file" id="kbFileInput" accept=".pdf,.csv,.md,.docx,.txt" hidden />
+          <button class="btn-kb-upload" id="btnKbUpload">选择文件并上传</button>
+          <div class="kb-upload-progress" id="kbUploadProgress" style="display:none;">
+            <div class="kb-progress-bar"><div class="kb-progress-fill" id="kbProgressFill"></div></div>
+            <span id="kbUploadStatus">上传中...</span>
           </div>
         </div>
       </section>
@@ -93,31 +131,18 @@
         </div>
       </section>
 
-      <!-- Upload Section -->
-      <section class="kb-section">
-        <div class="kb-section-header">
-          <h3>文档上传</h3>
-          <span class="kb-section-hint">PDF / CSV / MD / DOCX / TXT</span>
-        </div>
-        <div class="kb-upload-area" id="kbUploadArea">
-          <div class="kb-upload-dropzone" id="kbDropzone">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-            <p>拖拽文件到此处或点击选择</p>
-            <input type="file" id="kbFileInput" accept=".pdf,.csv,.md,.docx,.txt" hidden />
-            <button class="btn-kb-upload" id="btnKbUpload">选择文件并上传</button>
-          </div>
-          <div class="kb-upload-progress" id="kbUploadProgress" style="display:none;">
-            <div class="kb-progress-bar"><div class="kb-progress-fill" id="kbProgressFill"></div></div>
-            <span id="kbUploadStatus">上传中...</span>
-          </div>
-        </div>
-      </section>
     </div>
 
     <!-- Right Column: Document List + Recall Results -->
     <div class="kb-column kb-column-right">
+      <!-- Recall Results Section -->
+      <section class="kb-section kb-results-section">
+        <div class="kb-section-header"><h3>召回结果</h3></div>
+        <div class="kb-recall-results" id="kbRecallResults">
+          <div class="kb-empty-state">输入查询文本进行搜索</div>
+        </div>
+      </section>
+
       <!-- Documents Section -->
       <section class="kb-section kb-docs-section">
         <div class="kb-section-header">
@@ -138,14 +163,42 @@
           <div class="kb-doc-viewer-content" id="kbDocViewerContent"></div>
         </div>
       </section>
+    </div>
+  </div>
+</div>
 
-      <!-- Recall Results Section -->
-      <section class="kb-section kb-results-section">
-        <div class="kb-section-header"><h3>召回结果</h3></div>
-        <div class="kb-recall-results" id="kbRecallResults">
-          <div class="kb-empty-state">输入查询文本进行搜索</div>
-        </div>
-      </section>
+<!-- Parse Prompt Dialog -->
+<div class="kb-modal-overlay" id="parsePromptOverlay" style="display:none;">
+  <div class="kb-modal kb-modal-wide">
+    <div class="kb-modal-header">
+      <h3>解析提示词设计</h3>
+      <button class="kb-modal-close" id="btnCloseParsePrompt">&times;</button>
+    </div>
+    <div class="kb-modal-body">
+      <div class="kb-form-group">
+        <label>提示词模板（使用 {text} 作为文档内容占位符）</label>
+        <textarea id="kbParsePrompt" rows="12" style="font-family:monospace;font-size:13px;"></textarea>
+      </div>
+    </div>
+    <div class="kb-modal-footer">
+      <button class="btn-kb-cancel" id="btnCancelParsePrompt">取消</button>
+      <button class="btn-kb-confirm" id="btnSaveParsePrompt">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Smart Parse Result Editor Dialog -->
+<div class="kb-modal-overlay" id="smartResultOverlay" style="display:none;">
+  <div class="kb-modal kb-modal-xl">
+    <div class="kb-modal-header">
+      <h3>解析结果编辑 — <span id="smartResultFileName"></span></h3>
+      <button class="kb-modal-close" id="btnCloseSmartResult">&times;</button>
+    </div>
+    <div class="kb-modal-body" id="smartResultBody">
+    </div>
+    <div class="kb-modal-footer">
+      <button class="btn-kb-cancel" id="btnCancelSmartResult">取消</button>
+      <button class="btn-kb-confirm" id="btnConfirmSmartResult">确认存入知识库</button>
     </div>
   </div>
 </div>

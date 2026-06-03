@@ -59,5 +59,13 @@ def get_faiss_index_path() -> str:
     return _load().get("faiss_index_path", "/app/knowledge/faiss_index")
 
 
+def get_parse_model() -> str:
+    return _load().get("parse_model", "qwen3:8b")
+
+
+def get_parse_prompt() -> str:
+    return _load().get("parse_prompt", "")
+
+
 def get_supported_file_types() -> list:
     return _load().get("supported_file_types", ["pdf", "csv", "md", "docx", "txt"])
