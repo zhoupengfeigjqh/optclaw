@@ -84,6 +84,24 @@
       });
     }
 
+    if (extra && extra.attachments && extra.attachments.length > 0) {
+      const filesDiv = document.createElement("div");
+      filesDiv.className = "message-files";
+      extra.attachments.forEach((f) => {
+        const item = document.createElement("span");
+        item.className = "message-file-item";
+        item.title = f.filename || f.name || "";
+        item.textContent = "📄 " + (f.filename || f.name || "");
+        item.style.cursor = "pointer";
+        item.addEventListener("click", () => {
+          const url = f.artifact_url || `/api/artifacts/${currentThreadId}/${f.filename}`;
+          window.open(url, "_blank");
+        });
+        filesDiv.appendChild(item);
+      });
+      body.appendChild(filesDiv);
+    }
+
     if (content) {
       const textEl = document.createElement("div");
       textEl.className = "message-text";
@@ -264,7 +282,8 @@
       messages.forEach((msg) => {
         if (msg.type === "human") {
           const c = cleanContent(msg.content);
-          if (c) addMessage("user", c);
+          const attachments = (msg.additional_kwargs && msg.additional_kwargs.files) || null;
+          if (c || attachments) addMessage("user", c || "", attachments ? { attachments } : undefined);
         } else if (msg.type === "ai") {
           const c = cleanContent(msg.content);
           if (c) addMessage("ai", c);
@@ -305,11 +324,12 @@
       elThreadList.insertBefore(item, elThreadList.firstChild);
     }
 
+    let uploadedFiles = [];
     if (pendingFiles.length > 0) {
-      await uploadPendingFiles();
+      uploadedFiles = await uploadPendingFiles();
     }
 
-    addMessage("user", text);
+    addMessage("user", text, { attachments: uploadedFiles });
 
     const aiBody = addMessage("ai", "");
     setLoading(true);
@@ -317,6 +337,7 @@
     const payload = {
       message: text,
       thread_id: currentThreadId,
+      files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
     };
 
     const selectedModel = elModelSelect.value;
@@ -385,7 +406,7 @@
   }
 
   async function uploadPendingFiles() {
-    if (pendingFiles.length === 0) return;
+    if (pendingFiles.length === 0) return [];
     const fd = new FormData();
     pendingFiles.forEach((f) => fd.append("files", f));
     pendingFiles = [];
@@ -399,9 +420,12 @@
       const data = await res.json();
       if (!data.success) {
         console.error("Upload failed", data);
+        return [];
       }
+      return data.files || [];
     } catch (e) {
       console.error("Upload error", e);
+      return [];
     }
   }
 
@@ -628,6 +652,18 @@
       elHealthBadge.className = "health-badge err";
       elHealthBadge.title = "服务状态: 不可达";
     }
+  }
+
+  // 退出按钮
+  const elBtnLogout = $("#btnLogout");
+  if (elBtnLogout) {
+    elBtnLogout.addEventListener("click", () => {
+      if (!confirm("确定要退出当前对话吗？")) return;
+      // Notify backend to clean up background tasks, then reload
+      fetch(`${API_BASE}/reset-agent`, { method: "POST" }).catch(() => {});
+      sessionStorage.removeItem("optclaw_visited");
+      window.location.reload();
+    });
   }
 
   function memAgentParam() {

@@ -274,11 +274,15 @@
       chunks.forEach((c) => {
         const item = document.createElement("div");
         item.className = "kb-chunk-item";
+        const title = c.title || "";
+        const keywords = Array.isArray(c.keywords) ? c.keywords : [];
         item.innerHTML = `
           <div class="kb-chunk-header">
             <span>#${c.chunk_index}</span>
             <span>${escapeHtml(c.chunk_id).slice(0,8)}...</span>
           </div>
+          ${title ? `<div class="kb-chunk-title">${escapeHtml(title)}</div>` : ""}
+          ${keywords.length ? `<div class="kb-chunk-keywords">${keywords.map(k => `<span class="kb-chunk-tag">${escapeHtml(k)}</span>`).join("")}</div>` : ""}
           <div class="kb-chunk-text">${escapeHtml(c.content)}</div>
         `;
         elDocViewerContent.appendChild(item);

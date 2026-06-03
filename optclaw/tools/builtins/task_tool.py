@@ -10,7 +10,7 @@ from langchain.tools import InjectedToolCallId, ToolRuntime, tool
 from langgraph.config import get_stream_writer
 from langgraph.typing import ContextT
 
-from optclaw.agents.pormpt_manager import get_skills_prompt_section
+from optclaw.agents.prompt_manager import get_skills_prompt_section
 from optclaw.agents.thread_state import ThreadState
 from optclaw.subagents import SubagentExecutor, get_available_subagent_names, get_subagent_config
 from optclaw.subagents.executor import SubagentStatus, cleanup_background_task, get_background_task_result, request_cancel_background_task

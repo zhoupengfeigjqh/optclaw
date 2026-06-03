@@ -132,6 +132,8 @@ async def get_chunks(file_name: str, agent_name: str = "default") -> list[dict]:
             "file_name": c["file_name"],
             "chunk_index": c["chunk_index"],
             "content": c["content"],
+            "title": c.get("title", ""),
+            "keywords": c.get("keywords", []),
             "metadata": c.get("metadata", {}),
             "created_at": c.get("created_at", ""),
         }

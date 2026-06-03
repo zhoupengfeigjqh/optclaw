@@ -12,7 +12,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, Response
 from pydantic import BaseModel, field_validator
 
 from optclaw.client import OptClawClient
@@ -79,6 +79,7 @@ class ChatRequest(BaseModel):
     subagent_enabled: bool | None = None
     plan_mode: bool | None = None
     agent_name: str | None = None
+    files: list[dict] | None = None
 
 
 class MemoryFactRequest(BaseModel):
@@ -235,6 +236,25 @@ async def delete_thread(thread_id: str):
         raise HTTPException(status_code=500, detail=f"删除会话失败: {e}")
 
 
+@app.get("/api/threads/{thread_id}/artifacts/{file_path:path}")
+async def serve_artifact(thread_id: str, file_path: str):
+    """Serve an uploaded file artifact for download/viewing."""
+    from urllib.parse import quote
+
+    try:
+        file_bytes, mime_type = client.get_artifact(thread_id, file_path)
+    except (FileNotFoundError, ValueError) as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    filename = Path(file_path).name
+    encoded_filename = quote(filename, safe="")
+    return Response(
+        content=file_bytes,
+        media_type=mime_type,
+        headers={"Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}"},
+    )
+
+
 @app.post("/api/chat/stream")
 async def chat_stream(req: ChatRequest):
     kwargs = {}
@@ -247,6 +267,8 @@ async def chat_stream(req: ChatRequest):
     if req.plan_mode is not None:
         kwargs["plan_mode"] = req.plan_mode
     kwargs["agent_name"] = req.agent_name if req.agent_name is not None and req.agent_name != "" else None
+    if req.files:
+        kwargs["files"] = req.files
     
     logger.warning(f"agent settings:{kwargs}")
 

@@ -20,9 +20,9 @@ knowledge:
 
     - "title": 该段的标题或主题
 
-    - "content": 该段的主要内容（保持原文，不要改写）
-
     - "keywords": 关键词列表（数组）
+
+    - "content": 该段的主要内容（保持原文，不要改写），包括title和keywords信息
 
     严格只输出JSON数组，不要包含任何其他文字。
 

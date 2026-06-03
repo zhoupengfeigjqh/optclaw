@@ -154,6 +154,18 @@
   max-height: 100px; overflow-y: auto;
   white-space: pre-wrap; word-break: break-all;
 }
+.kb-doc-viewer .kb-chunk-title {
+  font-size: 13px; font-weight: 600; color: var(--accent);
+  margin-bottom: 4px;
+}
+.kb-doc-viewer .kb-chunk-keywords {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px;
+}
+.kb-doc-viewer .kb-chunk-tag {
+  display: inline-block; padding: 1px 8px;
+  background: rgba(0,212,255,0.1); color: #00d4ff;
+  border-radius: 10px; font-size: 11px;
+}
 
 /* Form */
 .kb-settings-form, .kb-recall-form { padding: 12px 18px; }

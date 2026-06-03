@@ -18,6 +18,7 @@ Usage:
 import asyncio
 import json
 import mimetypes
+import re
 import shutil
 import tempfile
 import uuid
@@ -177,10 +178,18 @@ class OptClawClient:
     def reset_agent(self) -> None:
         """Force the internal agent to be recreated on the next call.
 
-        Use this after external changes (e.g. memory updates, skill
-        installations) that should be reflected in the system prompt
-        or tool set.
+        Cancels all running background tasks (subagents, memory queue timer)
+        and clears the cached agent so the next conversation starts fresh.
         """
+        from optclaw.subagents.executor import cancel_all_background_tasks
+
+        cancelled = cancel_all_background_tasks()
+        logger.info("Cancelled %d subagent task(s) during reset", cancelled)
+
+        from optclaw.agents.memory.queue import reset_memory_queue
+        reset_memory_queue()
+        logger.info("Memory queue cleared during reset")
+
         self._agent = None
         self._agent_config_key = None
 
@@ -422,10 +431,39 @@ class OptClawClient:
                 "id": getattr(msg, "id", None),
             }
         if isinstance(msg, HumanMessage):
-            return {"type": "human", "content": msg.content, "id": getattr(msg, "id", None)}
+            content = OptClawClient._strip_uploaded_files(msg.content)
+            d: dict[str, Any] = {"type": "human", "content": content, "id": getattr(msg, "id", None)}
+            if msg.additional_kwargs:
+                d["additional_kwargs"] = msg.additional_kwargs
+            return d
         if isinstance(msg, SystemMessage):
             return {"type": "system", "content": msg.content, "id": getattr(msg, "id", None)}
         return {"type": "unknown", "content": str(msg), "id": getattr(msg, "id", None)}
+
+    _UPLOADED_FILES_RE = re.compile(r"<uploaded_files>[\s\S]*?</uploaded_files>\n*", re.IGNORECASE)
+
+    @staticmethod
+    def _strip_uploaded_files(content):
+        """Remove <uploaded_files>...</uploaded_files> block injected by uploads middleware.
+
+        Handles both string and list (multimodal) content formats.
+        """
+        if isinstance(content, str):
+            return OptClawClient._UPLOADED_FILES_RE.sub("", content).strip()
+        if isinstance(content, list):
+            stripped: list[dict] = []
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    text = OptClawClient._UPLOADED_FILES_RE.sub("", block.get("text", ""))
+                    if text.strip():
+                        if stripped and isinstance(stripped[-1], dict) and stripped[-1].get("type") == "text":
+                            stripped[-1]["text"] += "\n\n" + text
+                        else:
+                            stripped.append({"type": "text", "text": text})
+                else:
+                    stripped.append(block)
+            return stripped
+        return content
 
     @staticmethod
     def _extract_text(content) -> str:
@@ -616,7 +654,7 @@ class OptClawClient:
         return {"thread_id": thread_id, "checkpoints": checkpoints}
 
     async def delete_thread(self, thread_id: str) -> dict:
-        """Delete a thread and all its checkpoints via the checkpointer API.
+        """Delete a thread: checkpoints + all associated files.
 
         Args:
             thread_id: Thread ID to delete.
@@ -629,15 +667,36 @@ class OptClawClient:
             await self._ensure_checkpointer()
             checkpointer = self._checkpointer
 
-        config = {"configurable": {"thread_id": thread_id}}
+        errors: list[str] = []
 
+        # 1. Delete checkpoints from database
         if hasattr(checkpointer, "adelete_thread"):
             await checkpointer.adelete_thread(thread_id)
         elif hasattr(checkpointer, "delete_thread"):
             checkpointer.delete_thread(thread_id)
         else:
-            return {"success": False, "error": "Checkpointer does not support delete_thread"}
+            errors.append("Checkpointer does not support delete_thread")
 
+        # 1.1 Reclaim disk space (SQLite does not auto-shrink on DELETE)
+        if hasattr(checkpointer, "conn"):
+            try:
+                await checkpointer.conn.execute("VACUUM")
+            except Exception:
+                pass  # VACUUM is best-effort only
+
+        # 2. Delete thread directory (uploads, outputs, sandbox files)
+        from optclaw.config.paths import get_paths
+        import shutil
+
+        thread_dir = get_paths().thread_dir(thread_id)
+        if thread_dir.exists():
+            try:
+                shutil.rmtree(thread_dir)
+            except OSError as e:
+                errors.append(f"Failed to delete thread directory: {e}")
+
+        if errors:
+            return {"success": False, "thread_id": thread_id, "errors": errors}
         return {"success": True, "thread_id": thread_id}
 
     # ------------------------------------------------------------------
@@ -1414,7 +1473,10 @@ class OptClawClient:
         config = self._get_runnable_config(thread_id, **kwargs)
         await self._ensure_agent(config)
 
+        files = kwargs.pop("files", None)
         state: dict[str, Any] = {"messages": [HumanMessage(content=message)]}
+        if files:
+            state["messages"][0].additional_kwargs = {"files": files}
         context = {"thread_id": thread_id}
         if self._agent_name:
             context["agent_name"] = self._agent_name

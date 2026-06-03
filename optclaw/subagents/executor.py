@@ -610,3 +610,23 @@ def cleanup_background_task(task_id: str) -> None:
                 task_id,
                 result.status.value if hasattr(result.status, "value") else result.status,
             )
+
+
+def cancel_all_background_tasks() -> int:
+    """Cancel all running background subagent tasks.
+
+    Returns:
+        Number of tasks that were cancelled.
+    """
+    cancelled = 0
+    terminal = {SubagentStatus.COMPLETED, SubagentStatus.FAILED,
+                SubagentStatus.CANCELLED, SubagentStatus.TIMED_OUT}
+    with _background_tasks_lock:
+        for task_id, result in list(_background_tasks.items()):
+            if result.status in {SubagentStatus.PENDING, SubagentStatus.RUNNING}:
+                result.cancel_event.set()
+                cancelled += 1
+                logger.info("Cancelled background task %s (was %s)", task_id, result.status.value)
+            elif result.status in terminal:
+                del _background_tasks[task_id]
+    return cancelled

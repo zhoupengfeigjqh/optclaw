@@ -535,7 +535,7 @@ def apply_prompt_template(agent_name: str | None = None, available_skills: set[s
 
     # Format the prompt with dynamic skills and memory
     prompt = SYSTEM_PROMPT_TEMPLATE.format(
-        agent_name=agent_name or "optclaw 2.0",
+        agent_name=agent_name or "optclaw general agent",
         soul=get_agent_soul(agent_name),
         skills_section=skills_section,
         memory_context=memory_context,
