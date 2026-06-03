@@ -505,11 +505,12 @@ class OptClawClient:
     # ------------------------------------------------------------------
     # Public API — threads
     # ------------------------------------------------------------------
-    async def list_threads(self, limit: int = 10) -> dict:
+    async def list_threads(self, limit: int = 10, agent_name: str | None = None) -> dict:
         """List the recent N threads.
 
         Args:
             limit: Maximum number of threads to return. Default is 10.
+            agent_name: Filter threads by agent name. None returns all threads.
 
         Returns:
             Dict with "thread_list" key containing list of thread info dicts,
@@ -527,21 +528,29 @@ class OptClawClient:
         async for cp in checkpointer.alist(config=None, limit=1000):
             cfg = cp.config.get("configurable", {})
             thread_id = cfg.get("thread_id")
-            
+
             if not thread_id:
                 continue
+
+            channel_values = cp.checkpoint.get("channel_values", {})
+
+            # Filter by agent_name if specified
+            if agent_name:
+                cp_agent = channel_values.get("agent_name") or ""
+                if cp_agent != agent_name:
+                    continue
 
             ts = cp.checkpoint.get("ts")
             checkpoint_id = cfg.get("checkpoint_id")
 
             if thread_id not in thread_info_map:
-                channel_values = cp.checkpoint.get("channel_values", {})
                 thread_info_map[thread_id] = {
                     "thread_id": thread_id,
                     "created_at": ts,
                     "updated_at": ts,
                     "latest_checkpoint_id": checkpoint_id,
                     "title": channel_values.get("title"),
+                    "agent_name": channel_values.get("agent_name") or "",
                 }
                 cnt = cnt + 1
                 if cnt >= limit:
@@ -1477,6 +1486,8 @@ class OptClawClient:
         state: dict[str, Any] = {"messages": [HumanMessage(content=message)]}
         if files:
             state["messages"][0].additional_kwargs = {"files": files}
+        if self._agent_name:
+            state["agent_name"] = self._agent_name
         context = {"thread_id": thread_id}
         if self._agent_name:
             context["agent_name"] = self._agent_name

@@ -197,7 +197,11 @@
 
   async function loadThreads() {
     try {
-      const res = await fetch(`${API_BASE}/threads?limit=10`);
+      let url = `${API_BASE}/threads?limit=10`;
+      if (selectedAgentName) {
+        url += `&agent_name=${encodeURIComponent(selectedAgentName)}`;
+      }
+      const res = await fetch(url);
       const data = await res.json();
       threadCache = data.thread_list || [];
       renderThreads(threadCache);
@@ -1228,6 +1232,7 @@
       updateAgentLabel();
       refreshIntroHints();
       closeAllPanels();
+      loadThreads();
     });
   }
   function openAgentModal() {

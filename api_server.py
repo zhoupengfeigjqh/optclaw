@@ -211,9 +211,10 @@ async def create_agent(req: CreateAgentRequest):
 
 
 @app.get("/api/threads")
-async def list_threads(limit: int = Query(default=10, ge=1, le=20)):
+async def list_threads(limit: int = Query(default=10, ge=1, le=20),
+                       agent_name: str | None = Query(default=None)):
     try:
-        data = await client.list_threads(limit=limit)
+        data = await client.list_threads(limit=limit, agent_name=agent_name)
         return _sanitize(data)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取会话列表失败: {e}")
