@@ -14,6 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com
 
 COPY . .
 
+RUN mkdir -p /app/knowledge/faiss_index
+
 EXPOSE 8000
 
 CMD ["uvicorn", "api_server:app", "--host", "0.0.0.0", "--port", "8000", "--loop", "asyncio"]

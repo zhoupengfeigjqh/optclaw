@@ -1,114 +1,129 @@
-config_version: 7
-log_level: info
-token_usage:
+agents_api:
   enabled: false
+checkpointer:
+  connection_string: checkpoints.db
+  type: sqlite
+circuit_breaker:
+  failure_threshold: 5
+  recovery_timeout_sec: 60
+config_version: 7
+knowledge:
+  chunk_size: 500
+  embed_model: nomic-embed-text
+  faiss_index_path: /app/knowledge/faiss_index
+  ollama_base_url: http://host.docker.internal:11434
+  overlap_size: 50
+  rerank_api_url: http://reranker:7997/rerank
+  rerank_model: BAAI/bge-reranker-v2-m3
+  score_threshold: 0.5
+  supported_file_types:
+  - pdf
+  - csv
+  - md
+  - docx
+  - txt
+  vector_top_k: 5
+log_level: info
+memory:
+  debounce_seconds: 60
+  enabled: true
+  fact_confidence_threshold: 0.7
+  injection_enabled: true
+  max_facts: 30
+  max_injection_tokens: 1000
+  model_name: deepseek-v4-flash
+  storage_path: memory.json
 models:
 - name: doubao-seed-1.8
-  display_name: Doubao-Seed-1.8
-  use: optclaw.models.patched_deepseek:PatchedChatDeepSeek
-  model: doubao-seed-1-8-251228
   api_base: https://ark.cn-beijing.volces.com/api/v3
   api_key: $VOLCENGINE_API_KEY
-  timeout: 600.0
+  display_name: Doubao-Seed-1.8
   max_retries: 2
+  model: doubao-seed-1-8-251228
+  supports_reasoning_effort: true
   supports_thinking: true
   supports_vision: true
-  supports_reasoning_effort: true
-  when_thinking_enabled:
-    extra_body:
-      thinking:
-        type: enabled
+  timeout: 600.0
+  use: optclaw.models.patched_deepseek:PatchedChatDeepSeek
   when_thinking_disabled:
     extra_body:
       thinking:
         type: disabled
+  when_thinking_enabled:
+    extra_body:
+      thinking:
+        type: enabled
 - name: gemma4-e2b-local
-  display_name: Gemma 4 E2B (Ollama Fast)
-  use: langchain_ollama:ChatOllama
-  model: gemma4:e2b
   base_url: http://host.docker.internal:11434
-  num_predict: 8192              # 2B级别模型输出长度设为 4096 效率最高，128K上下文同样适用
-  temperature: 1.0               # Google 官方针对 Gemma 4 全系列推荐的标准化采样温度
-  reasoning: true                # E2B 同样原生支持可配置的思考/推理模式（Thinking Mode）
+  display_name: Gemma 4 E2B (Ollama Fast)
+  model: gemma4:e2b
+  num_predict: 8192
+  reasoning: true
   supports_thinking: true
-  supports_vision: true          # 支持视觉图像（Image）多模态输入，暂不支持音频
+  supports_vision: true
+  temperature: 1.0
+  use: langchain_ollama:ChatOllama
 - name: deepseek-v4-flash
-  display_name: Deepseek-V4-Flash (Thinking)
-  use: optclaw.models.patched_deepseek:PatchedChatDeepSeek
-  model: deepseek-v4-flash
   api_key: $DEEPSEEK_API_KEY
-  timeout: 600.0
+  display_name: Deepseek-V4-Flash (Thinking)
   max_retries: 2
   max_tokens: 32768
+  model: deepseek-v4-flash
   supports_thinking: true
   supports_vision: false
-  when_thinking_enabled:
-    extra_body:
-      thinking:
-        type: enabled
+  timeout: 600.0
+  use: optclaw.models.patched_deepseek:PatchedChatDeepSeek
   when_thinking_disabled:
     extra_body:
       thinking:
         type: disabled
+  when_thinking_enabled:
+    extra_body:
+      thinking:
+        type: enabled
+skill_evolution:
+  enabled: false
+  moderation_model_name: null
+skills:
+  container_path: /mnt/skills
+subagents:
+  agents:
+    coder:
+      max_turns: 80
+      timeout_seconds: 300
+    general-purpose:
+      max_turns: 160
+      timeout_seconds: 1800
+  timeout_seconds: 900
+summarization:
+  enabled: true
+  keep:
+    type: messages
+    value: 10
+  model_name: doubao-seed-1.8
+  summary_prompt: null
+  trigger:
+  - type: tokens
+    value: 20000
+  trim_tokens_to_summarize: 15564
+title:
+  enabled: true
+  max_chars: 60
+  max_words: 6
+  model_name: doubao-seed-1.8
+token_usage:
+  enabled: false
 tool_groups:
 - name: web
 - name: file:read
 - name: file:write
-- name: bash
-tools:
-- name: web_search
-  group: web
-  use: optclaw.community.tavily.tools:web_search_tool
-  max_results: 5
-  api_key: $TAVILY_API_KEY
 tool_search:
   enabled: false
+tools:
+- api_key: $TAVILY_API_KEY
+  group: web
+  max_results: 5
+  name: web_search
+  use: optclaw.community.tavily.tools:web_search_tool
 uploads:
   pdf_converter: auto
-subagents:
-  timeout_seconds: 900
-  agents:
-    general-purpose:
-      timeout_seconds: 1800
-      max_turns: 160
-    coder:
-      timeout_seconds: 300
-      max_turns: 80
-skills:
-  container_path: /mnt/skills
-title:
-  enabled: true
-  max_words: 6
-  max_chars: 60
-  model_name: doubao-seed-1.8
-summarization:
-  enabled: true
-  model_name: doubao-seed-1.8
-  trigger:
-  - type: tokens
-    value: 20000
-  keep:
-    type: messages
-    value: 10
-  trim_tokens_to_summarize: 15564
-  summary_prompt: null
-memory:
-  enabled: true
-  storage_path: memory.json
-  debounce_seconds: 60
-  model_name: deepseek-v4-flash
-  max_facts: 30
-  fact_confidence_threshold: 0.7
-  injection_enabled: true
-  max_injection_tokens: 1000
-agents_api:
-  enabled: false
-skill_evolution:
-  enabled: false
-  moderation_model_name: null
-checkpointer:
-  type: sqlite
-  connection_string: checkpoints.db
-circuit_breaker:
-  failure_threshold: 5
-  recovery_timeout_sec: 60

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识库管理 - OptClaw</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/knowledge.css">
+</head>
+<body>
+<div class="kb-app">
+  <header class="kb-header">
+    <div class="kb-header-left">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="2">
+        <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+      </svg>
+      <h1>OptClaw 知识库管理</h1>
+    </div>
+    <div class="kb-header-right">
+      <span class="kb-stats-badge" id="kbStatsBadge">文档: 0 | 切片: 0</span>
+      <a href="/" class="btn-kb-back" id="btnKbBack">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        返回设置
+      </a>
+    </div>
+  </header>
+
+  <div class="kb-main">
+    <!-- Left Column: Settings + Recall + Upload -->
+    <div class="kb-column kb-column-left">
+      <!-- Settings Section -->
+      <section class="kb-section">
+        <div class="kb-section-header"><h3>切片设置</h3></div>
+        <div class="kb-settings-form">
+          <div class="kb-form-group">
+            <label>切片大小 (chunk_size)</label>
+            <input type="number" id="kbChunkSize" value="500" min="100" max="500" step="10" />
+          </div>
+          <div class="kb-form-group">
+            <label>重叠大小 (overlap_size)</label>
+            <input type="number" id="kbOverlapSize" value="50" min="10" max="100" step="10" />
+          </div>
+          <div class="kb-form-group">
+            <label>嵌入模型 <span class="kb-model-status" id="embedStatus" title="检测中...">●</span></label>
+            <select id="kbEmbedModel">
+              <option value="nomic-embed-text" selected>nomic-embed-text</option>
+            </select>
+            <span class="kb-model-hint" id="embedHint"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recall Test Section -->
+      <section class="kb-section">
+        <div class="kb-section-header"><h3>召回测试</h3></div>
+        <div class="kb-recall-form">
+          <div class="kb-form-group">
+            <label>查询内容</label>
+            <textarea id="kbRecallQuery" rows="2" placeholder="输入查询关键词或问题..."></textarea>
+          </div>
+          <div class="kb-form-row">
+            <div class="kb-form-group kb-form-inline">
+              <label>搜索方式</label>
+              <select id="kbSearchType">
+                <option value="hybrid" selected>混合搜索</option>
+                <option value="keyword">关键词搜索</option>
+                <option value="vector">向量相似度</option>
+              </select>
+            </div>
+            <div class="kb-form-group kb-form-inline">
+              <label>Top K</label>
+              <input type="number" id="kbTopK" value="5" min="1" max="10" />
+            </div>
+          </div>
+          <div class="kb-form-row">
+            <div class="kb-form-group kb-form-inline">
+              <label>相似度阈值</label>
+              <input type="number" id="kbRecallThreshold" value="0.5" min="0" max="1" step="0.05" />
+            </div>
+            <div class="kb-form-group kb-form-inline">
+              <label>重排模型 <span class="kb-model-status" id="rerankStatus" title="检测中...">●</span></label>
+              <select id="kbRecallRerankModel">
+                <option value="BAAI/bge-reranker-v2-m3" selected>BAAI/bge-reranker-v2-m3</option>
+                <option value="">不使用</option>
+              </select>
+              <span class="kb-model-hint" id="rerankHint"></span>
+            </div>
+          </div>
+          <button class="btn-kb-search" id="btnRecallSearch">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            搜索
+          </button>
+        </div>
+      </section>
+
+      <!-- Upload Section -->
+      <section class="kb-section">
+        <div class="kb-section-header">
+          <h3>文档上传</h3>
+          <span class="kb-section-hint">PDF / CSV / MD / DOCX / TXT</span>
+        </div>
+        <div class="kb-upload-area" id="kbUploadArea">
+          <div class="kb-upload-dropzone" id="kbDropzone">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <p>拖拽文件到此处或点击选择</p>
+            <input type="file" id="kbFileInput" accept=".pdf,.csv,.md,.docx,.txt" hidden />
+            <button class="btn-kb-upload" id="btnKbUpload">选择文件并上传</button>
+          </div>
+          <div class="kb-upload-progress" id="kbUploadProgress" style="display:none;">
+            <div class="kb-progress-bar"><div class="kb-progress-fill" id="kbProgressFill"></div></div>
+            <span id="kbUploadStatus">上传中...</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Right Column: Document List + Recall Results -->
+    <div class="kb-column kb-column-right">
+      <!-- Documents Section -->
+      <section class="kb-section kb-docs-section">
+        <div class="kb-section-header">
+          <h3>文档列表</h3>
+          <button class="btn-kb-refresh" id="btnRefreshDocs" title="刷新">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          </button>
+        </div>
+        <div class="kb-doc-list" id="kbDocList">
+          <div class="kb-empty-state">暂无文档，请上传文件</div>
+        </div>
+        <!-- Document content viewer (shown when doc clicked) -->
+        <div class="kb-doc-viewer" id="kbDocViewer" style="display:none;">
+          <div class="kb-doc-viewer-header">
+            <span id="kbDocViewerTitle"></span>
+            <button class="btn-kb-close" id="btnCloseDocViewer">&times;</button>
+          </div>
+          <div class="kb-doc-viewer-content" id="kbDocViewerContent"></div>
+        </div>
+      </section>
+
+      <!-- Recall Results Section -->
+      <section class="kb-section kb-results-section">
+        <div class="kb-section-header"><h3>召回结果</h3></div>
+        <div class="kb-recall-results" id="kbRecallResults">
+          <div class="kb-empty-state">输入查询文本进行搜索</div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script src="/js/knowledge.js"></script>
+</body>
+</html>

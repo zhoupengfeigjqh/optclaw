@@ -11,6 +11,7 @@ services:
       - ./config.yaml:/app/config.yaml
       - ./skills:/app/skills
       - optclaw-data:/app/optclaw/.opt-claw
+      - faiss-data:/app/knowledge/faiss_index
     env_file:
       - .env
     depends_on:
@@ -41,6 +42,25 @@ services:
       - mongo-data:/data/db
     restart: unless-stopped
 
+  reranker:
+    image: michaelf34/infinity:0.0.72
+    container_name: optclaw-reranker
+    ports:
+      - "7997:7997"
+    environment:
+      - HF_ENDPOINT=https://hf-mirror.com
+    command:
+      - "v2"
+      - "--model-id"
+      - "BAAI/bge-reranker-v2-m3"
+      - "--port"
+      - "7997"
+    volumes:
+      - reranker-cache:/app/.cache
+    restart: unless-stopped
+
 volumes:
   optclaw-data:
   mongo-data:
+  faiss-data:
+  reranker-cache:

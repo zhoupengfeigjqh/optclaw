@@ -599,6 +599,18 @@
       }
     }
 
+    const hintKnowledge = document.getElementById("introKnowledgeHint");
+    if (hintKnowledge) {
+      try {
+        const agent = selectedAgentName || "default";
+        const res = await fetch(`${API_BASE}/knowledge/stats?agent_name=${encodeURIComponent(agent)}`);
+        const data = await res.json();
+        hintKnowledge.textContent = (data.total_documents || 0) + " 个文档";
+      } catch (e) {
+        hintKnowledge.textContent = "--";
+      }
+    }
+
     updateHeaderBadges();
   }
 
@@ -1538,6 +1550,15 @@
       }
     });
 
+    // Auto-open config overlay when returning from knowledge page
+    if (sessionStorage.getItem("optclaw_show_config") === "1") {
+      sessionStorage.removeItem("optclaw_show_config");
+      if (configOverlay) {
+        configOverlay.style.display = "flex";
+        refreshIntroHints();
+      }
+    }
+
     const introBtnCancel = document.getElementById("introBtnCancel");
     if (introBtnCancel) {
       introBtnCancel.addEventListener("click", () => {
@@ -1593,6 +1614,13 @@
         if (elPanelOverlay) elPanelOverlay.classList.add("visible");
         if (elMcpPanel) elMcpPanel.classList.add("open");
         loadMcpServers();
+      });
+    }
+    const introBtnKnowledge = document.getElementById("introBtnKnowledge");
+    if (introBtnKnowledge) {
+      introBtnKnowledge.addEventListener("click", () => {
+        const agent = selectedAgentName || "default";
+        window.location.href = `/knowledge.html?agent=${encodeURIComponent(agent)}`;
       });
     }
 

@@ -17,6 +17,8 @@ from pydantic import BaseModel, field_validator
 
 from optclaw.client import OptClawClient
 from optclaw.agents import refresh_skills_system_prompt_cache_async
+from knowledge.router import router as knowledge_router
+from knowledge.mongo import close_db as close_mongo_db, ensure_indexes as ensure_mongo_indexes
 
 from optclaw.log import setup_logging
 
@@ -50,13 +52,16 @@ async def lifespan(app: FastAPI):
         pass
     client = OptClawClient()
     await client._ensure_checkpointer()
+    await ensure_mongo_indexes()
     yield
+    await close_mongo_db()
     client = None
 
 
 app = FastAPI(title="OptClaw API", lifespan=lifespan)
+app.include_router(knowledge_router)
 
-cors_origins = os.getenv("CORS_ORIGINS", "http://192.168.0.110:80,http://localhost:80,http://localhost:3000").split(",")
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:80,http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in cors_origins if o.strip()],
