@@ -287,6 +287,9 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
 
         messages[last_message_index] = updated_message
 
+        logger.warning(f"New files: {[f['filename'] for f in new_files]}")
+        logger.warning(f"Historical files: {[f['filename'] for f in historical_files]}")
+
         return {
             "uploaded_files": new_files,
             "messages": messages,

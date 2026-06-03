@@ -11,6 +11,7 @@ from .setup_agent_tool import setup_agent_tool
 from .task_tool import task_tool
 from .list_dir_tool import list_directory_tool
 from .execute_tool import execute_python_file_tool
+from .knowledge_search_tool import knowledge_search_tool
 
 __all__ = [
     "present_file_tool",
@@ -26,5 +27,6 @@ __all__ = [
     "setup_agent_tool",
     "task_tool",
     "list_directory_tool",
-    "execute_python_file_tool"
+    "execute_python_file_tool",
+    "knowledge_search_tool",
 ]

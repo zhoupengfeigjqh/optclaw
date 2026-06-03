@@ -10,7 +10,7 @@ _DEFAULT_TIMEOUT = 300  # 默认脚本执行超时时间（秒）
 _MAX_OUTPUT_BYTES = 100 * 1024  # 限制返回给大语言模型的最大输出大小（约 100KB），防止 context 撑爆
 
 
-# @tool("execute_python", parse_docstring=True)
+@tool("execute_python", parse_docstring=True)
 def execute_python_file_tool(path: str, command_args: list[str] = None) -> str:
     """Execute a specific Python file with optional arguments and return its standard output and error.
 
