@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import traceback
 import shutil
 import tempfile
 import uuid
@@ -35,8 +36,11 @@ def _sanitize(obj):
 
 
 def _silent_event_loop_closed_handler(loop, context):
-    msg = context.get("message", "")
+    logger.warning("====进入异常处理器,exc=%s", context.get("exception"))
+    logger.warning("====进入异常处理器,message=%s", context.get("message"))
     exc = context.get("exception")
+    if exc is not None:
+        logger.warning("====异常堆栈:\n%s", "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)))
     if exc and isinstance(exc, RuntimeError) and "Event loop is closed" in str(exc):
         return
     loop.default_exception_handler(context)
@@ -54,6 +58,7 @@ async def lifespan(app: FastAPI):
     await client._ensure_checkpointer()
     await ensure_mongo_indexes()
     yield
+    logger.warning("Shutting down API server...")
     await close_mongo_db()
     client = None
 

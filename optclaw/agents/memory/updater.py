@@ -217,6 +217,38 @@ def _extract_text(content: Any) -> str:
     return str(content)
 
 
+def _run_coro_in_temporary_loop(coro: Awaitable[bool]) -> bool:
+    """Run a coroutine in a fresh event loop, cleaning up before loop closes.
+
+    Creates a temporary event loop, runs the coroutine, then explicitly
+    triggers garbage collection and drains pending callbacks while the
+    loop is still alive.  This avoids the "Event loop is closed" noise
+    that occurs when GC later collects the model's httpx client — whose
+    transport still references the (now closed) temporary loop.
+
+    One equivalent to ``asyncio.run(coro) + careful cleanup``.
+    """
+    import gc
+
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        # Shut down async generators first.
+        try:
+            loop.run_until_complete(loop.shutdown_asyncgens())
+        except Exception:
+            pass
+        # Trigger GC so httpx/transport finalizers run while loop is alive.
+        gc.collect()
+        # Drain any call_soon callbacks queued by cleanup before closing.
+        try:
+            loop.run_until_complete(asyncio.sleep(0))
+        except Exception:
+            pass
+        loop.close()
+
+
 def _run_async_update_sync(coro: Awaitable[bool]) -> bool:
     """Run an async memory update from sync code, including nested-loop contexts."""
     handed_off = False
@@ -228,12 +260,12 @@ def _run_async_update_sync(coro: Awaitable[bool]) -> bool:
             loop = None
 
         if loop is not None and loop.is_running():
-            future = _SYNC_MEMORY_UPDATER_EXECUTOR.submit(asyncio.run, coro)
+            future = _SYNC_MEMORY_UPDATER_EXECUTOR.submit(_run_coro_in_temporary_loop, coro)
             handed_off = True
             return future.result()
 
         handed_off = True
-        return asyncio.run(coro)
+        return _run_coro_in_temporary_loop(coro)
     except Exception:
         if not handed_off:
             close = getattr(coro, "close", None)
@@ -406,7 +438,7 @@ class MemoryUpdater:
 
             current_memory, prompt = prepared
             model = self._get_model()
-            response = await model.ainvoke(prompt)
+            response = await model.ainvoke(prompt, config={"callbacks": []})
             return self._finalize_update(
                 current_memory=current_memory,
                 response_content=response.content,

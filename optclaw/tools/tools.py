@@ -25,7 +25,7 @@ BUILTIN_TOOLS = [
     str_replace_tool,
     list_directory_tool,
     setup_agent_tool,
-    execute_python_file_tool,
+    # execute_python_file_tool,
     knowledge_search_tool,
 ]
 

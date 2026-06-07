@@ -8,6 +8,16 @@
   let isStreaming = false;
   let pendingFiles = [];
   let threadCache = [];
+  const modelMeta = {};
+
+  function isImageOrVideo(file) {
+    return file.type.startsWith("image/") || file.type.startsWith("video/");
+  }
+
+  function currentModelSupportsVision() {
+    const name = elModelSelect.value;
+    return name && modelMeta[name] ? modelMeta[name].supports_vision : true;
+  }
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
@@ -181,15 +191,21 @@
       const data = await res.json();
       elModelSelect.innerHTML = "";
       (data.models || []).forEach((m) => {
+        modelMeta[m.name] = {
+          supports_vision: m.supports_vision !== false,
+          supports_thinking: m.supports_thinking,
+        };
         const opt = document.createElement("option");
         opt.value = m.name;
-        opt.textContent = m.display_name || m.name;
+        opt.textContent = (m.display_name || m.name) + (m.supports_vision ? "" : " (无视觉)");
         elModelSelect.appendChild(opt);
       });
       const saved = localStorage.getItem("optclaw_model");
       if (saved && elModelSelect.querySelector(`option[value="${saved}"]`)) {
         elModelSelect.value = saved;
       }
+      updateUploadButtonForModel();
+      updateThinkingToggleForModel();
     } catch (e) {
       console.error("Failed to load models", e);
     }
@@ -259,6 +275,7 @@
   }
 
   function switchThread(threadId) {
+    if (threadId === currentThreadId) return;
     currentThreadId = threadId;
     hasThreadMessages = true;
     clearMessages(true);
@@ -314,6 +331,15 @@
 
     hasThreadMessages = true;
 
+    // Filter out image/video files when model doesn't support vision
+    if (!currentModelSupportsVision()) {
+      const before = pendingFiles.length;
+      pendingFiles = pendingFiles.filter((f) => !isImageOrVideo(f));
+      if (pendingFiles.length < before) {
+        renderUploadFiles();
+        showUploadTip();
+      }
+    }
 
     elInput.value = "";
     elInput.style.height = "auto";
@@ -460,6 +486,26 @@
     elSend.disabled = !hasText && !hasFiles;
   }
 
+  function updateUploadButtonForModel() {
+    if (!currentModelSupportsVision()) {
+      elFileInput.setAttribute("accept", ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.md,.json,.zip,.tar,.gz,.py,.js,.ts,.html,.css,.java,.cpp,.c,.h,.xml,.yaml,.yml,.toml,.rs,.go");
+    } else {
+      elFileInput.removeAttribute("accept");
+    }
+  }
+
+  function updateThinkingToggleForModel() {
+    const name = elModelSelect.value;
+    const supports = name && modelMeta[name] ? modelMeta[name].supports_thinking : true;
+    if (!supports) {
+      elToggleThinking.checked = false;
+      elToggleThinking.disabled = true;
+    } else {
+      elToggleThinking.disabled = false;
+    }
+    localStorage.setItem("optclaw_thinking", elToggleThinking.checked);
+  }
+
   function autoResize() {
     elInput.style.height = "auto";
     elInput.style.height = Math.min(elInput.scrollHeight, 150) + "px";
@@ -487,16 +533,38 @@
   });
 
   $("#btnUpload").addEventListener("click", () => {
+    if (!currentModelSupportsVision() && pendingFiles.length === 0) {
+      showUploadTip();
+    }
     elFileInput.click();
   });
 
+  function showUploadTip() {
+    const tip = document.createElement("div");
+    tip.className = "upload-tip";
+    tip.textContent = "当前模型不支持图片/视频，已过滤";
+    tip.style.cssText = "color:#f59e0b;font-size:12px;margin-top:4px;";
+    elUploadFiles.appendChild(tip);
+    setTimeout(() => tip.remove(), 3000);
+  }
+
   elFileInput.addEventListener("change", () => {
+    let added = 0;
+    let filtered = 0;
     for (const file of elFileInput.files) {
+      if (!currentModelSupportsVision() && isImageOrVideo(file)) {
+        filtered++;
+        continue;
+      }
       pendingFiles.push(file);
+      added++;
     }
     elFileInput.value = "";
     renderUploadFiles();
     updateSendButton();
+    if (filtered > 0) {
+      showUploadTip();
+    }
   });
 
   elSearchThreads.addEventListener("input", () => {
@@ -1557,6 +1625,8 @@
 
   elModelSelect.addEventListener("change", () => {
     localStorage.setItem("optclaw_model", elModelSelect.value);
+    updateUploadButtonForModel();
+    updateThinkingToggleForModel();
   });
   elToggleThinking.addEventListener("change", () => {
     localStorage.setItem("optclaw_thinking", elToggleThinking.checked);
