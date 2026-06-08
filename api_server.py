@@ -1,5 +1,8 @@
 """FastAPI server that wraps OptClawClient for frontend interaction."""
 
+import warnings
+warnings.filterwarnings("ignore", message=".*PydanticSerializationUnexpectedValue.*context.*")
+
 import asyncio
 import json
 import os
@@ -284,6 +287,8 @@ async def chat_stream(req: ChatRequest):
                 payload = {"type": "delta", "data": {"content": delta, "delta_type": delta_type}}
                 yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
+        except asyncio.CancelledError:
+            return
         except Exception as e:
             err_payload = {"type": "error", "data": {"message": str(e)}}
             yield f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"

@@ -95,11 +95,11 @@ async def upload_document(
     if ext not in (".pdf", ".csv", ".md", ".docx", ".txt"):
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}. Supported: .pdf, .csv, .md, .docx, .txt")
 
-    MAX_SIZE = 1 * 1024 * 1024
+    MAX_SIZE = 500 * 1024
     content = await file.read()
     if len(content) > MAX_SIZE:
-        size_mb = len(content) / 1024 / 1024
-        raise HTTPException(status_code=413, detail=f"文件大小超过限制（最大 1MB），当前文件: {size_mb:.1f}MB")
+        size_kb = len(content) / 1024
+        raise HTTPException(status_code=413, detail=f"文件大小超过限制（最大 500KB），当前文件: {size_kb:.1f}KB")
 
     tmpdir = tempfile.mkdtemp()
     dest = Path(tmpdir) / file.filename
@@ -219,11 +219,11 @@ async def smart_parse(
     if ext not in (".pdf", ".csv", ".md", ".docx", ".txt"):
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
 
-    MAX_SIZE = 1 * 1024 * 1024
+    MAX_SIZE = 500 * 1024
     content = await file.read()
     if len(content) > MAX_SIZE:
-        size_mb = len(content) / 1024 / 1024
-        raise HTTPException(status_code=413, detail=f"文件大小超过限制（最大 1MB），当前文件: {size_mb:.1f}MB")
+        size_kb = len(content) / 1024
+        raise HTTPException(status_code=413, detail=f"文件大小超过限制（最大 500KB），当前文件: {size_kb:.1f}KB")
 
     tmpdir = tempfile.mkdtemp()
     dest = Path(tmpdir) / file.filename

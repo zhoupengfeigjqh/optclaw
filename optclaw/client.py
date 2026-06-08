@@ -460,10 +460,29 @@ class OptClawClient:
                             stripped[-1]["text"] += "\n\n" + text
                         else:
                             stripped.append({"type": "text", "text": text})
+                elif isinstance(block, dict) and block.get("type") == "image_url":
+                    continue
                 else:
                     stripped.append(block)
             return stripped
         return content
+
+    @staticmethod
+    def _is_view_image_artifact(msg) -> bool:
+        """Detect HumanMessage injected by ViewImageMiddleware.
+
+        These carry image_url blocks with base64 payloads and are internal
+        implementation artifacts, not user-generated messages.
+        """
+        if not isinstance(msg, HumanMessage):
+            return False
+        content = getattr(msg, "content", None)
+        if not isinstance(content, list):
+            return False
+        return any(
+            isinstance(b, dict) and b.get("type") == "image_url"
+            for b in content
+        )
 
     @staticmethod
     def _extract_text(content) -> str:
@@ -641,6 +660,7 @@ class OptClawClient:
                     if hasattr(m, "content") and m.content
                     and (isinstance(m, HumanMessage)
                     or (isinstance(m, AIMessage) and hasattr(m, "tool_calls") and len(m.tool_calls) == 0))
+                    and not self._is_view_image_artifact(m)
                 ]
 
             cfg = cp.config.get("configurable", {})

@@ -43,10 +43,10 @@
       alert("仅支持 PDF、CSV、MD、DOCX、TXT 格式");
       return;
     }
-    const MAX_SIZE = 1 * 1024 * 1024;
+    const MAX_SIZE = 500 * 1024;
     if (file.size > MAX_SIZE) {
-      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-      alert(`文件大小超过限制（最大 1MB），当前文件: ${sizeMB}MB`);
+      const sizeKB = (file.size / 1024).toFixed(1);
+      alert(`文件大小超过限制（最大 500KB），当前文件: ${sizeKB}KB`);
       return;
     }
 

@@ -53,6 +53,14 @@
 
   function cleanContent(text) {
     if (!text) return text;
+    if (Array.isArray(text)) {
+      return text
+        .filter(function (block) { return block && block.type === "text"; })
+        .map(function (block) { return block.text || ""; })
+        .join("\n")
+        .trim();
+    }
+    if (typeof text !== "string") return String(text);
     text = text.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, "");
     text = text.replace(/\[ImageId:[^\]]*\]\s*This is an image\.\s*If the user needs to view or analyze this image.*?(?=\n|$)/gi, "");
     text = text.replace(/\[ImageId:[^\]]*\]/g, "");

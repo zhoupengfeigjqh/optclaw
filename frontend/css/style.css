@@ -1659,6 +1659,24 @@ html, body {
   background: var(--accent-hover);
 }
 
+.btn-stop {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger, #dc3545);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-stop:hover {
+  background: var(--danger-hover, #c82333);
+}
+
 /* Sidebar Actions */
 .sidebar-actions {
   display: flex;

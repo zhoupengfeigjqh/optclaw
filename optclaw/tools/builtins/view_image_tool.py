@@ -1,5 +1,4 @@
 import base64
-import mimetypes
 from pathlib import Path
 from typing import Annotated
 
@@ -10,6 +9,7 @@ from langgraph.typing import ContextT
 
 from optclaw.agents.thread_state import ThreadState
 from optclaw.agents.middlewares.thread_data_middleware import ThreadDataState
+from optclaw.utils.image_processing import compress_image
 
 from .utiles import resolve_virtual_path
 
@@ -67,24 +67,14 @@ def view_image_tool(
             update={"messages": [ToolMessage(f"Error: Unsupported image format: {path.suffix}. Supported formats: {', '.join(valid_extensions)}", tool_call_id=tool_call_id)]},
         )
 
-    # Detect MIME type from file extension
     actual_path = str(path)
-    mime_type, _ = mimetypes.guess_type(actual_path)
-    if mime_type is None:
-        # Fallback to default MIME types for common image formats
-        extension_to_mime = {
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".png": "image/png",
-            ".webp": "image/webp",
-        }
-        mime_type = extension_to_mime.get(path.suffix.lower(), "application/octet-stream")
 
-    # Read image file and convert to base64
+    # Read image file, compress, and convert to base64
     try:
         with open(actual_path, "rb") as f:
             image_data = f.read()
-            image_base64 = base64.b64encode(image_data).decode("utf-8")
+        compressed_data, mime_type = compress_image(image_data)
+        image_base64 = base64.b64encode(compressed_data).decode("utf-8")
     except Exception as e:
         return Command(
             update={"messages": [ToolMessage(f"Error reading image file: {str(e)}", tool_call_id=tool_call_id)]},
