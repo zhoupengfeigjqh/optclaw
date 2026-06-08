@@ -24,7 +24,7 @@ services:
       dockerfile: Dockerfile
     container_name: optclaw-frontend
     ports:
-      - "80:80"
+      - "85:80"
     depends_on:
       - api
     restart: unless-stopped
@@ -32,6 +32,7 @@ services:
   mongo:
     image: mongo:8.0
     container_name: optclaw-mongo
+    command: --wiredTigerEngineConfigString "checkpoint=(wait=300)"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-changeme}
@@ -41,6 +42,11 @@ services:
     volumes:
       - mongo-data:/data/db
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   reranker:
     image: michaelf34/infinity:0.0.72

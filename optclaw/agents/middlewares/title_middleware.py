@@ -105,7 +105,8 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
         fallback_chars = min(config.max_chars, 50)
         if len(user_msg) > fallback_chars:
             return user_msg[:fallback_chars].rstrip() + "..."
-        return user_msg if user_msg else "New Conversation"
+        # return user_msg if user_msg else "New Conversation"
+        return user_msg if user_msg else "新对话"
 
     def _generate_title_result(self, state: TitleMiddlewareState) -> dict | None:
         """Generate a local fallback title without blocking on an LLM call."""
