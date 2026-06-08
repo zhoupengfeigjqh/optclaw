@@ -3,8 +3,11 @@
 import json
 import uuid
 from datetime import datetime
+from pathlib import Path
 
-from .parser import parse_document, detect_file_type
+from optclaw.config.paths import get_paths
+
+from .parser import parse_document, detect_file_type, strip_md_noise
 from .splitter import split_text
 from .mongo import get_db, COLLECTION_CHUNKS
 from .faiss_store import KBFaissManager
@@ -12,13 +15,27 @@ from .embedding import ollama_embed, l2_normalize
 from .config import get_chunk_size, get_overlap_size
 
 
+def _get_file_dir(agent_name: str) -> Path:
+    paths = get_paths()
+    if agent_name == "default":
+        p = paths.base_dir / "knowledge" / "file"
+    else:
+        p = paths.agent_dir(agent_name) / "knowledge" / "file"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
 async def process_document(file_path: str, original_filename: str, agent_name: str = "default") -> dict:
     """Full pipeline: parse, chunk, store in MongoDB, vectorize to FAISS."""
     file_type = detect_file_type(original_filename)
 
-    text, parse_metadata = await parse_document(file_path, file_type)
+    text, parse_metadata = await parse_document(file_path, file_type, agent_name=agent_name)
     if not text or not text.strip():
         raise ValueError(f"No text extracted from {original_filename}")
+
+    # Save markdown to persistent file directory
+    md_path = _get_file_dir(agent_name) / f"{original_filename}.md"
+    md_path.write_text(text, encoding="utf-8")
 
     chunk_size = get_chunk_size()
     overlap_size = get_overlap_size()
@@ -46,7 +63,8 @@ async def process_document(file_path: str, original_filename: str, agent_name: s
         })
     await coll.insert_many(chunk_docs)
 
-    texts_for_embed = [c["content"] for c in chunk_docs]
+    # Strip image URLs / markdown noise before embedding
+    texts_for_embed = [strip_md_noise(c["content"]) for c in chunk_docs]
     try:
         embeddings = await ollama_embed(texts_for_embed)
     except Exception:
@@ -86,12 +104,34 @@ async def delete_document(file_name: str, agent_name: str = "default") -> dict:
         store.delete_by_ids(set(chunk_ids))
     KBFaissManager.save()
 
+    # Clean up associated files
+    _cleanup_document_files(file_name, agent_name)
+
     return {
         "success": True,
         "file_name": file_name,
         "chunks_removed": removed.deleted_count,
         "message": f"Deleted {removed.deleted_count} chunks",
     }
+
+
+def _cleanup_document_files(file_name: str, agent_name: str) -> None:
+    """Remove the MD file and extracted images for a deleted document."""
+    file_dir = _get_file_dir(agent_name)
+    # Delete MD file
+    md = file_dir / f"{file_name}.md"
+    md.unlink(missing_ok=True)
+
+    # Delete extracted images matching the file name (pymupdf4llm uses full filename as prefix)
+    paths = get_paths()
+    if agent_name == "default":
+        image_dir = paths.base_dir / "knowledge" / "image"
+    else:
+        image_dir = paths.agent_dir(agent_name) / "knowledge" / "image"
+
+    if image_dir.is_dir():
+        for img in image_dir.glob(f"{file_name}-*"):
+            img.unlink(missing_ok=True)
 
 
 async def get_document_list(agent_name: str = "default") -> list[dict]:
@@ -172,7 +212,7 @@ async def smart_save_results(results: list[dict], file_name: str, file_type: str
         })
     await coll.insert_many(chunk_docs)
 
-    texts_for_embed = [c["content"] for c in chunk_docs]
+    texts_for_embed = [strip_md_noise(c["content"]) for c in chunk_docs]
     try:
         embeddings = await ollama_embed(texts_for_embed)
     except Exception:
@@ -218,7 +258,6 @@ async def get_stats(agent_name: str = "default") -> dict:
     async for t in coll.aggregate(type_pipeline):
         file_types[t["_id"]] = t["count"]
 
-    # Count FAISS vectors for this agent
     store = KBFaissManager.get_store()
     faiss_count = 0
     if store.is_initialized:

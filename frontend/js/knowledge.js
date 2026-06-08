@@ -90,6 +90,7 @@
     fd.append("file", file);
     fd.append("model", model);
     fd.append("prompt", prompt);
+    fd.append("agent_name", AGENT_NAME);
 
     elUploadProgress.style.display = "block";
     elUploadStatus.textContent = "智能解析中，请稍候...";
@@ -162,8 +163,16 @@
     });
 
     $("#smartResultOverlay").style.display = "flex";
-    if ($("#btnCloseSmartResult")) $("#btnCloseSmartResult").onclick = () => { $("#smartResultOverlay").style.display = "none"; };
-    if ($("#btnCancelSmartResult")) $("#btnCancelSmartResult").onclick = () => { $("#smartResultOverlay").style.display = "none"; };
+    const cancelSmartResult = async () => {
+      const fileName = pendingSmartFile ? pendingSmartFile.name : ($("#smartResultFileName").textContent || "");
+      if (fileName) {
+        try { await fetch(`${API_BASE}/cleanup-files/${encodeURIComponent(fileName)}${AGENT_QS}`, { method: "DELETE" }); } catch (_) {}
+      }
+      $("#smartResultOverlay").style.display = "none";
+      pendingSmartFile = null;
+    };
+    if ($("#btnCloseSmartResult")) $("#btnCloseSmartResult").onclick = cancelSmartResult;
+    if ($("#btnCancelSmartResult")) $("#btnCancelSmartResult").onclick = cancelSmartResult;
     if ($("#btnConfirmSmartResult")) $("#btnConfirmSmartResult").onclick = confirmSmartSave;
   }
 

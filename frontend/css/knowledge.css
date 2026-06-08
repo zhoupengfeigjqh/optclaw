@@ -100,8 +100,10 @@
 
 /* Document List */
 .kb-doc-list { padding: 8px 0; max-height: 400px; overflow-y: auto; }
-.kb-docs-section, .kb-results-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.kb-docs-section .kb-doc-list, .kb-results-section .kb-recall-results { flex: 1; }
+.kb-results-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.kb-docs-section { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.kb-docs-section .kb-doc-list { flex: 1; }
+.kb-results-section .kb-recall-results { flex: 1; min-height: 0; }
 .kb-doc-item {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 18px; cursor: pointer;
@@ -222,7 +224,7 @@
 .btn-kb-search:hover { background: var(--accent-hover); }
 
 /* Recall Results */
-.kb-recall-results { padding: 8px 0; overflow-y: auto; }
+.kb-recall-results { padding: 0; overflow-y: auto; }
 .kb-recall-item {
   padding: 12px 18px; border-bottom: 1px solid var(--border);
   font-size: 13px; line-height: 1.5;
@@ -241,7 +243,6 @@
 .kb-recall-score { font-size: 12px; color: var(--text-muted); }
 .kb-recall-text {
   color: var(--text-primary);
-  max-height: 80px; overflow-y: auto;
   white-space: pre-wrap; word-break: break-all;
 }
 

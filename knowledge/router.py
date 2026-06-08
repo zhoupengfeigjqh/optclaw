@@ -136,6 +136,17 @@ async def remove_document(file_name: str, agent_name: str = Query(DEFAULT_AGENT)
         raise HTTPException(status_code=500, detail=f"Failed to delete document: {e}")
 
 
+@router.delete("/cleanup-files/{file_name}")
+async def cleanup_orphan_files(file_name: str, agent_name: str = Query(DEFAULT_AGENT)):
+    """Delete MD file and extracted images for a document not yet saved to DB."""
+    from .pipeline import _cleanup_document_files
+    try:
+        _cleanup_document_files(file_name, agent_name)
+        return {"success": True, "message": f"Cleaned up files for {file_name}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cleanup failed: {e}")
+
+
 @router.get("/chunks/{file_name}")
 async def list_chunks(file_name: str, agent_name: str = Query(DEFAULT_AGENT)):
     try:
@@ -206,11 +217,38 @@ async def test_parse(model: str = Query(...)):
         raise HTTPException(status_code=503, detail=f"解析模型不可用: {e}")
 
 
+@router.get("/image/{agent_name}/{filename:path}")
+async def serve_knowledge_image(agent_name: str, filename: str):
+    """Serve an image extracted from a knowledge base document."""
+    import mimetypes
+    from fastapi.responses import Response
+    from optclaw.config.paths import get_paths
+
+    paths = get_paths()
+    if agent_name == "default":
+        base_dir = paths.base_dir / "knowledge" / "image"
+    else:
+        base_dir = paths.agent_dir(agent_name) / "knowledge" / "image"
+
+    file_path = (base_dir / filename).resolve()
+    try:
+        file_path.relative_to(base_dir.resolve())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Path traversal denied")
+
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail=f"Image not found: {filename}")
+
+    mime_type, _ = mimetypes.guess_type(str(file_path))
+    return Response(content=file_path.read_bytes(), media_type=mime_type or "image/png")
+
+
 @router.post("/smart-parse")
 async def smart_parse(
     file: UploadFile = File(...),
     model: str = Form(...),
     prompt: str = Form(""),
+    agent_name: str = Form(DEFAULT_AGENT),
 ):
     from .parser import parse_document, detect_file_type, smart_parse_via_ollama
     if not file.filename:
@@ -231,9 +269,14 @@ async def smart_parse(
         with open(dest, "wb") as out:
             out.write(content)
         file_type = detect_file_type(file.filename)
-        text, _ = await parse_document(str(dest), file_type)
+        text, _ = await parse_document(str(dest), file_type, agent_name=agent_name)
         if not text or not text.strip():
             raise HTTPException(status_code=400, detail=f"No text extracted from {file.filename}")
+
+        # Save markdown to persistent file directory
+        from .pipeline import _get_file_dir
+        md_path = _get_file_dir(agent_name) / f"{file.filename}.md"
+        md_path.write_text(text, encoding="utf-8")
 
         prompt_template = prompt if prompt else None
         results = await smart_parse_via_ollama(text, model, prompt_template)

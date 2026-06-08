@@ -75,6 +75,17 @@
       const idx = url.indexOf('user-data/');
       if (idx !== -1) {
         url = `/api/threads/${currentThreadId}/artifacts/mnt/${url.slice(idx)}`;
+      } else {
+        // Knowledge base images: extract agent name and filename
+        const km = url.match(/agents\/([^/]+)\/knowledge\/image\/(.+)/);
+        if (km) {
+          url = `/api/knowledge/image/${km[1]}/${km[2]}`;
+        } else {
+          const kd = url.match(/knowledge\/image\/(.+)/);
+          if (kd) {
+            url = `/api/knowledge/image/default/${kd[1]}`;
+          }
+        }
       }
       return `<img src="${url}" alt="${alt}" style="max-width:100%">`;
     });
