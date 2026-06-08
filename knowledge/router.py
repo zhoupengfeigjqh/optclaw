@@ -92,8 +92,8 @@ async def upload_document(
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
     ext = Path(file.filename).suffix.lower()
-    if ext not in (".pdf", ".csv", ".md", ".docx", ".txt"):
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}. Supported: .pdf, .csv, .md, .docx, .txt")
+    if ext not in (".pdf", ".csv", ".txt"):
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}. Supported: .pdf, .csv, .txt")
 
     MAX_SIZE = 500 * 1024
     content = await file.read()
@@ -254,8 +254,8 @@ async def smart_parse(
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
     ext = Path(file.filename).suffix.lower()
-    if ext not in (".pdf", ".csv", ".md", ".docx", ".txt"):
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
+    if ext not in (".pdf", ".csv", ".txt"):
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}. Supported: .pdf, .csv, .txt")
 
     MAX_SIZE = 500 * 1024
     content = await file.read()

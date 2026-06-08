@@ -1331,6 +1331,9 @@ class OptClawClient:
                 raise FileNotFoundError(f"File not found: {f}")
             if not p.is_file():
                 raise ValueError(f"Path is not a file: {f}")
+            ext = p.suffix.lower()
+            if ext not in (".pdf", ".csv", ".txt", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"):
+                raise ValueError(f"Unsupported file type: {ext}. Supported: pdf, csv, txt, and image formats")
             dest_name = claim_unique_filename(p.name, seen_names)
             resolved_files.append((p, dest_name))
             if not has_convertible_file and p.suffix.lower() in CONVERTIBLE_EXTENSIONS:

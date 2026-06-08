@@ -39,8 +39,8 @@
 
   async function uploadFile(file) {
     const ext = file.name.split(".").pop().toLowerCase();
-    if (!["pdf", "csv", "md", "docx", "txt"].includes(ext)) {
-      alert("仅支持 PDF、CSV、MD、DOCX、TXT 格式");
+    if (!["pdf", "csv", "txt"].includes(ext)) {
+      alert("仅支持 PDF、CSV、TXT 格式");
       return;
     }
     const MAX_SIZE = 500 * 1024;

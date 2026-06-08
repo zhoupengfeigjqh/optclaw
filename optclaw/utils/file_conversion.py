@@ -89,12 +89,22 @@ def _convert_pdf_with_pymupdf4llm(file_path: Path) -> str | None:
     try:
         image_dir = file_path.parent / "image"
         image_dir.mkdir(parents=True, exist_ok=True)
-        return pymupdf4llm.to_markdown(
+        existing = set(image_dir.iterdir()) if image_dir.exists() else set()
+
+        md_text = pymupdf4llm.to_markdown(
             str(file_path),
             write_images=True,
             image_path=str(image_dir),
             image_format="png",
         )
+
+        # Compress newly extracted images
+        from optclaw.utils.image_processing import compress_images_in_dir
+        replacements = compress_images_in_dir(image_dir, existing)
+        for old_name, new_name in replacements.items():
+            md_text = md_text.replace(old_name, new_name)
+
+        return md_text
     except Exception:
         logger.exception("pymupdf4llm failed to convert %s; falling back to MarkItDown", file_path.name)
         return None

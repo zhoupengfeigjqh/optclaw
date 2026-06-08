@@ -42,12 +42,19 @@ def _parse_pdf(file_path: str, agent_name: str) -> tuple[str, dict]:
     # Try pymupdf4llm first (extracts text + images, outputs markdown)
     try:
         import pymupdf4llm
+        existing = set(image_dir.iterdir()) if image_dir.exists() else set()
         md_text = pymupdf4llm.to_markdown(
             file_path,
             write_images=True,
             image_path=str(image_dir),
             image_format="png",
         )
+        # Compress newly extracted images
+        from optclaw.utils.image_processing import compress_images_in_dir
+        replacements = compress_images_in_dir(image_dir, existing)
+        for old_name, new_name in replacements.items():
+            md_text = md_text.replace(old_name, new_name)
+
         try:
             import pymupdf
             doc = pymupdf.open(file_path)
