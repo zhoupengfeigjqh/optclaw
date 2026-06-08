@@ -70,6 +70,14 @@
 
   function renderMarkdown(text) {
     let html = escapeHtml(text);
+    // Image markdown ![](path) → img tag, rewrite path to artifact URL
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+      const idx = url.indexOf('user-data/');
+      if (idx !== -1) {
+        url = `/api/threads/${currentThreadId}/artifacts/mnt/${url.slice(idx)}`;
+      }
+      return `<img src="${url}" alt="${alt}" style="max-width:100%">`;
+    });
     html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
       return `<pre><code class="lang-${lang}">${code}</code></pre>`;
     });
