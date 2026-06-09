@@ -635,6 +635,25 @@ html, body {
   font-size: 13px;
 }
 
+.message-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 13px;
+}
+.message-content th,
+.message-content td {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  text-align: left;
+}
+.message-content th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+}
+.message-content td {
+  background: var(--bg-primary);
+}
 .message-content p {
   margin-bottom: 8px;
 }

@@ -92,6 +92,22 @@
     html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
       return `<pre><code class="lang-${lang}">${code}</code></pre>`;
     });
+    // Markdown tables: match blocks of pipe-delimited rows
+    html = html.replace(/((?:^\|.+\|$\n?)+)/gm, (block) => {
+      const lines = block.trim().split(/\n/);
+      if (lines.length < 2) return block;
+      let result = '<table>';
+      for (let i = 0; i < lines.length; i++) {
+        const cells = lines[i].split('|').map(c => c.trim()).filter(c => c);
+        if (cells.length === 0) continue;
+        // Skip separator rows like |---|---|
+        if (/^[-:]+$/.test(cells[0])) continue;
+        const tag = i === 0 ? 'th' : 'td';
+        result += '<tr>' + cells.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
+      }
+      result += '</table>';
+      return result;
+    });
     html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
     html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
     html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
