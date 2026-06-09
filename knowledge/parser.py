@@ -49,9 +49,9 @@ def _parse_pdf(file_path: str, agent_name: str) -> tuple[str, dict]:
             image_path=str(image_dir),
             image_format="png",
         )
-        # Compress newly extracted images
+        # Compress and randomize image names
         from optclaw.utils.image_processing import compress_images_in_dir
-        replacements = compress_images_in_dir(image_dir, existing)
+        replacements = compress_images_in_dir(image_dir, existing, randomize_name=True)
         for old_name, new_name in replacements.items():
             md_text = md_text.replace(old_name, new_name)
 

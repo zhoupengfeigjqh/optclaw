@@ -29,6 +29,7 @@ from optclaw.log import setup_logging
 logger = setup_logging(__name__)
 
 client: OptClawClient | None = None
+_active_stop_events: dict[str, asyncio.Event] = {}
 
 
 def _sanitize(obj):
@@ -278,21 +279,62 @@ async def chat_stream(req: ChatRequest):
     kwargs["agent_name"] = req.agent_name if req.agent_name is not None and req.agent_name != "" else None
     if req.files:
         kwargs["files"] = req.files
-    
+
     logger.warning(f"agent settings:{kwargs}")
+
+    thread_id = req.thread_id or str(uuid.uuid4())
+    queue: asyncio.Queue = asyncio.Queue()
+    stop_event = asyncio.Event()
+    _active_stop_events[thread_id] = stop_event
+
+    async def run_stream():
+        try:
+            async for delta, delta_type in client.chat_stream(req.message, thread_id=thread_id, **kwargs):
+                await queue.put(("delta", delta, delta_type))
+            await queue.put(("done",))
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            await queue.put(("error", str(e)))
+
+    producer_task = asyncio.create_task(run_stream())
 
     async def event_generator() -> AsyncGenerator[str, None]:
         try:
-            async for delta, delta_type in client.chat_stream(req.message, thread_id=req.thread_id, **kwargs):
-                payload = {"type": "delta", "data": {"content": delta, "delta_type": delta_type}}
-                yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n"
-        except asyncio.CancelledError:
-            return
-        except Exception as e:
-            err_payload = {"type": "error", "data": {"message": str(e)}}
-            yield f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n"
+            while True:
+                getter = asyncio.create_task(queue.get())
+                stopper = asyncio.create_task(stop_event.wait())
+                done, pending = await asyncio.wait(
+                    [getter, stopper], return_when=asyncio.FIRST_COMPLETED
+                )
+                for t in pending:
+                    t.cancel()
+
+                if stopper in done:
+                    producer_task.cancel()
+                    payload = {"type": "stopped", "data": {"message": "对话已停止"}}
+                    yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
+
+                item = getter.result()
+                kind = item[0]
+                if kind == "done":
+                    yield "data: [DONE]\n\n"
+                    return
+                if kind == "error":
+                    err_payload = {"type": "error", "data": {"message": item[1]}}
+                    yield f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
+                    yield "data: [DONE]\n\n"
+                    return
+                if kind == "delta":
+                    _, delta, delta_type = item
+                    payload = {"type": "delta", "data": {"content": delta, "delta_type": delta_type}}
+                    yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+        finally:
+            _active_stop_events.pop(thread_id, None)
+            if not producer_task.done():
+                producer_task.cancel()
 
     return StreamingResponse(
         event_generator(),
@@ -303,6 +345,20 @@ async def chat_stream(req: ChatRequest):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+class StopRequest(BaseModel):
+    thread_id: str
+
+
+@app.post("/api/chat/stop")
+async def stop_chat(req: StopRequest):
+    """Signal the running chat stream for a thread to stop gracefully."""
+    event = _active_stop_events.get(req.thread_id)
+    if event is not None:
+        event.set()
+        return {"success": True, "thread_id": req.thread_id, "message": "Stop signal sent"}
+    return {"success": False, "thread_id": req.thread_id, "message": "No active stream for this thread"}
 
 
 @app.post("/api/upload/{thread_id}")

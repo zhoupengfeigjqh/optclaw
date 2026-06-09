@@ -30,6 +30,48 @@
     return div.innerHTML;
   }
 
+  function renderMarkdown(text) {
+    let html = escapeHtml(text);
+    // Images: ![](path) → img tag, rewrite knowledge image paths
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+      const km = url.match(/agents\/([^/]+)\/knowledge\/image\/(.+)/);
+      if (km) {
+        url = `/api/knowledge/image/${km[1]}/${km[2]}`;
+      } else {
+        const kd = url.match(/knowledge\/image\/(.+)/);
+        if (kd) {
+          url = `/api/knowledge/image/default/${kd[1]}`;
+        }
+      }
+      return `<img src="${url}" alt="${alt}" style="max-width:100%">`;
+    });
+    // Code blocks
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+      return `<pre><code class="lang-${lang}">${code}</code></pre>`;
+    });
+    // Tables: match blocks of pipe-delimited rows
+    html = html.replace(/((?:^\|.+\|$\n?)+)/gm, (block) => {
+      const lines = block.trim().split(/\n/);
+      if (lines.length < 2) return block;
+      let result = '<table>';
+      for (let i = 0; i < lines.length; i++) {
+        const cells = lines[i].split('|').map(c => c.trim()).filter(c => c);
+        if (cells.length === 0) continue;
+        if (/^[-:]+$/.test(cells[0])) continue;
+        const tag = i === 0 ? 'th' : 'td';
+        result += '<tr>' + cells.map(c => `<${tag}>${c}</${tag}>`).join('') + '</tr>';
+      }
+      result += '</table>';
+      return result;
+    });
+    // Inline code, bold, italic
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+    html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    html = html.replace(/\n/g, "<br>");
+    return html;
+  }
+
   // Upload
   elBtnUpload.addEventListener("click", (e) => { e.stopPropagation(); elFileInput.click(); });
   elFileInput.addEventListener("click", (e) => e.stopPropagation());
@@ -302,21 +344,45 @@
     }
   }
 
-  // Settings
-  async function loadSettings() {
+  // Settings — load all config in one request
+  async function loadConfig() {
     try {
       const res = await fetch(`${API_BASE}/config`);
       const data = await res.json();
-      const cs = $("#kbChunkSize");
-      const os = $("#kbOverlapSize");
-      const em = $("#kbEmbedModel");
-      const rm = $("#kbRecallRerankModel");
-      if (cs) cs.value = data.chunk_size || 500;
-      if (os) os.value = data.overlap_size || 50;
-      if (em && data.embed_model) em.value = data.embed_model;
-      if (rm && data.rerank_model !== undefined) rm.value = data.rerank_model;
+      applySettings(data);
+      applyParseModelOptions(data);
+      applyParsePrompt(data);
+      testEmbed(data.embed_model || "nomic-embed-text");
+      testRerank(data.rerank_model || "");
+      if (elSmartToggle && elSmartToggle.checked) {
+        const m = data.parse_model || (elParseModel && elParseModel.value);
+        if (m) testParse(m);
+      }
     } catch (e) {
-      console.error("Failed to load settings", e);
+      console.error("Failed to load config", e);
+    }
+  }
+
+  function applySettings(data) {
+    const cs = $("#kbChunkSize");
+    const os = $("#kbOverlapSize");
+    const em = $("#kbEmbedModel");
+    const rm = $("#kbRecallRerankModel");
+    if (cs) cs.value = data.chunk_size || 500;
+    if (os) os.value = data.overlap_size || 50;
+    if (em && data.embed_model) em.value = data.embed_model;
+    if (rm && data.rerank_model !== undefined) rm.value = data.rerank_model || "";
+  }
+
+  function applyParseModelOptions(data) {
+    if (!elParseModel) return;
+    const val = data.parse_model || "qwen3:8b";
+    elParseModel.innerHTML = `<option value="${escapeHtml(val)}" selected>${escapeHtml(val)}</option>`;
+  }
+
+  function applyParsePrompt(data) {
+    if ($("#kbParsePrompt") && data.parse_prompt) {
+      $("#kbParsePrompt").value = data.parse_prompt;
     }
   }
 
@@ -389,8 +455,10 @@
 
     const embed_model = ($("#kbEmbedModel") || {}).value || "nomic-embed-text";
     const rerank_model = ($("#kbRecallRerankModel") || {}).value || "";
+    const parse_model = ($("#kbParseModel") || {}).value || "";
 
     const qs = new URLSearchParams({ embed_model, rerank_model });
+    if (parse_model) qs.set("parse_model", parse_model);
     try {
       await fetch(`${API_BASE}/config?` + qs.toString(), {
         method: "PUT",
@@ -492,7 +560,7 @@
             <span class="kb-recall-score">#${i+1} · 相似度: ${(r.score||0).toFixed(4)}</span>
             <span style="font-size:11px;color:var(--text-muted);">${escapeHtml(r.file_name||"")}</span>
           </div>
-          <div class="kb-recall-text">${escapeHtml(r.content || "")}</div>
+          <div class="kb-recall-text">${renderMarkdown(r.content || "")}</div>
         `;
         elRecallResults.appendChild(item);
       });
@@ -526,31 +594,6 @@
   const elParseModel = $("#kbParseModel");
   const elParseStatus = $("#parseStatus");
   const elParseHint = $("#parseHint");
-
-  async function loadParseModelOptions() {
-    try {
-      const res = await fetch(`${API_BASE}/config`);
-      const data = await res.json();
-      if (elParseModel) {
-        const val = data.parse_model || "qwen3:8b";
-        elParseModel.innerHTML = `<option value="${escapeHtml(val)}" selected>${escapeHtml(val)}</option>`;
-      }
-      if ($("#kbParsePrompt")) {
-        const res2 = await fetch(`/api/knowledge/config`);
-        // prompt is loaded from config via a dedicated call
-      }
-    } catch (e) { console.error("Failed to load parse model", e); }
-  }
-
-  async function loadParsePrompt() {
-    try {
-      const res = await fetch(`${API_BASE}/config`);
-      const data = await res.json();
-      if ($("#kbParsePrompt") && data.parse_prompt) {
-        $("#kbParsePrompt").value = data.parse_prompt;
-      }
-    } catch (e) { console.error("Failed to load parse prompt", e); }
-  }
 
   async function testParse(model) {
     if (!model) return;
@@ -591,7 +634,10 @@
   }
 
   if (elParseModel) {
-    elParseModel.addEventListener("change", () => testParse(elParseModel.value));
+    elParseModel.addEventListener("change", () => {
+      saveSettings();
+      testParse(elParseModel.value);
+    });
   }
 
   // Parse Prompt Dialog
@@ -632,16 +678,7 @@
 
   // Init
   updateThresholdState();
-  loadSettings();
+  loadConfig();
   loadDocuments();
   loadStats();
-  loadParseModelOptions();
-  loadParsePrompt();
-  testEmbed(($("#kbEmbedModel") || {}).value || "nomic-embed-text");
-  testRerank(($("#kbRecallRerankModel") || {}).value || "");
-  // Test parse model on load if smart parse is enabled
-  if (elSmartToggle && elSmartToggle.checked) {
-    const m = (elParseModel || {}).value;
-    if (m) testParse(m);
-  }
 })();

@@ -7,6 +7,7 @@
   let hasThreadMessages = false;
   let isStreaming = false;
   let pendingFiles = [];
+  let abortController = null;
   let threadCache = [];
   const modelMeta = {};
 
@@ -221,10 +222,23 @@
     isStreaming = loading;
     elSend.disabled = loading;
     elInput.disabled = loading;
+    const btnNewChat = $("#btnNewChat");
+    if (btnNewChat) {
+      btnNewChat.disabled = loading;
+      btnNewChat.style.opacity = loading ? "0.4" : "1";
+      btnNewChat.style.pointerEvents = loading ? "none" : "auto";
+    }
+    $$(".thread-item").forEach((item) => {
+      item.style.opacity = loading ? "0.4" : "1";
+      item.style.pointerEvents = loading ? "none" : "auto";
+    });
+    const elStop = $("#btnStop");
     if (loading) {
-      elSend.querySelector("svg").style.opacity = "0.5";
+      elSend.style.display = "none";
+      if (elStop) elStop.style.display = "flex";
     } else {
-      elSend.querySelector("svg").style.opacity = "1";
+      elSend.style.display = "flex";
+      if (elStop) elStop.style.display = "none";
     }
   }
 
@@ -318,6 +332,7 @@
   }
 
   function switchThread(threadId) {
+    if (isStreaming) return;
     if (threadId === currentThreadId) return;
     currentThreadId = threadId;
     hasThreadMessages = true;
@@ -360,6 +375,7 @@
   }
 
   function newChat() {
+    if (isStreaming) return;
     currentThreadId = null;
     hasThreadMessages = false;
     clearMessages(true);
@@ -420,11 +436,13 @@
     payload.plan_mode = elTogglePlan.checked;
     payload.agent_name = selectedAgentName || "";
 
+    abortController = new AbortController();
     try {
       const res = await fetch(`${API_BASE}/chat/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: abortController.signal,
       });
 
       const reader = res.body.getReader();
@@ -453,15 +471,34 @@
         }
       }
     } catch (e) {
-      console.error("Stream error", e);
-      appendToMessage(aiBody, "\n\n[连接错误，请重试]");
+      if (e.name === "AbortError") {
+        appendToMessage(aiBody, "\n\n[对话已停止]");
+      } else {
+        console.error("Stream error", e);
+        appendToMessage(aiBody, "\n\n[连接错误，请重试]");
+      }
     } finally {
+      abortController = null;
       const reasoningEl = aiBody.querySelector(".stream-reasoning");
       if (reasoningEl) reasoningEl.remove();
       const toolCallsEl = aiBody.querySelector(".stream-tool-calls");
       if (toolCallsEl) toolCallsEl.remove();
       setLoading(false);
       loadThreads();
+    }
+  }
+
+  function stopStream() {
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+    }
+    if (currentThreadId) {
+      fetch(`${API_BASE}/chat/stop`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ thread_id: currentThreadId }),
+      }).catch(() => {});
     }
   }
 
@@ -475,6 +512,8 @@
       }
     } else if (type === "error") {
       appendToMessage(aiBody, "\n\n[服务错误: " + (data.message || "未知错误") + "]");
+    } else if (type === "stopped") {
+      appendToMessage(aiBody, "\n\n[对话已停止]");
     }
   }
 
@@ -568,6 +607,9 @@
   });
 
   elSend.addEventListener("click", sendMessage);
+
+  const elStop = $("#btnStop");
+  if (elStop) elStop.addEventListener("click", stopStream);
 
   $("#btnNewChat").addEventListener("click", newChat);
 

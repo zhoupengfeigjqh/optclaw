@@ -1,6 +1,8 @@
 """Image compression for reducing token usage when sending images to LLM."""
 
 import io
+import re
+import secrets
 from pathlib import Path
 
 from PIL import Image
@@ -89,11 +91,12 @@ def _guess_mime(image_data: bytes) -> str:
     return "image/jpeg"
 
 
-def compress_images_in_dir(image_dir: Path, existing: set[Path] | None = None) -> dict[str, str]:
+def compress_images_in_dir(image_dir: Path, existing: set[Path] | None = None,
+                            randomize_name: bool = False) -> dict[str, str]:
     """Compress newly created images in a directory after pymupdf4llm extraction.
 
     Returns a dict mapping old filename → new filename for updating markdown
-    references (e.g. when PNG is converted to JPEG).
+    references (e.g. when PNG is converted to JPEG, or names are randomized).
     """
     if existing is None:
         existing = set()
@@ -108,15 +111,25 @@ def compress_images_in_dir(image_dir: Path, existing: set[Path] | None = None) -
             data = img_path.read_bytes()
             compressed, mime = compress_image(data)
             new_suffix = ".jpg" if mime == "image/jpeg" else img_path.suffix.lower()
-            new_path = img_path.with_suffix(new_suffix)
+
+            if randomize_name:
+                # Extract base name from pymupdf4llm naming:
+                # "test.pdf-0001-01.png" → "test.pdf"
+                old_stem = img_path.stem
+                base = re.sub(r'-\d{4}-\d{2}$', '', old_stem)
+                while True:
+                    stem = secrets.token_hex(4)
+                    new_path = img_path.with_name(f"{base}_{stem}{new_suffix}")
+                    if not new_path.exists():
+                        break
+            else:
+                new_path = img_path.with_suffix(new_suffix)
 
             if new_path != img_path:
-                # Format changed (PNG → JPEG), write new file and remove old
                 new_path.write_bytes(compressed)
                 img_path.unlink()
                 replacements[img_path.name] = new_path.name
             elif compressed != data:
-                # Same format, overwrite with compressed version
                 img_path.write_bytes(compressed)
         except Exception:
             logger.warning("Failed to compress %s", img_path, exc_info=True)

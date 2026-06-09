@@ -130,6 +130,9 @@ def _cleanup_document_files(file_name: str, agent_name: str) -> None:
         image_dir = paths.agent_dir(agent_name) / "knowledge" / "image"
 
     if image_dir.is_dir():
+        for img in image_dir.glob(f"{file_name}_*"):
+            img.unlink(missing_ok=True)
+        # Also clean up legacy naming pattern ({file_name}-{page}-{num}.png)
         for img in image_dir.glob(f"{file_name}-*"):
             img.unlink(missing_ok=True)
 
