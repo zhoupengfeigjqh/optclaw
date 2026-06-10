@@ -30,9 +30,9 @@ knowledge:
 log_level: info
 memory:
   debounce_seconds: 60
-  enabled: true
+  enabled: false
   fact_confidence_threshold: 0.7
-  injection_enabled: true
+  injection_enabled: false
   max_facts: 30
   max_injection_tokens: 2000
   model_name: deepseek-v4-flash

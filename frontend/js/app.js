@@ -1509,6 +1509,7 @@
           <div class="mcp-item-name-row">
             <span class="mcp-item-name">${escapeHtml(name)}</span>
             <button class="mcp-item-edit" title="编辑">✎</button>
+            <button class="mcp-item-delete" title="删除">🗑</button>
           </div>
           <div class="mcp-item-desc">${escapeHtml(srv.description || "")}</div>
           <div class="mcp-item-type">${escapeHtml(srv.type || "stdio")}${srv.command ? " · " + escapeHtml(srv.command) : ""}</div>
@@ -1522,6 +1523,25 @@
       item.querySelector(".mcp-item-edit").addEventListener("click", (e) => {
         e.stopPropagation();
         openMcpModal(name);
+      });
+
+      item.querySelector(".mcp-item-delete").addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if (!confirm(`确定删除MCP服务器 "${name}"？此操作不可撤销。`)) return;
+        try {
+          const res = await fetch(`${API_BASE}/mcp/${encodeURIComponent(name)}`, { method: "DELETE" });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert(err.detail || "删除失败");
+            return;
+          }
+          delete mcpServerData[name];
+          renderMcpServers();
+          refreshIntroHints();
+        } catch (err) {
+          console.error("Delete MCP server failed", err);
+          alert("删除失败");
+        }
       });
 
       const checkbox = item.querySelector(".mcp-toggle-checkbox");
@@ -1554,7 +1574,6 @@
     const nameEl = $("#modalMcpName");
     if (nameEl) {
       nameEl.value = serverName || "";
-      nameEl.disabled = !!serverName;
     }
 
     const srv = serverName ? (mcpServerData[serverName] || {}) : {};
@@ -1639,7 +1658,20 @@
 
     try {
       if (mcpEditingServerName) {
-        const res = await fetch(`${API_BASE}/mcp/${encodeURIComponent(mcpEditingServerName)}`, {
+        // Handle rename if name changed
+        if (name !== mcpEditingServerName) {
+          const renameRes = await fetch(`${API_BASE}/mcp/${encodeURIComponent(mcpEditingServerName)}/rename`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ new_name: name }),
+          });
+          if (!renameRes.ok) {
+            const err = await renameRes.json().catch(() => ({}));
+            alert(err.detail || "重命名失败");
+            return;
+          }
+        }
+        const res = await fetch(`${API_BASE}/mcp/${encodeURIComponent(name)}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(config),

@@ -40,3 +40,4 @@ pdfplumber>=0.10.0
 pymupdf4llm
 aiofiles>=23.0.0
 Pillow>=10.0.0
+china-stock-mcp

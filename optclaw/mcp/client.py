@@ -30,7 +30,7 @@ def build_server_params(server_name: str, config: McpServerConfig) -> dict[str, 
         # Add environment variables if present
         if config.env:
             params["env"] = config.env
-    elif transport_type in ("sse", "http"):
+    elif transport_type in ("sse", "http", "streamableHttp", "streamable_http"):
         if not config.url:
             raise ValueError(f"MCP server '{server_name}' with {transport_type} transport requires 'url' field")
         params["url"] = config.url

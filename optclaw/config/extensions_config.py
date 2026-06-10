@@ -35,7 +35,7 @@ class McpServerConfig(BaseModel):
     """Configuration for a single MCP server."""
 
     enabled: bool = Field(default=True, description="Whether this MCP server is enabled")
-    type: str = Field(default="stdio", description="Transport type: 'stdio', 'sse', or 'http'")
+    type: str = Field(default="stdio", description="Transport type: 'stdio', 'sse', 'http', or 'streamableHttp'")
     command: str | None = Field(default=None, description="Command to execute to start the MCP server (for stdio type)")
     args: list[str] = Field(default_factory=list, description="Arguments to pass to the command (for stdio type)")
     env: dict[str, str] = Field(default_factory=dict, description="Environment variables for the MCP server")

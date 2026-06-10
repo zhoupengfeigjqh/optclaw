@@ -547,3 +547,17 @@ async def delete_mcp_server(server_name: str):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"删除MCP服务器失败: {e}")
+
+
+class McpRenameRequest(BaseModel):
+    new_name: str
+
+
+@app.put("/api/mcp/{server_name}/rename")
+async def rename_mcp_server(server_name: str, req: McpRenameRequest):
+    try:
+        return _sanitize(client.rename_mcp_server(server_name, req.new_name))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"重命名MCP服务器失败: {e}")

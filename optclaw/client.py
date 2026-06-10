@@ -1085,6 +1085,46 @@ class OptClawClient:
 
         return {"success": True, "server_name": server_name}
 
+    def rename_mcp_server(self, old_name: str, new_name: str) -> dict:
+        """Rename an MCP server entry.
+
+        Args:
+            old_name: Current name of the MCP server.
+            new_name: New name for the MCP server.
+
+        Returns:
+            Success status with old and new server names.
+
+        Raises:
+            ValueError: If old name doesn't exist or new name already exists.
+        """
+        import json
+
+        from optclaw.config.extensions_config import ExtensionsConfig, reload_extensions_config
+        from optclaw.mcp.cache import reset_mcp_tools_cache
+
+        config_path = ExtensionsConfig.resolve_config_path()
+        if config_path is None:
+            raise FileNotFoundError("extensions_config.json not found")
+
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        servers = data.get("mcpServers", {})
+        if old_name not in servers:
+            raise ValueError(f"MCP server '{old_name}' not found")
+        if new_name in servers:
+            raise ValueError(f"MCP server '{new_name}' already exists")
+
+        servers[new_name] = servers.pop(old_name)
+        data["mcpServers"] = servers
+        self._atomic_write_json(config_path, data)
+
+        reload_extensions_config()
+        reset_mcp_tools_cache()
+
+        return {"success": True, "old_name": old_name, "new_name": new_name}
+
     # ------------------------------------------------------------------
     # Public API — memory management
     # ------------------------------------------------------------------

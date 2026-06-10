@@ -45,6 +45,48 @@
       "headers": {},
       "oauth": null,
       "description": "PostgreSQL database access"
+    },
+    "usstock": {
+      "enabled": false,
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@phoenixaihub/tradingview-mcp"
+      ],
+      "env": {},
+      "url": null,
+      "headers": {},
+      "oauth": null,
+      "description": "获取美股相关的技术指标数据！"
+    },
+    "cryptomarket": {
+      "enabled": false,
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@coinpaprika/mcp"
+      ],
+      "env": {},
+      "url": null,
+      "headers": {},
+      "oauth": null,
+      "description": "获取crypto行情数据！"
+    },
+    "antv": {
+      "enabled": false,
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@antv/mcp-server-antv"
+      ],
+      "env": {},
+      "url": null,
+      "headers": {},
+      "oauth": null,
+      "description": "获取AntV图表数据！"
     }
   },
   "skills": {
