@@ -2151,6 +2151,11 @@ html, body {
   padding: 8px;
 }
 
+#toolsPanel .panel-footer .btn-config-save {
+  width: 100%;
+  padding: 8px;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .sidebar {

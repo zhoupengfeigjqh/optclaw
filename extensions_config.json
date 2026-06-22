@@ -76,17 +76,27 @@
     },
     "antv": {
       "enabled": false,
-      "type": "stdio",
-      "command": "npx",
+      "type": "streamable_http",
+      "command": "",
       "args": [
-        "-y",
-        "@antv/mcp-server-antv"
       ],
       "env": {},
-      "url": null,
+      "url": "https://mcp.api-inference.modelscope.net/03bb39a868da47/mcp",
       "headers": {},
       "oauth": null,
       "description": "获取AntV图表数据！"
+    },
+    "cnstock": {
+      "enabled": false,
+      "type": "sse",
+      "command": "",
+      "args": [
+      ],
+      "env": {},
+      "url": "https://mcp.api-inference.modelscope.net/93857d898c9d48/sse",
+      "headers": {},
+      "oauth": null,
+      "description": "A股行情数据！（不稳定）"
     }
   },
   "skills": {

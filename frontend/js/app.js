@@ -11,6 +11,13 @@
   let threadCache = [];
   const modelMeta = {};
 
+  const SUPPORTED_EXTS = new Set([".pdf", ".csv", ".txt", ".png", ".jpg", ".jpeg"]);
+
+  function isSupportedFileType(file) {
+    const ext = "." + file.name.split(".").pop().toLowerCase();
+    return SUPPORTED_EXTS.has(ext);
+  }
+
   function isImageOrVideo(file) {
     return file.type.startsWith("image/") || file.type.startsWith("video/");
   }
@@ -570,9 +577,9 @@
 
   function updateUploadButtonForModel() {
     if (!currentModelSupportsVision()) {
-      elFileInput.setAttribute("accept", ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.md,.json,.zip,.tar,.gz,.py,.js,.ts,.html,.css,.java,.cpp,.c,.h,.xml,.yaml,.yml,.toml,.rs,.go");
+      elFileInput.setAttribute("accept", "application/pdf,text/csv,text/plain");
     } else {
-      elFileInput.removeAttribute("accept");
+      elFileInput.setAttribute("accept", "application/pdf,text/csv,text/plain,image/png,image/jpeg");
     }
   }
 
@@ -635,10 +642,14 @@
 
   elFileInput.addEventListener("change", () => {
     let added = 0;
-    let filtered = 0;
+    let rejected = 0;
     for (const file of elFileInput.files) {
+      if (!isSupportedFileType(file)) {
+        rejected++;
+        continue;
+      }
       if (!currentModelSupportsVision() && isImageOrVideo(file)) {
-        filtered++;
+        rejected++;
         continue;
       }
       pendingFiles.push(file);
@@ -647,8 +658,8 @@
     elFileInput.value = "";
     renderUploadFiles();
     updateSendButton();
-    if (filtered > 0) {
-      showUploadTip();
+    if (rejected > 0) {
+      alert("仅支持上传 pdf, csv, txt, png, jpg, jpeg 文件，已自动跳过不支持的类型。");
     }
   });
 
@@ -681,6 +692,9 @@
   const elMcpList = $("#mcpList");
   const elMcpModalOverlay = $("#mcpModalOverlay");
 
+  const elToolsPanel = $("#toolsPanel");
+  const elToolsList = $("#toolsList");
+
   let selectedAgentName = localStorage.getItem("optclaw_agent") || "";
 
   function openPanel(panel) {
@@ -695,6 +709,7 @@
     if (elUploadsPanel) elUploadsPanel.classList.remove("open");
     if (elAgentsPanel) elAgentsPanel.classList.remove("open");
     if (elMcpPanel) elMcpPanel.classList.remove("open");
+    if (elToolsPanel) elToolsPanel.classList.remove("open");
   }
 
   function closeSkillsModal() {
@@ -777,6 +792,19 @@
         hintMcp.textContent = enabled + " 个已开启";
       } catch (e) {
         hintMcp.textContent = "--";
+      }
+    }
+
+    const hintTools = document.getElementById("introToolsHint");
+    if (hintTools) {
+      try {
+        const res = await fetch(`${API_BASE}/tools`);
+        const data = await res.json();
+        const tools = data.tools || [];
+        const enabled = tools.filter((t) => t.enabled).length;
+        hintTools.textContent = enabled + " 个已开启";
+      } catch (e) {
+        hintTools.textContent = "--";
       }
     }
 
@@ -1152,6 +1180,76 @@
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = "安装技能"; }
     }
+  }
+
+  // ── Tools management ────────────────────────────────────────────────
+
+  let toolChanges = {};
+
+  async function loadTools() {
+    if (!elToolsList) return;
+    try {
+      const res = await fetch(`${API_BASE}/tools`);
+      const data = await res.json();
+      const tools = data.tools || [];
+      elToolsList.innerHTML = "";
+      toolChanges = {};
+      if (tools.length === 0) {
+        elToolsList.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">暂无工具</div>';
+        return;
+      }
+      tools.forEach((t) => {
+        const item = document.createElement("div");
+        item.className = "skill-item";
+        const enabled = t.enabled;
+        const toggleCls = enabled ? "skill-toggle on" : "skill-toggle off";
+        const toggleTxt = enabled ? "ON" : "OFF";
+        const nameStyle = enabled ? "color:var(--text-primary)" : "color:var(--text-muted)";
+        item.innerHTML = `
+          <div class="skill-name" style="${nameStyle}">${escapeHtml(t.name)}<span class="skill-category">${escapeHtml(t.group || "")}</span></div>
+          <button class="${toggleCls}" data-tool="${escapeHtml(t.name)}" data-enabled="${enabled}">${toggleTxt}</button>
+        `;
+        item.querySelector(".skill-toggle").onclick = (e) => {
+          const btn = e.target;
+          const currentEnabled = btn.dataset.enabled === "true";
+          const newEnabled = !currentEnabled;
+          btn.dataset.enabled = String(newEnabled);
+          btn.textContent = newEnabled ? "ON" : "OFF";
+          btn.className = newEnabled ? "skill-toggle on" : "skill-toggle off";
+          const nameEl = item.querySelector(".skill-name");
+          if (nameEl) nameEl.style.color = newEnabled ? "var(--text-primary)" : "var(--text-muted)";
+          toolChanges[btn.dataset.tool] = newEnabled;
+        };
+        elToolsList.appendChild(item);
+      });
+    } catch (e) {
+      console.error("Failed to load tools", e);
+    }
+  }
+
+  async function saveToolConfig() {
+    if (Object.keys(toolChanges).length === 0) {
+      alert("没有修改任何工具配置");
+      return;
+    }
+    if (!confirm("确定保存工具配置？")) return;
+    try {
+      for (const [name, enabled] of Object.entries(toolChanges)) {
+        await fetch(`${API_BASE}/tools/${encodeURIComponent(name)}?enabled=${enabled}`, { method: "PATCH" });
+      }
+      toolChanges = {};
+      loadTools();
+      refreshIntroHints();
+    } catch (e) {
+      console.error("Save tool config failed", e);
+    }
+  }
+
+  if ($("#btnCloseTools")) {
+    $("#btnCloseTools").addEventListener("click", closeAllPanels);
+  }
+  if ($("#btnSaveToolConfig")) {
+    $("#btnSaveToolConfig").addEventListener("click", saveToolConfig);
   }
 
   if ($("#btnCloseMemory")) {
@@ -1842,6 +1940,14 @@
         if (elPanelOverlay) elPanelOverlay.classList.add("visible");
         if (elMcpPanel) elMcpPanel.classList.add("open");
         loadMcpServers();
+      });
+    }
+    const introBtnTools = document.getElementById("introBtnTools");
+    if (introBtnTools) {
+      introBtnTools.addEventListener("click", () => {
+        if (elPanelOverlay) elPanelOverlay.classList.add("visible");
+        if (elToolsPanel) elToolsPanel.classList.add("open");
+        loadTools();
       });
     }
     const introBtnKnowledge = document.getElementById("introBtnKnowledge");

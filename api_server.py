@@ -158,6 +158,24 @@ async def update_skill(name: str, enabled: bool = True):
         raise HTTPException(status_code=500, detail=f"更新技能配置失败: {e}")
 
 
+@app.get("/api/tools")
+async def list_tools(enabled_only: bool = False):
+    try:
+        return _sanitize(client.list_tools(enabled_only=enabled_only))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取工具列表失败: {e}")
+
+
+@app.patch("/api/tools/{name}")
+async def update_tool(name: str, enabled: bool):
+    try:
+        return _sanitize(client.update_tool(name, enabled))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新工具配置失败: {e}")
+
+
 @app.post("/api/skills/install")
 async def install_skill(file: UploadFile = File(...)):
     if not file.filename or not file.filename.endswith(".skill"):

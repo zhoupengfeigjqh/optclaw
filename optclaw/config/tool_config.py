@@ -17,4 +17,5 @@ class ToolConfig(BaseModel):
         ...,
         description="Variable name of the tool provider(e.g. optclaw.sandbox.tools:bash_tool)",
     )
+    enabled: bool = Field(default=True, description="Whether this tool is enabled")
     model_config = ConfigDict(extra="allow")

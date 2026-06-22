@@ -779,6 +779,66 @@ class OptClawClient:
             ]
         }
 
+    def list_tools(self, enabled_only: bool = False) -> dict:
+        """List configured tools with their enabled status.
+
+        Args:
+            enabled_only: If True, only return enabled tools.
+
+        Returns:
+            Dict with "tools" key containing list of tool info dicts.
+        """
+        config = get_app_config()
+        tools = config.tools
+        if enabled_only:
+            tools = [t for t in tools if t.enabled]
+        return {
+            "tools": [
+                {
+                    "name": t.name,
+                    "group": t.group,
+                    "enabled": t.enabled,
+                }
+                for t in tools
+            ]
+        }
+
+    def update_tool(self, name: str, enabled: bool) -> dict:
+        """Update a tool's enabled status in config.yaml.
+
+        Args:
+            name: Tool name.
+            enabled: New enabled status.
+
+        Returns:
+            Updated tool info dict.
+        """
+        import yaml
+
+        config = get_app_config()
+        tool_config = config.get_tool_config(name)
+        if tool_config is None:
+            raise ValueError(f"Tool '{name}' not found in config.yaml")
+
+        config_path = get_paths().base_dir.parent.parent / "config.yaml"
+
+        with open(config_path, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+
+        for tool in cfg.get("tools", []):
+            if tool.get("name") == name:
+                tool["enabled"] = enabled
+                break
+
+        with open(config_path, "w", encoding="utf-8") as f:
+            yaml.dump(cfg, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+        return {
+            "name": name,
+            "group": tool_config.group,
+            "enabled": enabled,
+        }
+
     def get_memory(self, agent_name: str | None = None) -> dict:
         """Get current memory data.
 
@@ -1372,8 +1432,8 @@ class OptClawClient:
             if not p.is_file():
                 raise ValueError(f"Path is not a file: {f}")
             ext = p.suffix.lower()
-            if ext not in (".pdf", ".csv", ".txt", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"):
-                raise ValueError(f"Unsupported file type: {ext}. Supported: pdf, csv, txt, and image formats")
+            if ext not in (".pdf", ".csv", ".txt", ".png", ".jpg", ".jpeg"):
+                raise ValueError(f"Unsupported file type: {ext}. Supported: pdf, csv, txt, png, jpg, jpeg")
             dest_name = claim_unique_filename(p.name, seen_names)
             resolved_files.append((p, dest_name))
             if not has_convertible_file and p.suffix.lower() in CONVERTIBLE_EXTENSIONS:

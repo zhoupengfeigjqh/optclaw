@@ -204,6 +204,6 @@ def _extract_json_array(text: str) -> list[dict]:
 def detect_file_type(filename: str) -> str:
     """Detect file type from extension."""
     ext = Path(filename).suffix.lower().lstrip(".")
-    if ext in ("pdf", "csv", "md", "docx", "txt"):
+    if ext in ("pdf", "csv", "txt"):
         return ext
-    raise ValueError(f"Unsupported file extension: .{ext}. Supported: pdf, csv, md, docx, txt")
+    raise ValueError(f"Unsupported file extension: .{ext}. Supported: pdf, csv, txt")

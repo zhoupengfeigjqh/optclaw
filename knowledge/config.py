@@ -66,6 +66,3 @@ def get_parse_model() -> str:
 def get_parse_prompt() -> str:
     return _load().get("parse_prompt", "")
 
-
-def get_supported_file_types() -> list:
-    return _load().get("supported_file_types", ["pdf", "csv", "md", "docx", "txt"])
