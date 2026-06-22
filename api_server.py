@@ -381,10 +381,14 @@ async def stop_chat(req: StopRequest):
 
 @app.post("/api/upload/{thread_id}")
 async def upload_files(thread_id: str, files: list[UploadFile] = File(...)):
+    ALLOWED_EXTS = {".pdf", ".csv", ".txt", ".png", ".jpg", ".jpeg"}
     tmpdir = tempfile.mkdtemp()
     saved_paths = []
     try:
         for f in files:
+            ext = Path(f.filename).suffix.lower()
+            if ext not in ALLOWED_EXTS:
+                raise HTTPException(status_code=400, detail=f"不支持的文件类型: {ext}，仅支持 pdf, csv, txt, png, jpg, jpeg")
             dest = Path(tmpdir) / f.filename
             with open(dest, "wb") as out:
                 content = await f.read()
