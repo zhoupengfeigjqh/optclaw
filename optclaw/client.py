@@ -1746,6 +1746,13 @@ class OptClawClient:
                 if len(tool_names) >= 1:
                     yield "calling tools:" + "|".join(tool_names), "tool_calls"
 
+            # ask_clarification tool result — show the question to the user
+            if event.type == "messages-tuple" and event.data.get("type") == "tool":
+                if event.data.get("name") == "ask_clarification":
+                    delta_content = event.data.get("content", "")
+                    if delta_content:
+                        yield delta_content, "text"
+
             # artifacts — only yield files added since the first snapshot
             if event.type == "values":
                 artifacts = event.data.get("artifacts", []) or []

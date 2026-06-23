@@ -183,9 +183,9 @@ def build_leadagent_middlewares(
         middlewares.append(SubagentLimitMiddleware(max_concurrent=max_concurrent_subagents))
         logger.info(f"create subagent_limit_middleware, agent: {agent_name}")
 
-    # # --- [11] LoopDetection (always) ---
-    # from optclaw.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
-    # middlewares.append(LoopDetectionMiddleware())
+    # --- [11] LoopDetection (always) ---
+    from optclaw.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
+    middlewares.append(LoopDetectionMiddleware())
 
     # --- [12] Clarification (always last among built-ins) ---
     middlewares.append(ClarificationMiddleware())

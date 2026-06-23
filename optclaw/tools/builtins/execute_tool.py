@@ -46,7 +46,7 @@ def _check_forbidden_commands(content: str) -> str | None:
     return None
 
 
-_ALLOWED_PATH_RE = re.compile(r'/mnt/user-data/(?:workspace|uploads|outputs)/[a-zA-Z0-9_/.-]+')
+_ALLOWED_PATH_RE = re.compile(r'/mnt/user-data/(?:workspace|uploads|outputs)(?:/\S*)?')
 
 
 def _check_line_paths(text: str) -> str | None:
@@ -55,7 +55,7 @@ def _check_line_paths(text: str) -> str | None:
         return f"relative path not allowed in '{text[:60]}'. Only absolute paths under /mnt/user-data/{{workspace,uploads,outputs}} permitted."
     if re.search(r'[A-Za-z]:[\\/]', text):
         return f"Windows absolute path not allowed in '{text[:60]}'. Only /mnt/user-data/{{workspace,uploads,outputs}} permitted."
-    for m in re.finditer(r'(?<![a-zA-Z0-9._])/[a-zA-Z][a-zA-Z0-9_/.-]*', text):
+    for m in re.finditer(r'(?<![a-zA-Z0-9._])/[a-zA-Z]\S*', text):
         p = m.group()
         if not p.startswith(_ALLOWED_PREFIXES):
             return f"absolute path '{p[:60]}' not allowed. Only /mnt/user-data/{{workspace,uploads,outputs}} permitted."
@@ -79,7 +79,13 @@ def _resolve_paths_in_text(text: str) -> str:
     def _replace(m: re.Match) -> str:
         vp = m.group()
         resolved = resolve_virtual_path(vp)
-        return str(resolved) if resolved else vp
+        if not resolved:
+            return vp
+        result = str(resolved)
+        # Preserve trailing separator so Path(dir + filename) stays valid
+        if vp.endswith("/") and not result.endswith("/"):
+            result += "/"
+        return result
     return _ALLOWED_PATH_RE.sub(_replace, text)
 
 
@@ -144,7 +150,8 @@ def execute_python_file_tool(path: str, command_args: list[str] = None) -> str:
             return f"Error: {err}"
 
         content = _resolve_paths_in_text(content)
-        content = _ensure_chdir(content)
+        # content = _ensure_chdir(content)
+        # print(content)
 
         tmp = None
         try:
