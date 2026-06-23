@@ -27,6 +27,6 @@ __all__ = [
     "setup_agent_tool",
     "task_tool",
     "list_directory_tool",
-    # "execute_python_file_tool",
+    "execute_python_file_tool",
     "knowledge_search_tool",
 ]

@@ -19,7 +19,7 @@
   }
 
   function isImageOrVideo(file) {
-    return file.type.startsWith("image/") || file.type.startsWith("video/");
+    return file.type.startsWith("image/");
   }
 
   function currentModelSupportsVision() {
@@ -209,6 +209,35 @@
         body.appendChild(el);
       }
       el.textContent += delta;
+      scrollToBottom();
+      return;
+    }
+
+    if (deltaType === "artifacts") {
+      let filesDiv = body.querySelector(".message-files");
+      if (!filesDiv) {
+        filesDiv = document.createElement("div");
+        filesDiv.className = "message-files";
+        body.appendChild(filesDiv);
+      }
+      try {
+        const files = JSON.parse(delta);
+        files.forEach(function (f) {
+          const item = document.createElement("span");
+          item.className = "message-file-item";
+          var filename = f.split("/").pop();
+          item.title = filename;
+          item.textContent = "\u{1F4C4} " + filename;
+          item.style.cursor = "pointer";
+          item.addEventListener("click", function () {
+            var idx = f.indexOf("user-data/");
+            if (idx !== -1) {
+              window.open("/api/threads/" + currentThreadId + "/artifacts/mnt/" + f.slice(idx), "_blank");
+            }
+          });
+          filesDiv.appendChild(item);
+        });
+      } catch (_) {}
       scrollToBottom();
       return;
     }
@@ -1051,11 +1080,18 @@
   }
 
   let skillChanges = {};
+  let skillsCache = null;
+
+  async function fetchSkills() {
+    if (skillsCache) return skillsCache;
+    const res = await fetch(`${API_BASE}/skills`);
+    skillsCache = await res.json();
+    return skillsCache;
+  }
 
   async function loadSkills() {
     try {
-      const res = await fetch(`${API_BASE}/skills`);
-      const data = await res.json();
+      const data = await fetchSkills();
       const skills = data.skills || [];
       elSkillsList.innerHTML = "";
       skillChanges = {};
@@ -1096,8 +1132,7 @@
   async function loadSkillsPopup() {
     if (!elSkillsPopupList) return;
     try {
-      const res = await fetch(`${API_BASE}/skills`);
-      const data = await res.json();
+      const data = await fetchSkills();
       const skills = (data.skills || []).filter((s) => s.enabled);
       elSkillsPopupList.innerHTML = "";
       if (skills.length === 0) {
@@ -1130,6 +1165,7 @@
         await fetch(`${API_BASE}/skills/${encodeURIComponent(name)}?enabled=${enabled}`, { method: "PATCH" });
       }
       skillChanges = {};
+      skillsCache = null;
       loadSkills();
       refreshIntroHints();
     } catch (e) {
@@ -1174,6 +1210,7 @@
       }
       const data = await res.json();
       showInstallResult(true, `技能「${data.skill_name || file.name}」安装成功`);
+      skillsCache = null;
       loadSkills();
     } catch (e) {
       showInstallResult(false, "安装失败: " + (e.message || e));

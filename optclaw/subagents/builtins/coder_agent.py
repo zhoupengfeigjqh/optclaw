@@ -59,7 +59,7 @@ import os
 os.chdir(os.path.dirname(__file__))
 
 2. Mandatory path specification:
-- Only relative paths are permitted in the scripts, such as ./file.txt, ./data.csv
+- Only file operations within the allowed absolute directories are permitted. Allowed paths: /mnt/user-data/workspace, /mnt/user-data/uploads, /mnt/user-data/output. Reading or writing files outside these directories is forbidden for security reasons.
 - Never use any absolute paths in all python scripts
 </code_generation_rules>
 

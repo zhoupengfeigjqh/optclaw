@@ -1613,7 +1613,6 @@ class OptClawClient:
         if self._agent_name:
             context["agent_name"] = self._agent_name
 
-        seen_ids: set[str] = set()
         # Cross-mode handoff: ids already streamed via LangGraph ``messages``
         # mode so the ``values`` path skips re-synthesis of the same message.
         streamed_ids: set[str] = set()
@@ -1654,7 +1653,7 @@ class OptClawClient:
             state,
             config=config,
             context=context,
-            stream_mode=["messages"],  # ["values", "messages", "custom"],
+            stream_mode=["messages", "values", "custom"],
         ):
             if isinstance(item, tuple) and len(item) == 2:
                 mode, chunk = item
@@ -1707,42 +1706,13 @@ class OptClawClient:
                     yield self._tool_message_event(msg_chunk)
                 continue
 
-            # mode == "values"
-            messages = chunk.get("messages", [])
-
-            for msg in messages:
-                msg_id = getattr(msg, "id", None)
-                if msg_id and msg_id in seen_ids:
-                    continue
-                if msg_id:
-                    seen_ids.add(msg_id)
-
-                # Already streamed via ``messages`` mode; only (defensively)
-                # capture usage here and skip re-synthesizing the event.
-                if msg_id and msg_id in streamed_ids:
-                    if isinstance(msg, AIMessage):
-                        _account_usage(msg_id, getattr(msg, "usage_metadata", None))
-                    continue
-
-                if isinstance(msg, AIMessage):
-                    counted_usage = _account_usage(msg_id, msg.usage_metadata)
-
-                    if msg.tool_calls:
-                        yield self._ai_tool_calls_event(msg_id, msg.tool_calls)
-
-                    text = self._extract_text(msg.content)
-                    if text:
-                        yield self._ai_text_event(msg_id, text, counted_usage)
-
-                elif isinstance(msg, ToolMessage):
-                    yield self._tool_message_event(msg)
-
-            # Emit a values event for each state snapshot
+            # mode == "values" — only emit state snapshot (artifacts etc.),
+            # not individual messages (those are handled by "messages" mode).
             yield StreamEvent(
                 type="values",
                 data={
                     "title": chunk.get("title"),
-                    "messages": [self._serialize_message(m) for m in messages],
+                    "messages": [self._serialize_message(m) for m in chunk.get("messages", [])],
                     "artifacts": chunk.get("artifacts", []),
                 },
             )
@@ -1753,37 +1723,39 @@ class OptClawClient:
         """Streaming version
            Send messages and yield AI response content word by word for real-time frontend streaming display.
         """
-        
+        sent_artifact_ids: set[str] | None = None
+
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
 
-            # ai response without reason content 有些是tool答复内容
+            # ai response without reason content
             if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "text":
                 delta_content = event.data.get("content", "")
-                # print("text: ", delta_content)
                 if delta_content:
                     yield delta_content, "text"
 
             # ai response with reason content
             if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "reasoning_text":
                 delta_content = event.data.get("content", "")
-                # print("reasoning_text: ", delta_content)
                 if delta_content:
                     yield delta_content, "reasoning_text"
 
             # tool calls
             if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "tool_calls":
-                # print(event)
                 delta_content = event.data.get("tool_calls", "")
                 tool_names = [item.get("name") for item in delta_content if item.get("name", "") != ""]
                 if len(tool_names) >= 1:
                     yield "calling tools:" + "|".join(tool_names), "tool_calls"
 
-            # # tool message
-            # if event.type == "messages-tuple" and event.data.get("type") == "tool" and event.data.get("subtype") == "tool_message":
-            #     delta_content = event.data.get("content", "")
-            #     print("tool_message: ", delta_content)
-            #     if delta_content:
-            #         yield delta_content, "tool_message"
+            # artifacts — only yield files added since the first snapshot
+            if event.type == "values":
+                artifacts = event.data.get("artifacts", []) or []
+                if sent_artifact_ids is None:
+                    sent_artifact_ids = set(artifacts)
+                else:
+                    new_artifacts = [a for a in artifacts if a not in sent_artifact_ids]
+                    if new_artifacts:
+                        sent_artifact_ids.update(new_artifacts)
+                        yield json.dumps(new_artifacts), "artifacts"
 
     async def chat(self, message: str, *, thread_id: str | None = None, **kwargs) -> str:
         """Send a message and return the final text response.
