@@ -112,8 +112,8 @@ summarization:
   summary_prompt: null
   trigger:
   - type: tokens
-    value: 20000
-  trim_tokens_to_summarize: 20000
+    value: 40000
+  trim_tokens_to_summarize: 40000
 title:
   enabled: true
   max_chars: 60

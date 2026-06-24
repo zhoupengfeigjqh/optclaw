@@ -1724,6 +1724,8 @@ class OptClawClient:
            Send messages and yield AI response content word by word for real-time frontend streaming display.
         """
         sent_artifact_ids: set[str] | None = None
+        _streamed_mids: set[str] = set()
+        _streamed_content: dict[str, str] = {}
 
         async for event in self.stream(message, thread_id=thread_id, **kwargs):
 
@@ -1731,18 +1733,28 @@ class OptClawClient:
             if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "text":
                 delta_content = event.data.get("content", "")
                 if delta_content:
+                    msg_id = event.data.get("id", "")
+                    if msg_id:
+                        _streamed_mids.add(msg_id)
+                        _streamed_content[msg_id] = _streamed_content.get(msg_id, "") + delta_content
                     yield delta_content, "text"
 
             # ai response with reason content
             if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "reasoning_text":
                 delta_content = event.data.get("content", "")
                 if delta_content:
+                    msg_id = event.data.get("id", "")
+                    if msg_id:
+                        _streamed_mids.add(msg_id)
                     yield delta_content, "reasoning_text"
 
             # tool calls
             if event.type == "messages-tuple" and event.data.get("type") == "ai" and event.data.get("subtype") == "tool_calls":
                 delta_content = event.data.get("tool_calls", "")
                 tool_names = [item.get("name") for item in delta_content if item.get("name", "") != ""]
+                msg_id = event.data.get("id", "")
+                if msg_id:
+                    _streamed_mids.add(msg_id)
                 if len(tool_names) >= 1:
                     yield "calling tools:" + "|".join(tool_names), "tool_calls"
 
@@ -1763,6 +1775,25 @@ class OptClawClient:
                     if new_artifacts:
                         sent_artifact_ids.update(new_artifacts)
                         yield json.dumps(new_artifacts), "artifacts"
+
+                # middleware-appended text (loop detection etc.)
+                # only yield deltas for AI messages already streamed this turn
+                msgs = event.data.get("messages", []) or []
+                for m in msgs:
+                    if m.get("type") != "ai":
+                        continue
+                    mid = m.get("id", "")
+                    if mid not in _streamed_mids:
+                        continue
+                    cur = m.get("content", "") or ""
+                    if not isinstance(cur, str):
+                        cur = str(cur)
+                    prev = _streamed_content.get(mid, "")
+                    if cur != prev:
+                        delta = cur[len(prev):]
+                        if delta:
+                            yield delta, "text"
+                        _streamed_content[mid] = cur
 
     async def chat(self, message: str, *, thread_id: str | None = None, **kwargs) -> str:
         """Send a message and return the final text response.
