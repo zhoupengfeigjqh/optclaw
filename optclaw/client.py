@@ -32,6 +32,9 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
+import aiosqlite
+from collections import defaultdict
+from optclaw.agents.checkpointer._sqlite_utils import resolve_sqlite_conn_str
 from optclaw.agents import apply_prompt_template
 from optclaw.agents.thread_state import ThreadState
 from optclaw.config.agents_config import AGENT_NAME_PATTERN
@@ -1794,6 +1797,9 @@ class OptClawClient:
                         if delta:
                             yield delta, "text"
                         _streamed_content[mid] = cur
+        
+        # 清理旧的checkpoints
+        await self.clean_old_checkpoints(thread_id=thread_id, keep_latest=1)
 
     async def chat(self, message: str, *, thread_id: str | None = None, **kwargs) -> str:
         """Send a message and return the final text response.
@@ -1826,4 +1832,60 @@ class OptClawClient:
                 if delta:
                     chunks.setdefault(msg_id, []).append(delta)
                     last_id = msg_id
+
+        await self.clean_old_checkpoints(thread_id=thread_id, keep_latest=1)
+
         return "".join(chunks.get(last_id, ()))
+
+    async def clean_old_checkpoints(self, thread_id: str, keep_latest: int = 1):
+        """Clean old checkpoints for a specific thread_id, keeping only the latest N checkpoints."""
+        conn_str = resolve_sqlite_conn_str(self._app_config.checkpointer.connection_string)
+        async with aiosqlite.connect(conn_str) as db:
+            # 1. 查询库内所有表
+            cursor = await db.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row[0] for row in await cursor.fetchall()]
+            logger.info(f"检测到的表: {tables}")
+
+            # # 新增：打印writes表字段结构
+            # if "writes" in tables:
+            #     col_cursor = await db.execute("PRAGMA table_info(writes)")
+            #     writes_columns = await col_cursor.fetchall()
+            #     logger.info("==== writes 表字段信息 ====")
+            #     for col in writes_columns:
+            #         # col: (cid, name, type, notnull, dflt_value, pk)
+            #         logger.info(f"字段ID:{col[0]}, 字段名:{col[1]}, 类型:{col[2]}, 非空:{bool(col[3])}, 主键:{bool(col[5])}")
+
+
+            # 2. 仅查询当前传入 thread_id 的所有 checkpoint，按时间倒序
+            cursor = await db.execute("""
+                SELECT checkpoint_id 
+                FROM checkpoints 
+                WHERE thread_id = ?
+                ORDER BY checkpoint_id DESC
+            """, (thread_id,))
+            all_checkpoint_ids = [row[0] for row in await cursor.fetchall()]
+
+            if len(all_checkpoint_ids) <= keep_latest:
+                logger.info(f"thread_id={thread_id} 检查点数量({len(all_checkpoint_ids)}) ≤ 保留数量{keep_latest}，无需清理")
+                return
+
+            # 3. 截取需要删除的旧 checkpoint_id
+            to_delete = all_checkpoint_ids[keep_latest:]
+            placeholders = ','.join(['?'] * len(to_delete))
+
+            # 4. 批量删除关联表数据
+            # 主表 checkpoints
+            await db.execute(f"""
+                DELETE FROM checkpoints 
+                WHERE checkpoint_id IN ({placeholders})
+            """, to_delete)
+
+            # 附属表 writes
+            if 'writes' in tables:
+                await db.execute(f"""
+                    DELETE FROM writes 
+                    WHERE checkpoint_id IN ({placeholders})
+                """, to_delete)
+            
+            await db.commit()
+            logger.info(f"thread_id={thread_id} 成功删除 {len(to_delete)} 个旧检查点，保留最新 {keep_latest} 个")

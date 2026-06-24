@@ -129,15 +129,15 @@ tool_search:
   enabled: false
 tools:
 - api_key: $TAVILY_API_KEY
+  enabled: true
   group: web
   max_results: 5
   name: web_search
   use: optclaw.community.tavily.tools:web_search_tool
-  enabled: true
-- name: okx_mkt
+- enabled: false
   group: web
   max_results: 1000
+  name: okx_mkt
   use: optclaw.community.okx.tools:okx_mkt_tool
-  enabled: false
 uploads:
   pdf_converter: auto
