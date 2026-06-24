@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>任务资源智能匹配调度智能体</title>
+<title>OPTCLAW 智能体</title>
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -25,7 +25,7 @@
         <defs><linearGradient id="grad1" x1="0" y1="0" x2="80" y2="80"><stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#7b2d8e"/></linearGradient></defs>
       </svg>
     </div>
-    <h1 class="intro-title">任务资源智能匹配调度智能体</h1>
+    <h1 class="intro-title">OPTCLAW 智能体</h1>
     <p class="intro-subtitle">智能决策引擎 · 四大核心模块</p>
     <div class="intro-features">
       <div class="intro-feature">
@@ -78,19 +78,24 @@
           <span class="intro-config-label">技能管理</span>
           <span class="intro-config-hint" id="introSkillsHint">--</span>
         </button>
-        <button class="intro-config-btn" id="introBtnMemory">
-          <span class="intro-config-icon">🧠</span>
-          <span class="intro-config-label">记忆管理</span>
-          <span class="intro-config-hint" id="introMemoryHint">--</span>
-        </button>
         <button class="intro-config-btn" id="introBtnMcp">
           <span class="intro-config-icon">🔌</span>
           <span class="intro-config-label">MCP管理</span>
           <span class="intro-config-hint" id="introMcpHint">--</span>
         </button>
+        <button class="intro-config-btn" id="introBtnTools">
+          <span class="intro-config-icon">🔧</span>
+          <span class="intro-config-label">工具管理</span>
+          <span class="intro-config-hint" id="introToolsHint">--</span>
+        </button>
+        <button class="intro-config-btn" id="introBtnMemory">
+          <span class="intro-config-icon">🧠</span>
+          <span class="intro-config-label">专属记忆管理</span>
+          <span class="intro-config-hint" id="introMemoryHint">--</span>
+        </button>
         <button class="intro-config-btn" id="introBtnKnowledge">
           <span class="intro-config-icon">📚</span>
-          <span class="intro-config-label">知识库设置</span>
+          <span class="intro-config-label">专属知识库管理</span>
           <span class="intro-config-hint" id="introKnowledgeHint">--</span>
         </button>
       </div>
@@ -160,7 +165,7 @@
         <div class="welcome-icon">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         </div>
-        <h2>任务资源智能匹配调度智能体</h2>
+        <h2>OPTCLAW 智能体</h2>
         <p>开始一段新的对话</p>
       </div>
     </div>
@@ -191,7 +196,7 @@
           <span class="toggle-switch-sm"></span>
         </label>
         <span class="toolbar-divider"></span>
-        <input type="file" id="fileInput" multiple hidden />
+        <input type="file" id="fileInput" multiple hidden accept="application/pdf,text/csv,text/plain,image/png,image/jpeg" />
       </div>
       <div class="input-row">
         <textarea id="messageInput" placeholder="输入消息..." rows="1"></textarea>
@@ -209,7 +214,7 @@
 <div class="panel-overlay" id="panelOverlay"></div>
 <div class="panel" id="memoryPanel">
   <div class="panel-header">
-    <h3>记忆管理</h3>
+    <h3>专属记忆管理</h3>
     <button class="btn-panel-close" id="btnCloseMemory">&times;</button>
   </div>
   <div class="panel-section" id="memoryConfigSection">
@@ -360,12 +365,12 @@
       <select id="modalMcpType">
         <option value="stdio">stdio</option>
         <option value="sse">sse</option>
-        <option value="streamableHttp">streamableHttp</option>
+        <option value="streamable_http">streamable_http</option>
       </select>
       <label>命令</label>
       <input type="text" id="modalMcpCommand" placeholder="例如: npx" />
       <label>参数 (每行一个)</label>
-      <textarea id="modalMcpArgs" rows="3" placeholder="-y&#10;@modelcontextprotocol/server-filesystem&#10;./mcp_data"></textarea>
+      <textarea id="modalMcpArgs" rows="3" placeholder="例如：&#10;-y&#10;@modelcontextprotocol/server-filesystem&#10;./mcp_data"></textarea>
       <label>URL</label>
       <input type="text" id="modalMcpUrl" placeholder="例如: http://localhost:8080" />
       <label>环境变量 (每行一个, KEY=VALUE)</label>
@@ -383,6 +388,17 @@
       <button class="btn-modal-cancel" id="btnCancelMcpModal">取消</button>
       <button class="btn-modal-confirm" id="btnConfirmMcpModal">确认保存</button>
     </div>
+  </div>
+</div>
+
+<div class="panel" id="toolsPanel">
+  <div class="panel-header">
+    <h3>工具管理</h3>
+    <button class="btn-panel-close" id="btnCloseTools">&times;</button>
+  </div>
+  <div class="panel-body" id="toolsList"></div>
+  <div class="panel-footer">
+    <button class="btn-config-save" id="btnSaveToolConfig">保存配置</button>
   </div>
 </div>
 

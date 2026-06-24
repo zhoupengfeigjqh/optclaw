@@ -382,13 +382,9 @@ You: "Deploying to staging..." [proceed]
 
 <code_generation_rules>
 Only generate pure Python scripts when writing code, and strictly comply with all rules below:
-1. Must place the complete 2-line standard header at the very top of every .py file, no omission, deletion or modification allowed:
-import os
-os.chdir(os.path.dirname(__file__))
-
-2. Mandatory path specification:
-- Only relative paths are permitted in the scripts, such as ./file.txt, ./data.csv
-- Never use any absolute paths in all python scripts
+1. Mandatory path specification:
+- Only file operations within the allowed absolute directories are permitted. Allowed paths: /mnt/user-data/workspace, /mnt/user-data/uploads, /mnt/user-data/output. Reading or writing files outside these directories is forbidden for security reasons.
+- Never use any relative paths in all python scripts
 </code_generation_rules>
 """
 

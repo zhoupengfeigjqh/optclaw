@@ -2042,7 +2042,7 @@ html, body {
   font-weight: 600;
 }
 
-.mcp-item-edit {
+.mcp-item-edit, .mcp-item-delete {
   background: none;
   border: none;
   color: var(--text-muted);
@@ -2054,13 +2054,19 @@ html, body {
   transition: all 0.15s;
 }
 
-.mcp-item:hover .mcp-item-edit {
+.mcp-item:hover .mcp-item-edit,
+.mcp-item:hover .mcp-item-delete {
   opacity: 1;
 }
 
 .mcp-item-edit:hover {
   color: var(--accent);
   background: var(--bg-hover);
+}
+
+.mcp-item-delete:hover {
+  color: var(--danger);
+  background: rgba(255,68,68,0.1);
 }
 
 .mcp-item-desc {
@@ -2141,6 +2147,11 @@ html, body {
 }
 
 #mcpPanel .panel-footer .btn-config-save {
+  width: 100%;
+  padding: 8px;
+}
+
+#toolsPanel .panel-footer .btn-config-save {
   width: 100%;
   padding: 8px;
 }

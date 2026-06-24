@@ -20,19 +20,13 @@ knowledge:
   rerank_api_url: http://reranker:7997/rerank
   rerank_model: BAAI/bge-reranker-v2-m3
   score_threshold: 0.5
-  supported_file_types:
-  - pdf
-  - csv
-  - md
-  - docx
-  - txt
   vector_top_k: 5
 log_level: info
 memory:
   debounce_seconds: 60
-  enabled: true
+  enabled: false
   fact_confidence_threshold: 0.7
-  injection_enabled: true
+  injection_enabled: false
   max_facts: 30
   max_injection_tokens: 2000
   model_name: deepseek-v4-flash
@@ -58,7 +52,7 @@ models:
       thinking:
         type: enabled
 - base_url: http://host.docker.internal:11434
-  display_name: Gemma 4 E2B (Ollama Fast)
+  display_name: Gemma 4 E2B (Ollama)
   model: gemma4:e2b
   name: gemma4-e2b-local
   num_predict: 8192
@@ -78,7 +72,7 @@ models:
   temperature: 0.7
   use: langchain_ollama:ChatOllama
 - api_key: $DEEPSEEK_API_KEY
-  display_name: Deepseek-V4-Flash (Thinking)
+  display_name: Deepseek-V4-Flash
   max_retries: 2
   max_tokens: 32768
   model: deepseek-v4-flash
@@ -114,17 +108,17 @@ summarization:
   keep:
     type: messages
     value: 10
-  model_name: doubao-seed-1.8
+  model_name: deepseek-v4-flash
   summary_prompt: null
   trigger:
   - type: tokens
-    value: 20000
-  trim_tokens_to_summarize: 15564
+    value: 40000
+  trim_tokens_to_summarize: 40000
 title:
   enabled: true
   max_chars: 60
   max_words: 6
-  model_name: doubao-seed-1.8
+  model_name: deepseek-v4-flash
 token_usage:
   enabled: false
 tool_groups:
@@ -139,5 +133,11 @@ tools:
   max_results: 5
   name: web_search
   use: optclaw.community.tavily.tools:web_search_tool
+  enabled: true
+- name: okx_mkt
+  group: web
+  max_results: 1000
+  use: optclaw.community.okx.tools:okx_mkt_tool
+  enabled: false
 uploads:
   pdf_converter: auto

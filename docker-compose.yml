@@ -1,9 +1,9 @@
 services:
-  api:
+  core:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: optclaw-api
+    container_name: optclaw-core
     ports:
       - "8000:8000"
     volumes:
@@ -26,7 +26,7 @@ services:
     ports:
       - "85:80"
     depends_on:
-      - api
+      - core
     restart: unless-stopped
 
   mongo:

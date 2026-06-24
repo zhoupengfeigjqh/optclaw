@@ -158,6 +158,24 @@ async def update_skill(name: str, enabled: bool = True):
         raise HTTPException(status_code=500, detail=f"更新技能配置失败: {e}")
 
 
+@app.get("/api/tools")
+async def list_tools(enabled_only: bool = False):
+    try:
+        return _sanitize(client.list_tools(enabled_only=enabled_only))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取工具列表失败: {e}")
+
+
+@app.patch("/api/tools/{name}")
+async def update_tool(name: str, enabled: bool):
+    try:
+        return _sanitize(client.update_tool(name, enabled))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新工具配置失败: {e}")
+
+
 @app.post("/api/skills/install")
 async def install_skill(file: UploadFile = File(...)):
     if not file.filename or not file.filename.endswith(".skill"):
@@ -363,10 +381,14 @@ async def stop_chat(req: StopRequest):
 
 @app.post("/api/upload/{thread_id}")
 async def upload_files(thread_id: str, files: list[UploadFile] = File(...)):
+    ALLOWED_EXTS = {".pdf", ".csv", ".txt", ".png", ".jpg", ".jpeg"}
     tmpdir = tempfile.mkdtemp()
     saved_paths = []
     try:
         for f in files:
+            ext = Path(f.filename).suffix.lower()
+            if ext not in ALLOWED_EXTS:
+                raise HTTPException(status_code=400, detail=f"不支持的文件类型: {ext}，仅支持 pdf, csv, txt, png, jpg, jpeg")
             dest = Path(tmpdir) / f.filename
             with open(dest, "wb") as out:
                 content = await f.read()
@@ -547,3 +569,17 @@ async def delete_mcp_server(server_name: str):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"删除MCP服务器失败: {e}")
+
+
+class McpRenameRequest(BaseModel):
+    new_name: str
+
+
+@app.put("/api/mcp/{server_name}/rename")
+async def rename_mcp_server(server_name: str, req: McpRenameRequest):
+    try:
+        return _sanitize(client.rename_mcp_server(server_name, req.new_name))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"重命名MCP服务器失败: {e}")

@@ -19,7 +19,7 @@ def _fmt_content(content: str) -> str:
 @tool("knowledge_search", parse_docstring=True)
 async def knowledge_search_tool(query: str, runtime: ToolRuntime) -> str:
     """Search the knowledge base using hybrid retrieval (keyword + vector search combined).
-    This tool queries indexed documents to find the most relevant content chunks.
+    This tool queries indexed documents to find the most relevant content chunks, including the image information.
 
     When to use the knowledge_search tool:
     - When you need to retrieve information from the user's uploaded knowledge base documents

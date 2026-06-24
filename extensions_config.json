@@ -45,6 +45,58 @@
       "headers": {},
       "oauth": null,
       "description": "PostgreSQL database access"
+    },
+    "usstock": {
+      "enabled": false,
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@phoenixaihub/tradingview-mcp"
+      ],
+      "env": {},
+      "url": null,
+      "headers": {},
+      "oauth": null,
+      "description": "获取美股相关的技术指标数据！"
+    },
+    "cryptomarket": {
+      "enabled": false,
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@coinpaprika/mcp"
+      ],
+      "env": {},
+      "url": null,
+      "headers": {},
+      "oauth": null,
+      "description": "获取crypto行情数据！"
+    },
+    "antv": {
+      "enabled": false,
+      "type": "streamable_http",
+      "command": "",
+      "args": [
+      ],
+      "env": {},
+      "url": "https://mcp.api-inference.modelscope.net/03bb39a868da47/mcp",
+      "headers": {},
+      "oauth": null,
+      "description": "获取AntV图表数据！"
+    },
+    "cnstock": {
+      "enabled": false,
+      "type": "sse",
+      "command": "",
+      "args": [
+      ],
+      "env": {},
+      "url": "https://mcp.api-inference.modelscope.net/93857d898c9d48/sse",
+      "headers": {},
+      "oauth": null,
+      "description": "A股行情数据！（不稳定）"
     }
   },
   "skills": {

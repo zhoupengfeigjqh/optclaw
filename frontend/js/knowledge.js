@@ -146,7 +146,7 @@
       elProgressFill.style.width = "100%";
       elUploadStatus.textContent = `解析完成 — ${data.results.length} 条记录`;
       pendingSmartFile = file;
-      pendingSmartFileType = data.file_type || ext;
+      pendingSmartFileType = data.file_type || file.name.split(".").pop().toLowerCase();
       elFileInput.value = "";
       setTimeout(() => { elUploadProgress.style.display = "none"; }, 2000);
       showSmartResultDialog(data.file_name, data.results);

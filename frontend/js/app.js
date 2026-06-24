@@ -11,8 +11,15 @@
   let threadCache = [];
   const modelMeta = {};
 
+  const SUPPORTED_EXTS = new Set([".pdf", ".csv", ".txt", ".png", ".jpg", ".jpeg"]);
+
+  function isSupportedFileType(file) {
+    const ext = "." + file.name.split(".").pop().toLowerCase();
+    return SUPPORTED_EXTS.has(ext);
+  }
+
   function isImageOrVideo(file) {
-    return file.type.startsWith("image/") || file.type.startsWith("video/");
+    return file.type.startsWith("image/");
   }
 
   function currentModelSupportsVision() {
@@ -202,6 +209,35 @@
         body.appendChild(el);
       }
       el.textContent += delta;
+      scrollToBottom();
+      return;
+    }
+
+    if (deltaType === "artifacts") {
+      let filesDiv = body.querySelector(".message-files");
+      if (!filesDiv) {
+        filesDiv = document.createElement("div");
+        filesDiv.className = "message-files";
+        body.appendChild(filesDiv);
+      }
+      try {
+        const files = JSON.parse(delta);
+        files.forEach(function (f) {
+          const item = document.createElement("span");
+          item.className = "message-file-item";
+          var filename = f.split("/").pop();
+          item.title = filename;
+          item.textContent = "\u{1F4C4} " + filename;
+          item.style.cursor = "pointer";
+          item.addEventListener("click", function () {
+            var idx = f.indexOf("user-data/");
+            if (idx !== -1) {
+              window.open("/api/threads/" + currentThreadId + "/artifacts/mnt/" + f.slice(idx), "_blank");
+            }
+          });
+          filesDiv.appendChild(item);
+        });
+      } catch (_) {}
       scrollToBottom();
       return;
     }
@@ -570,9 +606,9 @@
 
   function updateUploadButtonForModel() {
     if (!currentModelSupportsVision()) {
-      elFileInput.setAttribute("accept", ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.md,.json,.zip,.tar,.gz,.py,.js,.ts,.html,.css,.java,.cpp,.c,.h,.xml,.yaml,.yml,.toml,.rs,.go");
+      elFileInput.setAttribute("accept", "application/pdf,text/csv,text/plain");
     } else {
-      elFileInput.removeAttribute("accept");
+      elFileInput.setAttribute("accept", "application/pdf,text/csv,text/plain,image/png,image/jpeg");
     }
   }
 
@@ -635,10 +671,14 @@
 
   elFileInput.addEventListener("change", () => {
     let added = 0;
-    let filtered = 0;
+    let rejected = 0;
     for (const file of elFileInput.files) {
+      if (!isSupportedFileType(file)) {
+        rejected++;
+        continue;
+      }
       if (!currentModelSupportsVision() && isImageOrVideo(file)) {
-        filtered++;
+        rejected++;
         continue;
       }
       pendingFiles.push(file);
@@ -647,8 +687,8 @@
     elFileInput.value = "";
     renderUploadFiles();
     updateSendButton();
-    if (filtered > 0) {
-      showUploadTip();
+    if (rejected > 0) {
+      alert("仅支持上传 pdf, csv, txt, png, jpg, jpeg 文件，已自动跳过不支持的类型。");
     }
   });
 
@@ -681,6 +721,9 @@
   const elMcpList = $("#mcpList");
   const elMcpModalOverlay = $("#mcpModalOverlay");
 
+  const elToolsPanel = $("#toolsPanel");
+  const elToolsList = $("#toolsList");
+
   let selectedAgentName = localStorage.getItem("optclaw_agent") || "";
 
   function openPanel(panel) {
@@ -695,6 +738,7 @@
     if (elUploadsPanel) elUploadsPanel.classList.remove("open");
     if (elAgentsPanel) elAgentsPanel.classList.remove("open");
     if (elMcpPanel) elMcpPanel.classList.remove("open");
+    if (elToolsPanel) elToolsPanel.classList.remove("open");
   }
 
   function closeSkillsModal() {
@@ -777,6 +821,19 @@
         hintMcp.textContent = enabled + " 个已开启";
       } catch (e) {
         hintMcp.textContent = "--";
+      }
+    }
+
+    const hintTools = document.getElementById("introToolsHint");
+    if (hintTools) {
+      try {
+        const res = await fetch(`${API_BASE}/tools`);
+        const data = await res.json();
+        const tools = data.tools || [];
+        const enabled = tools.filter((t) => t.enabled).length;
+        hintTools.textContent = enabled + " 个已开启";
+      } catch (e) {
+        hintTools.textContent = "--";
       }
     }
 
@@ -1023,11 +1080,18 @@
   }
 
   let skillChanges = {};
+  let skillsCache = null;
+
+  async function fetchSkills() {
+    if (skillsCache) return skillsCache;
+    const res = await fetch(`${API_BASE}/skills`);
+    skillsCache = await res.json();
+    return skillsCache;
+  }
 
   async function loadSkills() {
     try {
-      const res = await fetch(`${API_BASE}/skills`);
-      const data = await res.json();
+      const data = await fetchSkills();
       const skills = data.skills || [];
       elSkillsList.innerHTML = "";
       skillChanges = {};
@@ -1068,8 +1132,7 @@
   async function loadSkillsPopup() {
     if (!elSkillsPopupList) return;
     try {
-      const res = await fetch(`${API_BASE}/skills`);
-      const data = await res.json();
+      const data = await fetchSkills();
       const skills = (data.skills || []).filter((s) => s.enabled);
       elSkillsPopupList.innerHTML = "";
       if (skills.length === 0) {
@@ -1102,6 +1165,7 @@
         await fetch(`${API_BASE}/skills/${encodeURIComponent(name)}?enabled=${enabled}`, { method: "PATCH" });
       }
       skillChanges = {};
+      skillsCache = null;
       loadSkills();
       refreshIntroHints();
     } catch (e) {
@@ -1146,12 +1210,83 @@
       }
       const data = await res.json();
       showInstallResult(true, `技能「${data.skill_name || file.name}」安装成功`);
+      skillsCache = null;
       loadSkills();
     } catch (e) {
       showInstallResult(false, "安装失败: " + (e.message || e));
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = "安装技能"; }
     }
+  }
+
+  // ── Tools management ────────────────────────────────────────────────
+
+  let toolChanges = {};
+
+  async function loadTools() {
+    if (!elToolsList) return;
+    try {
+      const res = await fetch(`${API_BASE}/tools`);
+      const data = await res.json();
+      const tools = data.tools || [];
+      elToolsList.innerHTML = "";
+      toolChanges = {};
+      if (tools.length === 0) {
+        elToolsList.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">暂无工具</div>';
+        return;
+      }
+      tools.forEach((t) => {
+        const item = document.createElement("div");
+        item.className = "skill-item";
+        const enabled = t.enabled;
+        const toggleCls = enabled ? "skill-toggle on" : "skill-toggle off";
+        const toggleTxt = enabled ? "ON" : "OFF";
+        const nameStyle = enabled ? "color:var(--text-primary)" : "color:var(--text-muted)";
+        item.innerHTML = `
+          <div class="skill-name" style="${nameStyle}">${escapeHtml(t.name)}<span class="skill-category">${escapeHtml(t.group || "")}</span></div>
+          <button class="${toggleCls}" data-tool="${escapeHtml(t.name)}" data-enabled="${enabled}">${toggleTxt}</button>
+        `;
+        item.querySelector(".skill-toggle").onclick = (e) => {
+          const btn = e.target;
+          const currentEnabled = btn.dataset.enabled === "true";
+          const newEnabled = !currentEnabled;
+          btn.dataset.enabled = String(newEnabled);
+          btn.textContent = newEnabled ? "ON" : "OFF";
+          btn.className = newEnabled ? "skill-toggle on" : "skill-toggle off";
+          const nameEl = item.querySelector(".skill-name");
+          if (nameEl) nameEl.style.color = newEnabled ? "var(--text-primary)" : "var(--text-muted)";
+          toolChanges[btn.dataset.tool] = newEnabled;
+        };
+        elToolsList.appendChild(item);
+      });
+    } catch (e) {
+      console.error("Failed to load tools", e);
+    }
+  }
+
+  async function saveToolConfig() {
+    if (Object.keys(toolChanges).length === 0) {
+      alert("没有修改任何工具配置");
+      return;
+    }
+    if (!confirm("确定保存工具配置？")) return;
+    try {
+      for (const [name, enabled] of Object.entries(toolChanges)) {
+        await fetch(`${API_BASE}/tools/${encodeURIComponent(name)}?enabled=${enabled}`, { method: "PATCH" });
+      }
+      toolChanges = {};
+      loadTools();
+      refreshIntroHints();
+    } catch (e) {
+      console.error("Save tool config failed", e);
+    }
+  }
+
+  if ($("#btnCloseTools")) {
+    $("#btnCloseTools").addEventListener("click", closeAllPanels);
+  }
+  if ($("#btnSaveToolConfig")) {
+    $("#btnSaveToolConfig").addEventListener("click", saveToolConfig);
   }
 
   if ($("#btnCloseMemory")) {
@@ -1509,6 +1644,7 @@
           <div class="mcp-item-name-row">
             <span class="mcp-item-name">${escapeHtml(name)}</span>
             <button class="mcp-item-edit" title="编辑">✎</button>
+            <button class="mcp-item-delete" title="删除">🗑</button>
           </div>
           <div class="mcp-item-desc">${escapeHtml(srv.description || "")}</div>
           <div class="mcp-item-type">${escapeHtml(srv.type || "stdio")}${srv.command ? " · " + escapeHtml(srv.command) : ""}</div>
@@ -1522,6 +1658,25 @@
       item.querySelector(".mcp-item-edit").addEventListener("click", (e) => {
         e.stopPropagation();
         openMcpModal(name);
+      });
+
+      item.querySelector(".mcp-item-delete").addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if (!confirm(`确定删除MCP服务器 "${name}"？此操作不可撤销。`)) return;
+        try {
+          const res = await fetch(`${API_BASE}/mcp/${encodeURIComponent(name)}`, { method: "DELETE" });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert(err.detail || "删除失败");
+            return;
+          }
+          delete mcpServerData[name];
+          renderMcpServers();
+          refreshIntroHints();
+        } catch (err) {
+          console.error("Delete MCP server failed", err);
+          alert("删除失败");
+        }
       });
 
       const checkbox = item.querySelector(".mcp-toggle-checkbox");
@@ -1554,7 +1709,6 @@
     const nameEl = $("#modalMcpName");
     if (nameEl) {
       nameEl.value = serverName || "";
-      nameEl.disabled = !!serverName;
     }
 
     const srv = serverName ? (mcpServerData[serverName] || {}) : {};
@@ -1639,7 +1793,20 @@
 
     try {
       if (mcpEditingServerName) {
-        const res = await fetch(`${API_BASE}/mcp/${encodeURIComponent(mcpEditingServerName)}`, {
+        // Handle rename if name changed
+        if (name !== mcpEditingServerName) {
+          const renameRes = await fetch(`${API_BASE}/mcp/${encodeURIComponent(mcpEditingServerName)}/rename`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ new_name: name }),
+          });
+          if (!renameRes.ok) {
+            const err = await renameRes.json().catch(() => ({}));
+            alert(err.detail || "重命名失败");
+            return;
+          }
+        }
+        const res = await fetch(`${API_BASE}/mcp/${encodeURIComponent(name)}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(config),
@@ -1810,6 +1977,14 @@
         if (elPanelOverlay) elPanelOverlay.classList.add("visible");
         if (elMcpPanel) elMcpPanel.classList.add("open");
         loadMcpServers();
+      });
+    }
+    const introBtnTools = document.getElementById("introBtnTools");
+    if (introBtnTools) {
+      introBtnTools.addEventListener("click", () => {
+        if (elPanelOverlay) elPanelOverlay.classList.add("visible");
+        if (elToolsPanel) elToolsPanel.classList.add("open");
+        loadTools();
       });
     }
     const introBtnKnowledge = document.getElementById("introBtnKnowledge");

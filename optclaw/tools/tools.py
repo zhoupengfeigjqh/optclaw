@@ -6,8 +6,7 @@ from optclaw.config import get_app_config
 from optclaw.reflection import resolve_variable
 from optclaw.tools.builtins import ask_clarification_tool, present_file_tool, write_file_tool, \
     read_file_tool, glob_file_tool, grep_file_tool, view_image_tool,\
-          tail_file_tool, str_replace_tool, setup_agent_tool, task_tool, list_directory_tool, execute_python_file_tool, \
-          knowledge_search_tool
+          tail_file_tool, str_replace_tool, task_tool, knowledge_search_tool, setup_agent_tool, list_directory_tool, execute_python_file_tool
 
 from optclaw.log import setup_logging
 logger = setup_logging(__name__)
@@ -23,9 +22,9 @@ BUILTIN_TOOLS = [
     present_file_tool,
     ask_clarification_tool,
     str_replace_tool,
-    list_directory_tool,
-    setup_agent_tool,
-    # execute_python_file_tool,
+    # list_directory_tool,
+    # setup_agent_tool,
+    execute_python_file_tool,
     knowledge_search_tool,
 ]
 
@@ -56,7 +55,7 @@ def get_available_tools(
         List of available tools.
     """
     config = get_app_config()
-    tool_configs = [tool for tool in config.tools if groups is None or tool.group in groups]
+    tool_configs = [tool for tool in config.tools if (groups is None or tool.group in groups) and tool.enabled]
     logger.info(f"Tool configs after group filtering: {[tool.name for tool in tool_configs]}")
 
     # config tools
