@@ -128,7 +128,9 @@ Important Rules:
   session-specific and ephemeral — they will not be accessible in future sessions.
   Recording upload events causes confusion in subsequent conversations.
 
-Return ONLY valid JSON, no explanation or markdown."""
+Return ONLY valid JSON, no explanation or markdown.
+
+**极其重要：所有输出内容必须使用中文，包括 summary、content、category 等所有字段的值，一律使用简体中文！**"""
 
 
 # Prompt template for extracting facts from a single message
@@ -157,7 +159,11 @@ Rules:
 - Confidence should reflect certainty (explicit statement = 0.9+, implied = 0.6-0.8)
 - Skip vague or temporary information
 
-Return ONLY valid JSON."""
+Return ONLY valid JSON.
+
+Please output in Chinese content format！
+
+**极其重要：所有输出内容必须使用中文，包括 fact 的 content、category 等所有字段的值，一律使用简体中文！**"""
 
 
 def _count_tokens(text: str, encoding_name: str = "cl100k_base") -> int:

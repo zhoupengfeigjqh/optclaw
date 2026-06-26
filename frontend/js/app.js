@@ -1061,6 +1061,68 @@
     if (overlay) overlay.style.display = "none";
   }
 
+  async function openLtmModal() {
+    const overlay = $("#ltmModalOverlay");
+    const contentEl = $("#ltmModalContent");
+    if (!overlay || !contentEl) return;
+    overlay.style.display = "flex";
+    contentEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">加载中...</div>';
+
+    try {
+      const res = await fetch(`${API_BASE}/memory${memAgentParam()}`);
+      const data = await res.json();
+
+      const sections = [
+        { key: "workContext",       label: "工作背景",   src: (data.user || {}).workContext },
+        { key: "personalContext",   label: "个人偏好",   src: (data.user || {}).personalContext },
+        { key: "topOfMind",         label: "当前关注",   src: (data.user || {}).topOfMind },
+        { key: "recentMonths",      label: "近期总结（1~3个月）",      src: (data.history || {}).recentMonths },
+        { key: "earlierContext",    label: "中期总结（3~12个月）",    src: (data.history || {}).earlierContext },
+        { key: "longTermBackground",label: "长期总结",                src: (data.history || {}).longTermBackground },
+      ];
+
+      contentEl.innerHTML = sections
+        .map((s, i) => {
+          const summary = (s.src && s.src.summary) ? s.src.summary : "";
+          const time = (s.src && s.src.updatedAt) ? new Date(s.src.updatedAt).toLocaleString() : "";
+          return `<div class="ltm-card">
+            <div class="ltm-card-header" data-ltm-idx="${i}">
+              <span class="ltm-card-arrow">▶</span>
+              <span class="ltm-card-label">${s.label}</span>
+              ${time ? `<span class="ltm-card-time">${time}</span>` : ""}
+            </div>
+            <div class="ltm-card-body" data-ltm-body="${i}" style="display:none;">${escapeHtml(summary) || '<span style="color:var(--text-muted)">暂无</span>'}</div>
+          </div>`;
+        })
+        .join("");
+
+      contentEl.querySelectorAll(".ltm-card-header").forEach((header) => {
+        header.style.cursor = "pointer";
+        header.addEventListener("click", () => {
+          const idx = header.dataset.ltmIdx;
+          const body = contentEl.querySelector(`[data-ltm-body="${idx}"]`);
+          const arrow = header.querySelector(".ltm-card-arrow");
+          if (!body) return;
+          if (body.style.display === "none") {
+            body.style.display = "";
+            if (arrow) arrow.textContent = "▼";
+          } else {
+            body.style.display = "none";
+            if (arrow) arrow.textContent = "▶";
+          }
+        });
+      });
+    } catch (e) {
+      console.error("Failed to load long-term memory", e);
+      contentEl.innerHTML = '<div style="color:var(--danger);text-align:center;padding:20px;">加载失败</div>';
+    }
+  }
+
+  function closeLtmModal() {
+    const overlay = $("#ltmModalOverlay");
+    if (overlay) overlay.style.display = "none";
+  }
+
   async function addMemoryFact() {
     const content = ($("#modalFactContent") || {}).value || "";
     const category = ($("#modalFactCategory") || {}).value || "context";
@@ -1294,6 +1356,15 @@
   }
   if ($("#btnAddFact")) {
     $("#btnAddFact").addEventListener("click", openFactModal);
+  }
+  if ($("#btnLongTermMemory")) {
+    $("#btnLongTermMemory").addEventListener("click", openLtmModal);
+  }
+  if ($("#btnCloseLtmModal")) {
+    $("#btnCloseLtmModal").addEventListener("click", closeLtmModal);
+  }
+  if ($("#btnCancelLtmModal")) {
+    $("#btnCancelLtmModal").addEventListener("click", closeLtmModal);
   }
   if ($("#btnCloseFactModal")) {
     $("#btnCloseFactModal").addEventListener("click", closeFactModal);

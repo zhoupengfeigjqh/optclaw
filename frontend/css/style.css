@@ -854,6 +854,72 @@ html, body {
   opacity: 0.9;
 }
 
+/* Long-term memory modal */
+.ltm-modal-dialog {
+  max-width: 680px;
+  width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.ltm-modal-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ltm-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ltm-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-muted, rgba(255,255,255,0.04));
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ltm-card-header:hover {
+  background: var(--bg-muted, rgba(255,255,255,0.08));
+}
+
+.ltm-card-arrow {
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+
+.ltm-card-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+}
+
+.ltm-card-time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ltm-card-body {
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #fff;
+  white-space: pre-wrap;
+}
+
 .memory-filter-bar {
   display: flex;
   align-items: center;
