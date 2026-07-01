@@ -1,4 +1,4 @@
-"""Document parser supporting PDF, CSV, MD, DOCX, and TXT files."""
+"""Document parser supporting PDF, CSV, and TXT files."""
 
 import csv
 import io
@@ -15,10 +15,6 @@ async def parse_document(file_path: str, file_type: str, agent_name: str = "defa
         return _parse_pdf(file_path, agent_name)
     elif ext == "csv":
         return _parse_csv(file_path)
-    elif ext == "md":
-        return _parse_md(file_path)
-    elif ext == "docx":
-        return _parse_docx(file_path)
     elif ext == "txt":
         return _parse_txt(file_path)
     else:
@@ -91,28 +87,6 @@ def _parse_csv(file_path: str) -> tuple[str, dict]:
             text_parts.append(row_text)
             row_count += 1
     return "\n".join(text_parts), {"row_count": row_count, "parser": "csv"}
-
-
-def _parse_md(file_path: str) -> tuple[str, dict]:
-    with open(file_path, encoding="utf-8") as f:
-        text = f.read()
-    return text, {"parser": "md"}
-
-
-def _parse_docx(file_path: str) -> tuple[str, dict]:
-    try:
-        from markitdown import MarkItDown
-        md = MarkItDown()
-        result = md.convert(file_path)
-        return result.text_content, {"parser": "markitdown"}
-    except ImportError:
-        try:
-            from docx import Document
-            doc = Document(file_path)
-            text = "\n".join(p.text for p in doc.paragraphs)
-            return text, {"parser": "python-docx"}
-        except ImportError:
-            raise ImportError("markitdown or python-docx is required for DOCX parsing")
 
 
 def _parse_txt(file_path: str) -> tuple[str, dict]:
