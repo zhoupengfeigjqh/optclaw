@@ -3,6 +3,7 @@ agents_api:
 checkpointer:
   connection_string: checkpoints.db
   type: sqlite
+  keep_latest: true
 circuit_breaker:
   failure_threshold: 5
   recovery_timeout_sec: 60
