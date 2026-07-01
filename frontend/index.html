@@ -236,8 +236,21 @@
       <option value="correction">纠正</option>
     </select>
     <button class="btn-config-save" id="btnAddFact">新增事实</button>
+    <button class="btn-config-save" id="btnLongTermMemory">长期记忆</button>
   </div>
   <div class="panel-body" id="memoryList"></div>
+  <div class="modal-overlay" id="ltmModalOverlay" style="display:none;">
+    <div class="modal-dialog ltm-modal-dialog" id="ltmModal">
+      <div class="modal-header">
+        <h4>长期记忆</h4>
+        <button class="btn-modal-close" id="btnCloseLtmModal">&times;</button>
+      </div>
+      <div class="modal-body ltm-modal-body" id="ltmModalContent"></div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" id="btnCancelLtmModal">关闭</button>
+      </div>
+    </div>
+  </div>
   <div class="modal-overlay" id="factModalOverlay" style="display:none;">
     <div class="modal-dialog" id="factModal">
       <div class="modal-header">

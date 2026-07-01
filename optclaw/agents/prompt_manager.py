@@ -386,7 +386,9 @@ Only generate pure Python scripts when writing code, and strictly comply with al
 - Only file operations within the allowed absolute directories are permitted. Allowed paths: /mnt/user-data/workspace, /mnt/user-data/uploads, /mnt/user-data/output. Reading or writing files outside these directories is forbidden for security reasons.
 - Never use any relative paths in all python scripts
 </code_generation_rules>
-"""
+
+
+**极其重要：除了代码等情境外，对话过程中答复的内容，一律使用简体中文输出！**"""
 
 
 def _get_memory_context(agent_name: str | None = None) -> str:

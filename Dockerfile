@@ -13,7 +13,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com \
     && pip install --no-cache-dir uv -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 
-COPY . .
+COPY knowledge/ ./knowledge/
+COPY mcp_data/ ./mcp_data/
+COPY optclaw/ ./optclaw/
+COPY skills/ ./skills/
+COPY .env api_server.py config.yaml extensions_config.json ./
 
 RUN mkdir -p /app/knowledge/faiss_index
 

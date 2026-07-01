@@ -48,7 +48,15 @@ class SummarizationConfig(BaseModel):
         description="Maximum tokens to keep when preparing messages for summarization. Pass null to skip trimming.",
     )
     summary_prompt: str | None = Field(
-        default=None,
+        default=
+        """
+        <instructions>
+        你此时的角色任务是从历史对话上下文中提取重要的关键信息。
+        包括：
+        1 内容总结：对前文对话的重要内容进行压缩提炼；
+        2 任务进展情况：当前任务进行的情况描述；
+        3 下一步需要做的事情：对话中需要继续推进的任务和目标；
+        </instructions>""",
         description="Custom prompt template for generating summaries. If not provided, uses the default LangChain prompt.",
     )
 
