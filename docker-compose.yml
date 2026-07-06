@@ -1,19 +1,19 @@
 services:
   core:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: optclaw-core
     ports:
       - "8000:8000"
     volumes:
-      - ./.env:/app/.env:ro
-      - ./config.yaml:/app/config.yaml
-      - ./skills:/app/skills
+      - ./backend/.env:/app/.env:ro
+      - ./backend/config.yaml:/app/config.yaml
+      - ./backend/skills:/app/skills
       - optclaw-data:/app/optclaw/.opt-claw
       - faiss-data:/app/knowledge/faiss_index
     env_file:
-      - .env
+      - ./backend/.env
     depends_on:
       - mongo
     restart: unless-stopped

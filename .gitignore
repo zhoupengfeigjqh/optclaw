@@ -1,0 +1,34 @@
+# 忽略环境变量文件（密钥、密码绝对不能上传）
+.env
+.env.*
+!.env.example
+
+# 忽略 Python 缓存（所有目录下的 __pycache__ 都会被忽略）
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE 和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# IDE 历史记录
+.history/

@@ -26,7 +26,9 @@ from optclaw.config.title_config import TitleConfig, load_title_config_from_dict
 from optclaw.config.tool_config import ToolConfig, ToolGroupConfig
 # from optclaw.config.tool_search_config import ToolSearchConfig, load_tool_search_config_from_dict
 
-load_dotenv()
+# Load .env from the backend directory (sibling to optclaw/ package)
+_env_path = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(_env_path)
 
 from optclaw.log import setup_logging
 logger = setup_logging(__name__)
