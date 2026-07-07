@@ -28,32 +28,20 @@ async def task_tool(
     tool_call_id: Annotated[str, InjectedToolCallId],
     max_turns: int | None = None,
 ) -> str:
-    """Delegate tasks to dedicated subagents with independent running contexts.
+    """将任务委托给独立子代理执行。
 
-    Two subagent type for task division:
-    - **general-purpose**: Undertakes subtasks from the parent agent, including file operations, code runnding, data analysis, scenario research and logic organization.
-    - **coder**: Responsible for coding and running code scripts.
-    
-    Core benefits:
-    - Clearly split coding and non-coding work
-    - Automatically finish multi-step complex tasks
-    - Isolate independent context without polluting main conversation
-    - Support parallel task processing
+    两种子代理类型：
+    - **general-purpose**：通用子任务，包括文件操作、数据分析、场景调研、逻辑整理
+    - **coder**：代码编写与执行
 
-    When to use:
-    - Multi-step complex tasks
-    - Tasks generating bulky output
-    - Need context isolation or independent exploration
-
-    When NOT to use:
-    - Simple single-step operations
-    - Tasks needing real-time user communication
+    适用场景：多步骤复杂任务、产出大量内容、需要上下文隔离
+    不适用：简单单步操作、需要实时与用户沟通
 
     Args:
-        description: Short 3-6 word task label (first param)
-        prompt: Clear specific task requirements (second param)
-        subagent_type: Designate subagent type (third param)
-        max_turns: Optional max execution rounds, use default if omitted
+        description: 简短任务标签，3-6 个字
+        prompt: 明确具体的任务要求
+        subagent_type: 子代理类型
+        max_turns: 可选，最大执行轮数
     """
     available_subagent_names = get_available_subagent_names()
 

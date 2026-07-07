@@ -9,17 +9,17 @@ logger = setup_logging(__name__)
 
 @tool("str_replace", parse_docstring=True)
 def str_replace_tool(path: str, old_pattern: str, new_text: str, is_regex: bool = False) -> str:
-    """Replace occurrences of a text pattern or regular expression in a specific file.
+    """在指定文件中替换文本或正则表达式匹配的内容。
 
-    When to use the str_replace tool:
-    - Use this to update configurations, fix typos, or bulk-replace strings in a file.
-    - Use this when you need to modify file content programmatically.
+    适用场景：
+    - 更新配置、修正错别字、批量替换字符串
+    - 需要程序化修改文件内容
 
     Args:
-        path: The absolute path of the file to modify.
-        old_pattern: The text string or regular expression pattern to search for.
-        new_text: The replacement text string to insert.
-        is_regex: If True, treats old_pattern as a regular expression. Defaults to False.
+        path: 要修改的文件的绝对路径。
+        old_pattern: 要搜索的文本字符串或正则表达式。
+        new_text: 替换后的文本字符串。
+        is_regex: 为 True 时将 old_pattern 视为正则表达式，默认 False。
     """
     # 1. 解析虚拟路径（保持安全逻辑一致）
     actual_path = resolve_virtual_path(path)

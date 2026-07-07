@@ -57,15 +57,14 @@ _DEFAULT_GREP_MAX_RESULTS = 500
 
 @tool("grep_file", parse_docstring=True)
 def grep_file_tool(path: str, pattern: str) -> str:
-    """Search for a keyword/pattern in a text file and return matching lines with line numbers.
-    
-    When to use the grep_file tool:
-    - Use this when you need to quickly find specific content (errors, keywords, configurations) in a file.
-    - Do NOT use this to read the entire file; use read_file instead.
+    """在文本文件中搜索关键词/模式，返回匹配行及行号。
+
+    适用场景：快速查找文件中的特定内容（错误、关键词、配置项）。
+    不要用此工具读取整个文件，请用 read_file。
 
     Args:
-        path: The ***absolute*** path to the file to search.
-        pattern: The keyword or text pattern to search for (case-sensitive).
+        path: 要搜索的文件的绝对路径。
+        pattern: 要搜索的关键词或文本模式（区分大小写）。
     """
     actual_path = resolve_virtual_path(path)
 

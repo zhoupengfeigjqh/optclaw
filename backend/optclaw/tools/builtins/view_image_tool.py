@@ -20,19 +20,13 @@ def view_image_tool(
     image_path: str,
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> Command:
-    """Read an image file.
+    """读取图片文件并使其可显示。
 
-    Use this tool to read an image file and make it available for display.
-
-    When to use the view_image tool:
-    - When you need to view an image file.
-
-    When NOT to use the view_image tool:
-    - For non-image files (use present_files instead)
-    - For multiple files at once (use present_files instead)
+    适用场景：需要查看图片文件时。
+    不适用：非图片文件（用 present_files）、多文件展示（用 present_files）
 
     Args:
-        image_path: Absolute path to the image file. Common formats supported: jpg, jpeg, png, webp.
+        image_path: 图片文件的绝对路径。支持格式：jpg、jpeg、png、webp。
     """
 
     # resolve the virtual path

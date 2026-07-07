@@ -13,16 +13,15 @@ _MAX_ALLOWED_FILES = 100
 
 @tool("list_directory", parse_docstring=True)
 def list_directory_tool(path: str, max_items: int = _DEFAULT_MAX_FILES) -> str:
-    """List the contents of a specific directory (like Linux ls).
-    Use this to view files and subdirectories within a given path.
+    """列出指定目录的内容（类似 Linux ls）。
 
-    When to use the list_directory tool:
-    - Use this when you need to explore the structure of a directory.
-    - Use this to locate files before reading or processing them.
+    适用场景：
+    - 浏览目录结构
+    - 在读取或处理文件前定位文件
 
     Args:
-        path: The absolute path of the directory to list.
-        max_items: The maximum number of items to return. Defaults to 50.
+        path: 要列出的目录的绝对路径。
+        max_items: 最大返回条目数，默认 50。
     """
     # 1. 解析虚拟路径（保持安全逻辑一致）
     actual_path = resolve_virtual_path(path)

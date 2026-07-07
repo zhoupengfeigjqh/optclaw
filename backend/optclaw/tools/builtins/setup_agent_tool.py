@@ -18,12 +18,12 @@ def setup_agent_tool(
     description: str,
     runtime: ToolRuntime,
 ) -> Command:
-    """Setup the custom optclaw agent.
-    When the user wants to setup a custom agent with a specific role, please call this tool.
+    """创建自定义 optclaw 智能体。
+    当用户想设置具有特定角色的自定义智能体时调用此工具。
 
     Args:
-        soul: Full SOUL.md content defining the agent's personality and behavior.
-        description: One-line description of what the agent does.
+        soul: 完整的 SOUL.md 内容，定义智能体的个性和行为。
+        description: 智能体功能的单行描述。
     """
 
     agent_name: str | None = runtime.context.get("agent_name") if runtime.context else None

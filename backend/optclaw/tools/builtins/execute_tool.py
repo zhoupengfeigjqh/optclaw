@@ -117,19 +117,19 @@ def _format_output(display_name: str, result: subprocess.CompletedProcess) -> st
 
 @tool("execute_python", parse_docstring=True)
 def execute_python_file_tool(path: str, command_args: list[str] = None) -> str:
-    """Execute a specific Python file with optional arguments and return its standard output and error.
+    """执行指定的 Python 文件（可选命令行参数），返回标准输出和错误信息。
 
-    When to use the execute_python_file tool:
-    - Use this when you need to run an existing Python script.
-    - Pass command-line arguments to the Python script via the command_args parameter.
+    适用场景：
+    - 需要运行已有的 Python 脚本
+    - 通过 command_args 传递命令行参数
 
-    Forbiddens:
-    - Use this tool to install or uninstall packages, such as `pip`, `npm`, `apt`, `brew`, etc.
-    - Use this tool to modify the documents, such as `touch`, `rm`, `mv`, `cp`, etc.
+    禁止：
+    - 安装或卸载包（如 pip、npm、apt、brew 等）
+    - 修改文件系统（如 touch、rm、mv、cp 等）
 
     Args:
-        path: The absolute path of the Python file to execute.
-        command_args: Optional list of command-line arguments to pass to the Python script. Defaults to None.
+        path: Python 文件的绝对路径。
+        command_args: 可选，传递给 Python 脚本的命令行参数列表。
     """
     actual_path = resolve_virtual_path(path)
     if not actual_path:

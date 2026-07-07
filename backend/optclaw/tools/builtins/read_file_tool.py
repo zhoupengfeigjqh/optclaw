@@ -70,23 +70,18 @@ def read_file_tool(
     start_line: int | None = None,
     end_line: int | None = None
 ) -> str:
-    """Read the contents of a text file. Use this to examine configuration files, logs, skills or any text-based file.
+    """读取文本文件内容，用于检查配置文件、日志、Skill 或任何文本文件。
 
-    When to use the read_file tool:
-    - This tool is intended for use when the agent needs to read file contents.
-    - Only one safety guard: global max lines limit (default 1000 lines), no character truncation.
-
-    Usage modes:
-    1. Only path provided: read first 1000 lines of file
-    2. Provide start_line only: read from start_line to EOF, capped at max_lines total rows
-    3. Provide both start_line and end_line: read specified line range [start_line, end_line]
+    使用模式：
+    1. 仅提供 path：读取文件前 1000 行
+    2. 提供 start_line：从 start_line 读到文件末尾，受 max_lines 上限约束
+    3. 同时提供 start_line 和 end_line：读取指定行范围 [start_line, end_line]
 
     Args:
-        path: The ***absolute*** path to the file to read.
-        max_lines: Global maximum allowed lines to read at once, default to 1000.
-                   Hard safety cap to avoid context overflow.
-        start_line: Start line number (1-indexed). If None, start from line 1.
-        end_line: End line number (1-indexed). If None, read until file end.
+        path: 文件的绝对路径。
+        max_lines: 单次读取全局最大行数，默认 1000，防止上下文溢出。
+        start_line: 起始行号（从 1 开始），为 None 则从第 1 行开始。
+        end_line: 结束行号（从 1 开始），为 None 则读到文件末尾。
     """
     actual_path = resolve_virtual_path(path)
 

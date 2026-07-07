@@ -11,16 +11,15 @@ _MAX_ALLOWED_LINES = 50  # 限制大语言模型单次接收的最大行数，�
 
 @tool("tail_file", parse_docstring=True)
 def tail_file_tool(path: str, lines: int = _DEFAULT_TAIL_MAX_LINES) -> str:
-    """Read the last lines of a specific file (like Linux tail).
-    Use this to view recent logs, updates, or the end of a file.
+    """读取指定文件的末尾若干行（类似 Linux tail）。
 
-    When to use the tail_file tool:
-    - Use this when you need to inspect the latest entries in a log file.
-    - Use this to check the output at the end of a file without reading the whole file.
+    适用场景：
+    - 查看日志文件最新内容
+    - 不需读整个文件即可查看末尾输出
 
     Args:
-        path: The absolute path of the file to read.
-        lines: The number of lines to read from the end of the file. Defaults to 100.
+        path: 文件的绝对路径。
+        lines: 从文件末尾读取的行数，默认 20。
     """
     # 1. 解析虚拟路径（保持安全逻辑一致）
     actual_path = resolve_virtual_path(path)

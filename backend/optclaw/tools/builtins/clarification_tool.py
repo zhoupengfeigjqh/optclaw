@@ -16,38 +16,30 @@ def ask_clarification_tool(
     context: str | None = None,
     options: list[str] | None = None,
 ) -> str:
-    """Ask the user for clarification when you need more information to proceed.
+    """当需要更多信息才能继续时，向用户发起澄清询问。
 
-    Use this tool when you encounter situations where you cannot proceed without user input:
+    遇到以下情况且无法继续时调用此工具：
 
-    - **Missing information**: Required details not provided (e.g., file paths, URLs, specific requirements)
-    - **Ambiguous requirements**: Multiple valid interpretations exist
-    - **Approach choices**: Several valid approaches exist and you need user preference
-    - **Risky operations**: Destructive actions that need explicit confirmation (e.g., deleting files, modifying production)
-    - **Suggestions**: You have a recommendation but want user approval before proceeding
+    - **信息缺失**：必要细节未提供（如文件路径、URL、具体需求）
+    - **需求歧义**：存在多种合理解读
+    - **方案选择**：有多种可行方案，需用户指定偏好
+    - **风险确认**：破坏性操作需明确确认（如删文件、修改生产环境）
+    - **建议审批**：有推荐方案但需用户同意
 
-    The execution will be interrupted and the question will be presented to the user.
-    Wait for the user's response before continuing.
+    调用后执行中断，问题呈现给用户。等待用户回复后再继续。
 
-    When to use ask_clarification:
-    - You need information that wasn't provided in the user's request
-    - The requirement can be interpreted in multiple ways
-    - Multiple valid implementation approaches exist
-    - You're about to perform a potentially dangerous operation
-    - You have a recommendation but need user approval
-
-    Best practices:
-    - Ask ONE clarification at a time for clarity
-    - Be specific and clear in your question
-    - Don't make assumptions when clarification is needed
-    - For risky operations, ALWAYS ask for confirmation
-    - After calling this tool, execution will be interrupted automatically
+    最佳实践：
+    - 一次只问一个澄清问题
+    - 问题要具体明确
+    - 需要澄清时不要自行假设
+    - 高风险操作必须确认
+    - 调用后执行自动中断
 
     Args:
-        question: The clarification question to ask the user. Be specific and clear.
-        clarification_type: The type of clarification needed (missing_info, ambiguous_requirement, approach_choice, risk_confirmation, suggestion).
-        context: Optional context explaining why clarification is needed. Helps the user understand the situation.
-        options: Optional list of choices (for approach_choice or suggestion types). Present clear options for the user to choose from.
+        question: 向用户提出的澄清问题，需具体明确。
+        clarification_type: 澄清类型（missing_info, ambiguous_requirement, approach_choice, risk_confirmation, suggestion）。
+        context: 可选，说明为何需要澄清，帮助用户理解。
+        options: 可选选项列表（用于 approach_choice 或 suggestion 类型）。
     """
     # This is a placeholder implementation
     # The actual logic is handled by ClarificationMiddleware which intercepts this tool call

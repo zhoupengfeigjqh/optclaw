@@ -11,15 +11,14 @@ _DEFAULT_GLOB_MAX_RESULTS = 100
 
 @tool("glob_file", parse_docstring=True)
 def glob_file_tool(path_pattern: str) -> str:
-    """Find files and directories using a path pattern with wildcards (like Linux glob).
-    Use this to list files matching a pattern, e.g., /mnt/user-data/uploads/*.md
+    """使用路径通配符模式查找文件和目录（类似 Linux glob）。
 
-    When to use the glob_file tool:
-    - Use this when you need to find or list files matching a naming pattern.
-    - Use this to check what files exist in a directory.
+    适用场景：
+    - 按命名模式查找或列出匹配的文件
+    - 检查目录下存在哪些文件
 
     Args:
-        path_pattern: The absolute path pattern with wildcards (*, ?, []) to match files.
+        path_pattern: 带通配符（*、?、[]）的绝对路径模式。
     """
     # 解析虚拟路径（保持和你原有工具一致的安全逻辑）
     actual_pattern = str(resolve_virtual_path(path_pattern))

@@ -10,15 +10,12 @@ logger = setup_logging(__name__)
 
 @tool("write_file", parse_docstring=True)
 def write_file_tool(path: str, content: str, append: bool = False) -> str:
-    """Write content to a text file. Use this to modify configuration files, logs, skills or any text-based file.
-
-    When to use the write_file tool:
-    - This tool is intended for use when the agent needs to write file contents.
+    """将内容写入文本文件，用于创建/修改配置文件、日志、Skill 或任何文本文件。
 
     Args:
-        path: The ***absolute*** path to the file to write.
-        content: The content to write to the file.
-        append: Whether to append to the file instead of overwriting it.
+        path: 要写入的文件的绝对路径。
+        content: 要写入的内容。
+        append: 是否追加到文件末尾，默认 False（覆盖）。
     """
     actual_path = resolve_virtual_path(path)
     if not actual_path:

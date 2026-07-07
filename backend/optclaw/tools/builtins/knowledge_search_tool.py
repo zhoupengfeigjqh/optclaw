@@ -18,20 +18,17 @@ def _fmt_content(content: str) -> str:
 
 @tool("knowledge_search", parse_docstring=True)
 async def knowledge_search_tool(query: str, runtime: ToolRuntime) -> str:
-    """Search the knowledge base using hybrid retrieval (keyword + vector search combined).
-    This tool queries indexed documents to find the most relevant content chunks, including the image information.
+    """使用混合检索（关键词 + 向量搜索）查询知识库，从已索引文档中查找最相关的内容片段，含图片信息。
 
-    When to use the knowledge_search tool:
-    - When you need to retrieve information from the user's uploaded knowledge base documents
-    - When the user asks about content that may exist in indexed files
-    - When you need precise, sourced answers from stored documents
+    适用场景：
+    - 从用户上传的知识库文档中检索信息
+    - 用户询问可能存在于已索引文件中的内容
+    - 需要从已存储文档中获取精确、有来源的答案
 
-    When NOT to use:
-    - For browsing the live web (use web_search instead)
-    - For reading files directly from disk (use read_file instead)
+    不适用：浏览实时网页（用 web_search）、直接读磁盘文件（用 read_file）
 
     Args:
-        query: The search query text (keywords separated by spaces) to find relevant content in the knowledge base.
+        query: 搜索查询文本，在知识库中查找相关内容。
     """
 
     score_threshold = 0.5
