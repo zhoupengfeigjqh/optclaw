@@ -354,17 +354,17 @@ class MemoryUpdater:
         correction_hint = ""
         if correction_detected:
             correction_hint = (
-                "IMPORTANT: Explicit correction signals were detected in this conversation. "
-                "Pay special attention to what the agent got wrong, what the user corrected, "
-                "and record the correct approach as a fact with category "
-                '"correction" and confidence >= 0.95 when appropriate.'
+                "重要：检测到此对话中存在明确的纠正信号。"
+                "请特别关注 Agent 哪里做错了、用户纠正了什么，"
+                "并将正确的做法记录为事实，category 设为 "
+                '"correction"，置信度 >= 0.95。'
             )
         if reinforcement_detected:
             reinforcement_hint = (
-                "IMPORTANT: Positive reinforcement signals were detected in this conversation. "
-                "The user explicitly confirmed the agent's approach was correct or helpful. "
-                "Record the confirmed approach, style, or preference as a fact with category "
-                '"preference" or "behavior" and confidence >= 0.9 when appropriate.'
+                "重要：检测到此对话中存在正向强化信号。"
+                "用户明确确认了 Agent 的方法是正确的或有帮助的。"
+                "将确认的方法、风格或偏好记录为事实，category 设为 "
+                '"preference" 或 "behavior"，置信度 >= 0.9。'
             )
             correction_hint = (correction_hint + "\n" + reinforcement_hint).strip() if correction_hint else reinforcement_hint
 

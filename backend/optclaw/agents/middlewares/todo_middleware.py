@@ -99,11 +99,11 @@ class TodoMiddleware(TodoListMiddleware):
             name="todo_reminder",
             content=(
                 "<system_reminder>\n"
-                "Your todo list from earlier is no longer visible in the current context window, "
-                "but it is still active. Here is the current state:\n\n"
+                "你之前的 todo 列表在当前上下文窗口中已不可见，"
+                "但它仍然有效。以下是当前状态：\n\n"
                 f"{formatted}\n\n"
-                "Continue tracking and updating this todo list as you work. "
-                "Call `write_todos` whenever the status of any item changes.\n"
+                "继续追踪和更新此 todo 列表。"
+                "当任何项目状态变化时调用 `write_todos`。\n"
                 "</system_reminder>"
             ),
         )
@@ -172,10 +172,10 @@ class TodoMiddleware(TodoListMiddleware):
             name="todo_completion_reminder",
             content=(
                 "<system_reminder>\n"
-                "You have incomplete todo items that must be finished before giving your final response:\n\n"
+                "你有未完成的 todo 项，必须在给出最终回复前完成：\n\n"
                 f"{incomplete_text}\n\n"
-                "Please continue working on these tasks. Call `write_todos` to mark items as completed "
-                "as you finish them, and only respond when all items are done.\n"
+                "请继续完成这些任务。每完成一项调用 `write_todos` 标记为 completed，"
+                "只有全部完成后才能回复。\n"
                 "</system_reminder>"
             ),
         )

@@ -12,88 +12,88 @@ except ImportError:
     TIKTOKEN_AVAILABLE = False
 
 # Prompt template for updating memory based on conversation
-MEMORY_UPDATE_PROMPT = """You are a memory management system. Your task is to analyze a conversation and update the user's memory profile.
+MEMORY_UPDATE_PROMPT = """你是记忆管理系统。分析对话并更新用户记忆档案。
 
-Current Memory State:
+当前记忆状态：
 <current_memory>
 {current_memory}
 </current_memory>
 
-New Conversation to Process:
+待处理的新对话：
 <conversation>
 {conversation}
 </conversation>
 
-Instructions:
-1. Analyze the conversation for important information about the user
-2. Extract relevant facts, preferences, and context with specific details (numbers, names, technologies)
-3. Update the memory sections as needed following the detailed length guidelines below
+指令：
+1. 分析对话中关于用户的重要信息
+2. 提取相关事实、偏好和上下文，包含具体细节（数字、名称、技术）
+3. 按以下详细长度指南更新各记忆分区
 
-Before extracting facts, perform a structured reflection on the conversation:
-1. Error/Retry Detection: Did the agent encounter errors, require retries, or produce incorrect results?
-   If yes, record the root cause and correct approach as a high-confidence fact with category "correction".
-2. User Correction Detection: Did the user correct the agent's direction, understanding, or output?
-   If yes, record the correct interpretation or approach as a high-confidence fact with category "correction".
-   Include what went wrong in "sourceError" only when category is "correction" and the mistake is explicit in the conversation.
-3. Project Constraint Discovery: Were any project-specific constraints discovered during the conversation?
-   If yes, record them as facts with the most appropriate category and confidence.
+提取事实前，对对话进行结构化反思：
+1. 错误/重试检测：Agent 是否遇到错误、需要重试或产生错误结果？
+   如是，将根因和正确做法记录为高置信度事实，category 设为 "correction"。
+2. 用户纠正检测：用户是否纠正了 Agent 的方向、理解或输出？
+   如是，将正确的解释或方法记录为高置信度事实，category 设为 "correction"。
+   仅当 category 为 "correction" 且对话中明确存在错误时，才在 "sourceError" 中注明错误内容。
+3. 项目约束发现：对话中是否发现了项目特定的约束？
+   如是，记录为最合适类别和置信度的事实。
 
 {correction_hint}
 
-Memory Section Guidelines:
+记忆分区指南：
 
-**User Context** (Current state - concise summaries):
-- workContext: Professional role, company, key projects, main technologies (2-3 sentences)
-  Example: Core contributor, project names with metrics (16k+ stars), technical stack
-- personalContext: Languages, communication preferences, key interests (1-2 sentences)
-  Example: Bilingual capabilities, specific interest areas, expertise domains
-- topOfMind: Multiple ongoing focus areas and priorities (3-5 sentences, detailed paragraph)
-  Example: Primary project work, parallel technical investigations, ongoing learning/tracking
-  Include: Active implementation work, troubleshooting issues, market/research interests
-  Note: This captures SEVERAL concurrent focus areas, not just one task
+**用户上下文**（当前状态 - 简洁摘要）：
+- workContext：职业角色、公司、关键项目、主要技术（2-3 句）
+  示例：核心贡献者，含指标的项目名称（16k+ stars），技术栈
+- personalContext：语言、沟通偏好、关键兴趣（1-2 句）
+  示例：双语能力、特定兴趣领域、专业领域
+- topOfMind：多个当前关注领域和优先级（3-5 句，详细段落）
+  示例：主要项目工作、并行技术调研、持续学习/跟踪
+  包含：活跃的实现工作、排障问题、市场/研究兴趣
+  注意：此处捕获多个并发关注领域，而非单一任务
 
-**History** (Temporal context - rich paragraphs):
-- recentMonths: Detailed summary of recent activities (4-6 sentences or 1-2 paragraphs)
-  Timeline: Last 1-3 months of interactions
-  Include: Technologies explored, projects worked on, problems solved, interests demonstrated
-- earlierContext: Important historical patterns (3-5 sentences or 1 paragraph)
-  Timeline: 3-12 months ago
-  Include: Past projects, learning journeys, established patterns
-- longTermBackground: Persistent background and foundational context (2-4 sentences)
-  Timeline: Overall/foundational information
-  Include: Core expertise, longstanding interests, fundamental working style
+**历史记录**（时间上下文 - 丰富段落）：
+- recentMonths：近期活动详细摘要（4-6 句或 1-2 段）
+  时间线：最近 1-3 个月的交互
+  包含：探索的技术、从事的项目、解决的问题、展现的兴趣
+- earlierContext：重要的历史模式（3-5 句或 1 段）
+  时间线：3-12 个月前
+  包含：过往项目、学习历程、已建立的模式
+- longTermBackground：持久背景和基础上下文（2-4 句）
+  时间线：整体/基础性信息
+  包含：核心专长、长期兴趣、基本工作风格
 
-**Facts Extraction**:
-- Extract specific, quantifiable details (e.g., "16k+ GitHub stars", "200+ datasets")
-- Include proper nouns (company names, project names, technology names)
-- Preserve technical terminology and version numbers
-- Categories:
-  * preference: Tools, styles, approaches user prefers/dislikes
-  * knowledge: Specific expertise, technologies mastered, domain knowledge
-  * context: Background facts (job title, projects, locations, languages)
-  * behavior: Working patterns, communication habits, problem-solving approaches
-  * goal: Stated objectives, learning targets, project ambitions
-  * correction: Explicit agent mistakes or user corrections, including the correct approach
-- Confidence levels:
-  * 0.9-1.0: Explicitly stated facts ("I work on X", "My role is Y")
-  * 0.7-0.8: Strongly implied from actions/discussions
-  * 0.5-0.6: Inferred patterns (use sparingly, only for clear patterns)
+**事实提取**：
+- 提取具体、可量化的细节（如 "16k+ GitHub stars"、"200+ 数据集"）
+- 包含专有名词（公司名、项目名、技术名）
+- 保留技术术语和版本号
+- 类别：
+  * preference：用户偏好/不喜欢的工具、风格、方法
+  * knowledge：特定专长、掌握的技术、领域知识
+  * context：背景事实（职位、项目、地点、语言）
+  * behavior：工作模式、沟通习惯、问题解决方法
+  * goal：明确的目标、学习方向、项目抱负
+  * correction：明确的 Agent 错误或用户纠正，含正确做法
+- 置信度：
+  * 0.9-1.0：明确陈述的事实（"我在做 X"、"我的角色是 Y"）
+  * 0.7-0.8：从行为/讨论中强推断
+  * 0.5-0.6：推断的模式（谨慎使用，仅用于明显模式）
 
-**What Goes Where**:
-- workContext: Current job, active projects, primary tech stack
-- personalContext: Languages, personality, interests outside direct work tasks
-- topOfMind: Multiple ongoing priorities and focus areas user cares about recently (gets updated most frequently)
-  Should capture 3-5 concurrent themes: main work, side explorations, learning/tracking interests
-- recentMonths: Detailed account of recent technical explorations and work
-- earlierContext: Patterns from slightly older interactions still relevant
-- longTermBackground: Unchanging foundational facts about the user
+**内容归属**：
+- workContext：当前工作、活跃项目、主要技术栈
+- personalContext：语言、个性、工作之外的兴趣
+- topOfMind：用户近期关注的多个优先级和焦点（更新最频繁）
+  应捕获 3-5 个并发主题：主要工作、副业探索、学习/跟踪兴趣
+- recentMonths：近期技术探索和工作的详细记录
+- earlierContext：较早但仍有参考价值的交互模式
+- longTermBackground：用户不变的底层基础事实
 
-**Multilingual Content**:
-- Preserve original language for proper nouns and company names
-- Keep technical terms in their original form (DeepSeek, LangGraph, etc.)
-- Note language capabilities in personalContext
+**多语言内容**：
+- 专有名词和公司名保留原文
+- 技术术语保留原形式（DeepSeek、LangGraph 等）
+- 在 personalContext 中注明语言能力
 
-Output Format (JSON):
+输出格式（JSON）：
 {{
   "user": {{
     "workContext": {{ "summary": "...", "shouldUpdate": true/false }},
@@ -111,57 +111,54 @@ Output Format (JSON):
   "factsToRemove": ["fact_id_1", "fact_id_2"]
 }}
 
-Important Rules:
-- Only set shouldUpdate=true if there's meaningful new information
-- Follow length guidelines: workContext/personalContext are concise (1-3 sentences), topOfMind and history sections are detailed (paragraphs)
-- Include specific metrics, version numbers, and proper nouns in facts
-- Only add facts that are clearly stated (0.9+) or strongly implied (0.7+)
-- Use category "correction" for explicit agent mistakes or user corrections; assign confidence >= 0.95 when the correction is explicit
-- Include "sourceError" only for explicit correction facts when the prior mistake or wrong approach is clearly stated; omit it otherwise
-- Remove facts that are contradicted by new information
-- When updating topOfMind, integrate new focus areas while removing completed/abandoned ones
-  Keep 3-5 concurrent focus themes that are still active and relevant
-- For history sections, integrate new information chronologically into appropriate time period
-- Preserve technical accuracy - keep exact names of technologies, companies, projects
-- Focus on information useful for future interactions and personalization
-- IMPORTANT: Do NOT record file upload events in memory. Uploaded files are
-  session-specific and ephemeral — they will not be accessible in future sessions.
-  Recording upload events causes confusion in subsequent conversations.
+重要规则：
+- 只有存在有意义的新信息时才设 shouldUpdate=true
+- 遵循长度指南：workContext/personalContext 简洁（1-3 句），topOfMind 和历史分区详细（段落）
+- 事实中包含具体指标、版本号和专有名词
+- 仅添加明确陈述（0.9+）或强推断（0.7+）的事实
+- category "correction" 用于明确的 Agent 错误或用户纠正；纠正明确时置信度 >= 0.95
+- "sourceError" 仅用于明确的纠正事实，且之前的错误或错误做法在对话中明确陈述；否则省略
+- 删除与新信息矛盾的事实
+- 更新 topOfMind 时，整合新关注领域，移除已完成/放弃的
+  保持 3-5 个仍活跃且相关的并发关注主题
+- 历史分区按时间顺序将新信息整合到对应时段
+- 保持技术准确性——保留技术、公司、项目的准确名称
+- 聚焦对未来交互和个性化有用的信息
+- 重要：不要在记忆中记录文件上传事件。上传的文件是会话特定的、临时的——在后续会话中不可访问。
+  记录上传事件会在后续对话中造成困惑。
 
-Return ONLY valid JSON, no explanation or markdown.
+只返回合法 JSON，不要解释或 markdown。
 
 **极其重要：所有输出内容必须使用中文，包括 summary、content、category 等所有字段的值，一律使用简体中文！**"""
 
 
 # Prompt template for extracting facts from a single message
-FACT_EXTRACTION_PROMPT = """Extract factual information about the user from this message.
+FACT_EXTRACTION_PROMPT = """从此消息中提取关于用户的事实信息。
 
-Message:
+消息：
 {message}
 
-Extract facts in this JSON format:
+按以下 JSON 格式提取事实：
 {{
   "facts": [
     {{ "content": "...", "category": "preference|knowledge|context|behavior|goal|correction", "confidence": 0.0-1.0 }}
   ]
 }}
 
-Categories:
-- preference: User preferences (likes/dislikes, styles, tools)
-- knowledge: User's expertise or knowledge areas
-- context: Background context (location, job, projects)
-- behavior: Behavioral patterns
-- goal: User's goals or objectives
-- correction: Explicit corrections or mistakes to avoid repeating
+类别：
+- preference：用户偏好（喜欢/不喜欢、风格、工具）
+- knowledge：用户的专长或知识领域
+- context：背景上下文（地点、工作、项目）
+- behavior：行为模式
+- goal：用户的目标或意图
+- correction：明确的纠正或应避免重复的错误
 
-Rules:
-- Only extract clear, specific facts
-- Confidence should reflect certainty (explicit statement = 0.9+, implied = 0.6-0.8)
-- Skip vague or temporary information
+规则：
+- 仅提取清晰、具体的事实
+- 置信度反映确定程度（明确陈述 = 0.9+，推断 = 0.6-0.8）
+- 跳过模糊或临时信息
 
-Return ONLY valid JSON.
-
-Please output in Chinese content format！
+只返回合法 JSON。
 
 **极其重要：所有输出内容必须使用中文，包括 fact 的 content、category 等所有字段的值，一律使用简体中文！**"""
 
@@ -226,18 +223,18 @@ def format_memory_for_injection(memory_data: dict[str, Any], max_tokens: int = 2
 
         work_ctx = user_data.get("workContext", {})
         if work_ctx.get("summary"):
-            user_sections.append(f"Work: {work_ctx['summary']}")
+            user_sections.append(f"工作: {work_ctx['summary']}")
 
         personal_ctx = user_data.get("personalContext", {})
         if personal_ctx.get("summary"):
-            user_sections.append(f"Personal: {personal_ctx['summary']}")
+            user_sections.append(f"个人: {personal_ctx['summary']}")
 
         top_of_mind = user_data.get("topOfMind", {})
         if top_of_mind.get("summary"):
-            user_sections.append(f"Current Focus: {top_of_mind['summary']}")
+            user_sections.append(f"当前关注: {top_of_mind['summary']}")
 
         if user_sections:
-            sections.append("User Context:\n" + "\n".join(f"- {s}" for s in user_sections))
+            sections.append("用户上下文:\n" + "\n".join(f"- {s}" for s in user_sections))
 
     # Format history
     history_data = memory_data.get("history", {})
@@ -246,18 +243,18 @@ def format_memory_for_injection(memory_data: dict[str, Any], max_tokens: int = 2
 
         recent = history_data.get("recentMonths", {})
         if recent.get("summary"):
-            history_sections.append(f"Recent: {recent['summary']}")
+            history_sections.append(f"近期: {recent['summary']}")
 
         earlier = history_data.get("earlierContext", {})
         if earlier.get("summary"):
-            history_sections.append(f"Earlier: {earlier['summary']}")
+            history_sections.append(f"更早: {earlier['summary']}")
 
         background = history_data.get("longTermBackground", {})
         if background.get("summary"):
-            history_sections.append(f"Background: {background['summary']}")
+            history_sections.append(f"背景: {background['summary']}")
 
         if history_sections:
-            sections.append("History:\n" + "\n".join(f"- {s}" for s in history_sections))
+            sections.append("历史:\n" + "\n".join(f"- {s}" for s in history_sections))
 
     # Format facts (sorted by confidence; include as many as token budget allows)
     facts_data = memory_data.get("facts", [])
@@ -273,7 +270,7 @@ def format_memory_for_injection(memory_data: dict[str, Any], max_tokens: int = 2
         base_text = "\n\n".join(sections)
         base_tokens = _count_tokens(base_text) if base_text else 0
         # Account for the separator between existing sections and the facts section.
-        facts_header = "Facts:\n"
+        facts_header = "事实:\n"
         separator_tokens = _count_tokens("\n\n" + facts_header) if base_text else _count_tokens(facts_header)
         running_tokens = base_tokens + separator_tokens
 
@@ -289,7 +286,7 @@ def format_memory_for_injection(memory_data: dict[str, Any], max_tokens: int = 2
             confidence = _coerce_confidence(fact.get("confidence"), default=0.0)
             source_error = fact.get("sourceError")
             if category == "correction" and isinstance(source_error, str) and source_error.strip():
-                line = f"- [{category} | {confidence:.2f}] {content} (avoid: {source_error.strip()})"
+                line = f"- [{category} | {confidence:.2f}] {content} (避免: {source_error.strip()})"
             else:
                 line = f"- [{category} | {confidence:.2f}] {content}"
 
@@ -304,7 +301,7 @@ def format_memory_for_injection(memory_data: dict[str, Any], max_tokens: int = 2
                 break
 
         if fact_lines:
-            sections.append("Facts:\n" + "\n".join(fact_lines))
+            sections.append("事实:\n" + "\n".join(fact_lines))
 
     if not sections:
         return ""

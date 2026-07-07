@@ -153,15 +153,15 @@ def _build_skill_evolution_section(skill_evolution_enabled: bool) -> str:
     if not skill_evolution_enabled:
         return ""
     return """
-## Skill Self-Evolution
-After completing a task, consider creating or updating a skill when:
-- The task required 5+ tool calls to resolve
-- You overcame non-obvious errors or pitfalls
-- The user corrected your approach and the corrected version worked
-- You discovered a non-trivial, recurring workflow
-If you used a skill and encountered issues not covered by it, patch it immediately.
-Prefer patch over edit. Before creating a new skill, confirm with the user first.
-Skip simple one-off tasks.
+## Skill 自进化
+完成任务后，在以下情况考虑创建或更新 Skill：
+- 任务需要 5 次以上工具调用才能完成
+- 克服了非显而易见的错误或陷阱
+- 用户纠正了你的方法且纠正后有效
+- 发现了非平凡的、重复出现的工作流
+如果使用某个 Skill 时遇到其未覆盖的问题，立即修补。
+优先修补而非重写。创建新 Skill 前先与用户确认。
+跳过简单的一次性任务。
 """
 
 
@@ -316,16 +316,16 @@ def _get_cached_skills_prompt_section(
         )
         skills_list = f"<available_skills>\n{skill_items}\n</available_skills>"
     return f"""<skill_system>
-You have access to skills that provide optimized workflows for specific tasks. Each skill contains best practices, frameworks, and references to additional resources.
+你有权访问 Skills，它们为特定任务提供优化的工作流、最佳实践、框架和参考资源。
 
-**Progressive Loading Pattern:**
-1. When a user query matches a skill's use case, immediately call `read_file` on the skill's main file using the path attribute provided in the skill tag below
-2. Read and understand the skill's workflow and instructions
-3. The skill file contains references to external resources under the same folder
-4. Load referenced resources only when needed during execution
-5. Follow the skill's instructions precisely
+**渐进式加载模式：**
+1. 当用户查询与某 Skill 的用途匹配时，立即用下方 skill 标签中的 path 属性调用 `read_file` 读取 Skill 主文件
+2. 阅读并理解 Skill 的工作流和指令
+3. Skill 文件中包含同目录下外部资源的引用
+4. 仅在执行过程中需要时加载引用的资源
+5. 严格遵循 Skill 的指令
 
-**Skills are located at:** {container_base_path}
+**Skills 位置：** {container_base_path}
 {skill_evolution_section}
 {skills_list}
 
@@ -384,18 +384,18 @@ def apply_prompt_template(agent_name: str | None = None, available_skills: set[s
 
     # Add subagent reminder to critical_reminders if enabled
     subagent_reminder = (
-        "- **Orchestrator Mode**: You are a task orchestrator - decompose complex tasks into parallel sub-tasks. "
-        f"**HARD LIMIT: max {n} `task` calls per response.** "
-        f"If >{n} sub-tasks, split into sequential batches of ≤{n}. Synthesize after ALL batches complete.\n"
+        "- **编排模式**：你是任务编排器——将复杂任务拆成并行子任务。"
+        f"**硬限制：每轮最多 {n} 个 task 调用。**"
+        f"超过 {n} 个子任务时分批执行，每批 ≤{n}。所有批次完成后合成结果。\n"
         if subagent_enabled
         else ""
     )
 
     # Add subagent thinking guidance if enabled
     subagent_thinking = (
-        "- **DECOMPOSITION CHECK: Can this task be broken into 2+ parallel sub-tasks? If YES, COUNT them. "
-        f"If count > {n}, you MUST plan batches of ≤{n} and only launch the FIRST batch now. "
-        f"NEVER launch more than {n} `task` calls in one response.**\n"
+        "- **拆解检查：此任务能否拆成 2+ 个并行子任务？若能，必须计数。"
+        f"若超过 {n} 个，必须规划每批 ≤{n} 个，本轮只启动第一批。"
+        f"严禁单轮启动超过 {n} 个 task 调用。**\n"
         if subagent_enabled
         else ""
     )

@@ -127,15 +127,15 @@ def _hash_tool_calls(tool_calls: list[dict]) -> str:
     return hashlib.md5(blob.encode()).hexdigest()[:12]
 
 
-_WARNING_MSG = "[LOOP DETECTED] You are repeating the same tool calls. Stop calling tools and produce your final answer now. If you cannot complete the task, summarize what you accomplished so far."
+_WARNING_MSG = "[检测到循环] 你正在重复相同的工具调用。停止调用工具，立即给出最终答案。如果无法完成任务，请总结目前已完成的内容。"
 
 _TOOL_FREQ_WARNING_MSG = (
-    "[LOOP DETECTED] You have called {tool_name} {count} times without producing a final answer. Stop calling tools and produce your final answer now. If you cannot complete the task, summarize what you accomplished so far."
+    "[检测到循环] 你已调用 {tool_name} {count} 次但未给出最终答案。停止调用工具，立即给出最终答案。如果无法完成任务，请总结目前已完成的内容。"
 )
 
-_HARD_STOP_MSG = "[FORCED STOP] Repeated tool calls exceeded the safety limit. Producing final answer with results collected so far."
+_HARD_STOP_MSG = "[强制停止] 重复工具调用超出安全限制。基于目前收集的结果给出最终答案。"
 
-_TOOL_FREQ_HARD_STOP_MSG = "[FORCED STOP] Tool {tool_name} called {count} times — exceeded the per-tool safety limit. Producing final answer with results collected so far."
+_TOOL_FREQ_HARD_STOP_MSG = "[强制停止] 工具 {tool_name} 被调用 {count} 次——超出单工具安全限制。基于目前收集的结果给出最终答案。"
 
 
 class LoopDetectionMiddleware(AgentMiddleware[AgentState]):

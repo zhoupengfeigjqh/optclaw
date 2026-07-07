@@ -130,7 +130,7 @@ tool_search:
   enabled: false
 tools:
 - api_key: $TAVILY_API_KEY
-  enabled: false
+  enabled: true
   group: web
   max_results: 5
   name: web_search

@@ -104,10 +104,10 @@ class ViewImageMiddleware(AgentMiddleware[ViewImageMiddlewareState]):
         viewed_images = state.get("viewed_images", {})
         if not viewed_images:
             # Return a properly formatted text block, not a plain string array
-            return [{"type": "text", "text": "No images have been viewed."}]
+            return [{"type": "text", "text": "尚未查看任何图片。"}]
 
         # Build the message with image information
-        content_blocks: list[str | dict] = [{"type": "text", "text": "Here are the images you've viewed:"}]
+        content_blocks: list[str | dict] = [{"type": "text", "text": "以下是你已查看的图片："}]
 
         for image_path, image_data in viewed_images.items():
             mime_type = image_data.get("mime_type", "unknown")
@@ -159,7 +159,7 @@ class ViewImageMiddleware(AgentMiddleware[ViewImageMiddlewareState]):
         for msg in messages[assistant_idx + 1 :]:
             if isinstance(msg, HumanMessage):
                 content_str = str(msg.content)
-                if "Here are the images you've viewed" in content_str or "Here are the details of the images you've viewed" in content_str:
+                if "以下是你已查看的图片" in content_str or "以下是图片详情" in content_str:
                     # Already added, don't add again
                     return False
 

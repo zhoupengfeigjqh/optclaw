@@ -91,18 +91,18 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
         if outline:
             truncated = outline[-1].get("truncated", False)
             visible = [e for e in outline if not e.get("truncated")]
-            lines.append("  Document outline (use `read_file` with line ranges to read sections):")
+            lines.append("  文档大纲（使用 `read_file` 配合行范围读取各节）:")
             for entry in visible:
                 lines.append(f"    L{entry['line']}: {entry['title']}")
             if truncated:
-                lines.append(f"    ... (showing first {len(visible)} headings; use `read_file` to explore further)")
+                lines.append(f"    ... (显示前 {len(visible)} 个标题；使用 `read_file` 进一步探索)")
         else:
             preview = file.get("outline_preview") or []
             if preview:
-                lines.append("  No structural headings detected. Document begins with:")
+                lines.append("  未检测到结构化标题。文档开头内容：")
                 for text in preview:
                     lines.append(f"    > {text}")
-            lines.append("  Use `grep` to search for keywords (e.g. `grep(pattern='keyword', path='/mnt/user-data/uploads/')`).")
+            lines.append("  使用 `grep` 搜索关键词（如 `grep(pattern='关键词', path='/mnt/user-data/uploads/')`）。")
         lines.append("")
 
     def _create_files_message(self, new_files: list[dict], historical_files: list[dict]) -> str:
@@ -119,7 +119,7 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
         """
         lines = ["<uploaded_files>"]
 
-        lines.append("The following files were uploaded in this message:")
+        lines.append("本条消息中上传了以下文件：")
         lines.append("")
         if new_files:
             for file in new_files:
@@ -129,18 +129,18 @@ class UploadsMiddleware(AgentMiddleware[UploadsMiddlewareState]):
             lines.append("")
 
         if historical_files:
-            lines.append("The following files were uploaded in previous messages and are still available:")
+            lines.append("以下文件在之前的消息中上传，仍然可用：")
             lines.append("")
             for file in historical_files:
                 self._format_file_entry(file, lines)
 
-        lines.append("To work with these files:")
-        lines.append("- Read file content directly — use the `read_file` tool with absolute file path.")
-        lines.append("- Use `grep_file` tool to search for keywords/patterns in a specific text file")
-        lines.append("  (e.g. `grep_file(pattern='revenue', path='/mnt/user-data/uploads/data.md')`).")
-        lines.append("- Use `glob_file` tool to find files by wildcard path pattern")
-        lines.append("  (e.g. `glob_file(path_pattern='/mnt/user-data/uploads/*.md')`).")
-        lines.append("- Do NOT use web search to answer the question.")
+        lines.append("使用这些文件的方式：")
+        lines.append("- 直接读取文件内容——使用 `read_file` 工具配合绝对路径。")
+        lines.append("- 使用 `grep_file` 工具在指定文本文件中搜索关键词/模式")
+        lines.append("  （如 `grep_file(pattern='营收', path='/mnt/user-data/uploads/data.md')`）。")
+        lines.append("- 使用 `glob_file` 工具按通配符路径模式查找文件")
+        lines.append("  （如 `glob_file(path_pattern='/mnt/user-data/uploads/*.md')`）。")
+        lines.append("- 不要使用网络搜索来回答问题。")
         lines.append("</uploaded_files>")
 
         return "\n".join(lines)

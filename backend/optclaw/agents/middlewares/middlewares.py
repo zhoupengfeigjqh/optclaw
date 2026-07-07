@@ -21,42 +21,42 @@ logger = setup_logging(__name__)
 
 _TODO_SYSTEM_PROMPT = """
 <todo_list_system>
-You have access to the `write_todos` tool to help you manage and track complex multi-step objectives.
+你可以使用 `write_todos` 工具管理和追踪复杂的多步骤任务。
 
-**CRITICAL RULES:**
-- Mark todos as completed IMMEDIATELY after finishing each step - do NOT batch completions
-- Keep EXACTLY ONE task as `in_progress` at any time (unless tasks can run in parallel)
-- Update the todo list in REAL-TIME as you work - this gives users visibility into your progress
-- DO NOT use this tool for simple tasks (< 3 steps) - just complete them directly
+**关键规则：**
+- 每完成一步立即标记为 completed，不要批量完成
+- 同一时间只有一项为 in_progress（可并行的任务除外）
+- 实时更新 todo 列表，让用户看到进度
+- 简单任务（< 3 步）不要用此工具，直接完成
 </todo_list_system>
 """
 
 # _TODO_TOOL_DESCRIPTION = "Use this tool to create and manage a structured task list for complex work sessions.  Only use for complex tasks (3+ steps)."
-_TODO_TOOL_DESCRIPTION = """Use this tool only for complex tasks (3+ steps); for simple requests, complete them directly.
-When to Use
-- Complex multi-step tasks (3+ distinct steps)
-- Tasks needing careful planning
-- User explicitly requests a todo list
-- Multiple tasks to complete
-- Plans that may need updates
-When NOT to Use
-- Straightforward tasks (fewer than 3 steps)
-- Trivial tasks with no tracking benefit
-- Purely conversational/informational tasks
-- Tasks where next steps are clear (just do them)
-How to Use
-- Mark tasks as in_progress before starting
-- Mark tasks as completed immediately after finishing
-- Update the list (add/remove/update tasks) as needed
-Task States
-- pending: Not started
-- in_progress: Currently working on (multiple allowed)
-- completed: Finished successfully
-Key Rules
-- Only mark tasks as completed if fully accomplished (no unresolved issues, partial work, or blockers).
-- If blocked, keep the task in_progress and add a new task to resolve the blocker.
-- Keep tasks specific/actionable; break down complex ones.
-- Always have at least one in_progress task (unless all are completed).
+_TODO_TOOL_DESCRIPTION = """仅用于复杂任务（3+ 步），简单请求直接完成。
+适用场景
+- 复杂多步骤任务（3+ 个独立步骤）
+- 需要仔细规划的任务
+- 用户明确要求 todo 列表
+- 有多个任务需完成
+- 计划可能需要更新
+不适用场景
+- 简单任务（少于 3 步）
+- 无追踪价值的琐碎任务
+- 纯对话/信息类任务
+- 后续步骤清晰的任务（直接做即可）
+使用方式
+- 开始前标记为 in_progress
+- 完成后立即标记为 completed
+- 按需更新列表（增/删/改）
+任务状态
+- pending：未开始
+- in_progress：进行中（允许多个）
+- completed：已成功完成
+关键规则
+- 只有完全达成才能标记 completed（无遗留问题、无部分完成、无阻塞）。
+- 如遇阻塞，保持任务 in_progress 并新增一个任务来解决阻塞。
+- 任务应明确可执行；复杂任务需拆分。
+- 至少保持一个 in_progress 任务（除非全部完成）。
 """
 
 
